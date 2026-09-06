@@ -93,6 +93,8 @@ data class EventParticipant(
     val faceProfileVersion: Int,
     val joinedAtMillis: Long,
 ) {
+    val stableFaceIdentityId: String get() = faceIdentityId?.trim().orEmpty()
+
     val faceProfileRevision: String
         get() {
             val ids = faceTemplates.map { it.id }.filter { it.isNotBlank() }.sorted()
@@ -111,7 +113,7 @@ data class EventParticipant(
     fun asMatcherParticipant(): FaceParticipant = FaceParticipant(
         userId = userId,
         membershipId = membershipId,
-        faceIdentityId = faceIdentityId.orEmpty().trim(),
+        faceIdentityId = stableFaceIdentityId,
         faceProfileRevision = faceProfileRevision,
         faceProfileVersion = faceProfileVersion,
         embeddings = effectiveEmbeddings(),
