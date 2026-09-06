@@ -351,7 +351,7 @@ private fun FaceSetupScreen(
         if (success && file != null && file.exists()) {
             val jpeg = runCatching { file.readBytes() }.getOrNull()
             file.delete()
-            if (!jpeg.isNullOrEmpty()) onCapture(jpeg)
+            if (jpeg != null && jpeg.isNotEmpty()) onCapture(jpeg)
         } else {
             file?.delete()
         }
