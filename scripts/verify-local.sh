@@ -1,28 +1,61 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-GRADLE="${GRADLE:-./gradlew}"
-if [[ ! -x "$GRADLE" ]]; then
-  echo "Gradle wrapper missing. Run once: gradle wrapper --gradle-version 9.6.0"
-  exit 2
+if [[ -x ./gradlew ]]; then
+  GRADLE="${GRADLE:-./gradlew}"
+else
+  GRADLE="${GRADLE:-gradle}"
 fi
-if [[ ! -f app/google-services.json ]]; then
+
+command -v "${GRADLE%% *}" >/dev/null 2>&1 || {
+  echo "Gradle 9.6.0 is required. Install it or generate a wrapper with: gradle wrapper --gradle-version 9.6.0"
+  exit 2
+}
+
+[[ -f app/google-services.json ]] || {
   echo "Missing app/google-services.json (expected locally; intentionally gitignored)."
   exit 3
-fi
-if [[ ! -f app/src/main/assets/models/glintr100.onnx ]]; then
-  echo "Missing AuraFace model at app/src/main/assets/models/glintr100.onnx"
+}
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+path = Path("app/google-services.json")
+data = json.loads(path.read_text())
+packages = {
+    client.get("client_info", {}).get("android_client_info", {}).get("package_name")
+    for client in data.get("client", [])
+}
+if "com.snaploop.app" not in packages:
+    raise SystemExit("google-services.json does not contain Android package com.snaploop.app")
+print("Firebase package identity: OK (com.snaploop.app)")
+PY
+
+MODEL=app/src/main/assets/models/glintr100.onnx
+[[ -f "$MODEL" ]] || {
+  echo "Missing AuraFace model at $MODEL"
   exit 4
-fi
+}
+
 EXPECTED=a7933ea5330113b01c9b60351d8f4c33003f145d8470ac5f0e52ee2effe25c60
-ACTUAL=$(shasum -a 256 app/src/main/assets/models/glintr100.onnx | awk '{print $1}')
-[[ "$ACTUAL" == "$EXPECTED" ]] || { echo "AuraFace SHA mismatch"; exit 5; }
+ACTUAL=$(shasum -a 256 "$MODEL" | awk '{print $1}')
+[[ "$ACTUAL" == "$EXPECTED" ]] || {
+  echo "AuraFace SHA mismatch"
+  echo "Expected: $EXPECTED"
+  echo "Actual:   $ACTUAL"
+  exit 5
+}
+echo "AuraFace SHA-256: OK"
 
 $GRADLE clean
-$GRADLE test
-$GRADLE lint
-$GRADLE assembleDebug
-$GRADLE assembleRelease
-$GRADLE signingReport
+$GRADLE :app:processDebugGoogleServices
+$GRADLE test lint assembleDebug assembleRelease signingReport
 
-echo "Local build gates passed. Run connected tests with: $GRADLE connectedDebugAndroidTest"
+echo
+echo "Local build gates passed."
+echo "Device ONNX smoke test:"
+echo "  $GRADLE :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.snaploop.app.face.AuraFaceRuntimeInstrumentedTest"
+echo "Install + launch:"
+echo "  $GRADLE :app:installDebug"
+echo "  adb shell am start -W -n com.snaploop.app/.MainActivity"
