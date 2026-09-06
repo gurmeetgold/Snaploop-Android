@@ -17,6 +17,8 @@ jobs:
           ref: feature/android-production-parity-v1
       - name: Apply device-flow patch
         run: python3 scripts/patch-device-flow.py
+      - name: Fix nullable capture bytes
+        run: python3 -c 'from pathlib import Path; p=Path("app/src/main/java/com/snaploop/app/ui/SnapLoopApp.kt"); s=p.read_text(); p.write_text(s.replace("if (!jpeg.isNullOrEmpty()) onCapture(jpeg)", "if (jpeg != null && jpeg.isNotEmpty()) onCapture(jpeg)"))'
       - name: Commit patch
         shell: bash
         run: |
@@ -30,5 +32,5 @@ jobs:
           git add app/src/main/java/com/snaploop/app/ui/SnapLoopApp.kt
           git add app/src/main/AndroidManifest.xml
           git add app/src/main/res/xml/file_paths.xml
-          git commit -m "fix: harden face setup and session restoration"
+          git commit -m "fix: compile full-resolution face capture"
           git push origin HEAD:feature/android-production-parity-v1
