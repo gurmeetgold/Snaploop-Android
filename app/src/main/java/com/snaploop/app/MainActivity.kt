@@ -9,8 +9,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModelProvider
 import com.snaploop.app.ui.AppCoordinator
-import com.snaploop.app.ui.SnapLoopApp
 import com.snaploop.app.ui.SnapLoopDeepLinkEffect
+import com.snaploop.app.ui.SnapLoopRoot
 import com.snaploop.app.ui.SnapLoopTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
                     coordinator = coordinator,
                     onConsumed = { pendingDeepLink.value = null },
                 )
-                SnapLoopApp(
+                SnapLoopRoot(
                     activity = this@MainActivity,
                     coordinator = coordinator,
                 )
