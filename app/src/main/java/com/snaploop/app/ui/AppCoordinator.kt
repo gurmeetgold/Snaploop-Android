@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.Instant
 import java.util.Locale
 import java.util.UUID
@@ -44,6 +45,8 @@ enum class AppGate { RESTORING, AUTH, ONBOARDING, NAME_SETUP, BIOMETRIC_CONSENT,
 data class AppUiState(
     val gate: AppGate = AppGate.RESTORING,
     val busy: Boolean = false,
+    val restoreCanRetry: Boolean = false,
+    val restoreError: String? = null,
     val message: String? = null,
     val user: SnapUser? = null,
     val verificationId: String? = null,
@@ -66,6 +69,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     private val faceReferences = EncryptedFaceReferenceStore(application)
     private val prefs = application.getSharedPreferences("snaploop.ui", 0)
     private val pendingFaceJpegs = mutableListOf<ByteArray>()
+    private val pendingFaceEmbeddings = mutableListOf<FloatArray>()
 
     private var remoteConfig: RemoteConfigValues = RemoteConfigValues()
     private val _state = MutableStateFlow(AppUiState())
@@ -73,25 +77,66 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
 
     init {
         if (BuildConfig.FIREBASE_CONFIG_PRESENT) {
+            // Remote Config is best-effort. Session routing must never wait indefinitely for it.
             viewModelScope.launch {
-                remoteConfig = runCatching {
-                    SnapLoopRemoteConfig(FirebaseRemoteConfig.getInstance()).initialize()
-                }.getOrDefault(RemoteConfigValues())
-                restore()
+                remoteConfig = withTimeoutOrNull(5_000L) {
+                    runCatching {
+                        SnapLoopRemoteConfig(FirebaseRemoteConfig.getInstance()).initialize()
+                    }.getOrDefault(RemoteConfigValues())
+                } ?: RemoteConfigValues()
             }
+            restore()
         }
     }
 
     fun clearMessage() = update { copy(message = null) }
 
-    fun restore() = launchBusy {
-        val uid = auth.currentUserId
-        if (uid == null) {
-            pendingFaceJpegs.clear()
-            update { AppUiState(gate = AppGate.AUTH) }
-            return@launchBusy
+    fun restore() {
+        viewModelScope.launch {
+            update {
+                copy(
+                    gate = AppGate.RESTORING,
+                    busy = true,
+                    restoreCanRetry = false,
+                    restoreError = null,
+                    message = null,
+                )
+            }
+            try {
+                val uid = auth.currentUserId
+                if (uid == null) {
+                    pendingFaceJpegs.clear()
+                    pendingFaceEmbeddings.clear()
+                    update { AppUiState(gate = AppGate.AUTH) }
+                    return@launch
+                }
+
+                val restored = withTimeoutOrNull(15_000L) {
+                    routeAuthenticated(uid)
+                    true
+                } ?: false
+
+                if (!restored) {
+                    update {
+                        copy(
+                            gate = AppGate.RESTORING,
+                            restoreCanRetry = true,
+                            restoreError = "Session restore timed out. Check your internet connection and try again.",
+                        )
+                    }
+                }
+            } catch (t: Throwable) {
+                update {
+                    copy(
+                        gate = AppGate.RESTORING,
+                        restoreCanRetry = true,
+                        restoreError = userMessage(t),
+                    )
+                }
+            } finally {
+                update { copy(busy = false) }
+            }
         }
-        routeAuthenticated(uid)
     }
 
     fun startPhoneVerification(activity: Activity, phoneNumber: String) = launchBusy {
@@ -163,40 +208,42 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         val embedding = withContext(Dispatchers.Default) {
             AndroidFacePipeline(getApplication()).use { it.embeddingForSelfie(jpeg) }
         }
-        if (pendingFaceJpegs.isNotEmpty()) {
-            val first = withContext(Dispatchers.Default) {
-                AndroidFacePipeline(getApplication()).use { it.embeddingForSelfie(pendingFaceJpegs.first()) }
-            }
-            val similarity = Embeddings.cosine(first, embedding) ?: 0.0
+        if (pendingFaceEmbeddings.isNotEmpty()) {
+            val similarity = Embeddings.cosine(pendingFaceEmbeddings.first(), embedding) ?: 0.0
             require(similarity >= FaceModelPolicy.EVALUATION_MATCH_THRESHOLD) {
-                "This capture does not appear to be the same person. Retake it."
+                "This capture does not appear to be the same person. Retake this step."
             }
         }
         pendingFaceJpegs += jpeg
+        pendingFaceEmbeddings += embedding
         if (pendingFaceJpegs.size == 1) {
             faceReferences.save(uid, EncryptedFaceReferenceStore.Kind.GUIDED, jpeg)
         }
-        update { copy(faceCaptures = pendingFaceJpegs.size, message = "Face capture ${pendingFaceJpegs.size} of ${FaceModelPolicy.TARGET_TEMPLATE_COUNT} accepted.") }
+        // The guided screen advances visibly after every accepted capture; no modal success dialog.
+        update { copy(faceCaptures = pendingFaceJpegs.size, message = null) }
     }
 
     fun resetFaceCaptures() {
         pendingFaceJpegs.clear()
+        pendingFaceEmbeddings.clear()
         update { copy(faceCaptures = 0, message = null) }
     }
 
     fun replayFaceSetupForUpdate() {
         pendingFaceJpegs.clear()
+        pendingFaceEmbeddings.clear()
         update { copy(gate = AppGate.FACE_SETUP, faceCaptures = 0, message = null) }
     }
 
     fun completeFaceSetup() = launchBusy {
         val uid = requireUid()
-        require(pendingFaceJpegs.size >= 3) { "Capture at least 3 guided selfies." }
-        val embeddings = withContext(Dispatchers.Default) {
-            AndroidFacePipeline(getApplication()).use { pipeline ->
-                pendingFaceJpegs.map { pipeline.embeddingForSelfie(it) }
-            }
+        require(pendingFaceJpegs.size == FaceModelPolicy.TARGET_TEMPLATE_COUNT) {
+            "Complete all ${FaceModelPolicy.TARGET_TEMPLATE_COUNT} guided face steps."
         }
+        require(pendingFaceEmbeddings.size == pendingFaceJpegs.size) {
+            "Face Setup capture state is incomplete. Start over."
+        }
+        val embeddings = pendingFaceEmbeddings.toList()
         val average = FloatArray(FaceModelPolicy.EMBEDDING_DIMENSION)
         embeddings.forEach { vector ->
             for (i in vector.indices) average[i] += vector[i]
@@ -230,6 +277,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
             )
         )
         pendingFaceJpegs.clear()
+        pendingFaceEmbeddings.clear()
         users.syncMyProfile(uid, state.value.user?.displayName)
         routeAuthenticated(uid)
     }
@@ -343,6 +391,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         val uid = auth.currentUserId
         auth.signOut()
         pendingFaceJpegs.clear()
+        pendingFaceEmbeddings.clear()
         if (uid != null) faceReferences.delete(uid)
         update { AppUiState(gate = AppGate.AUTH) }
     }
@@ -353,6 +402,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         runCatching { faceProfiles.delete(uid) }
         faceReferences.delete(uid)
         pendingFaceJpegs.clear()
+        pendingFaceEmbeddings.clear()
         update { copy(gate = AppGate.BIOMETRIC_CONSENT, faceCaptures = 0, photos = emptyList(), selectedEvent = null) }
     }
 
@@ -363,6 +413,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         prefs.edit().remove(onboardingKey(uid)).apply()
         auth.signOut()
         pendingFaceJpegs.clear()
+        pendingFaceEmbeddings.clear()
         update { AppUiState(gate = AppGate.AUTH, message = "Account deleted.") }
     }
 
