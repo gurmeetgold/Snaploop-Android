@@ -14,4 +14,4 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '9.6.0' }
-      - run: gradle test lint assembleDebug
+      - run: gradle test lint assembleDebug assembleDebugAndroidTest
