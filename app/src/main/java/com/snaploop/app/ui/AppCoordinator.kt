@@ -68,7 +68,6 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     private val matches = FirebaseMatchRepository()
     private val faceReferences = EncryptedFaceReferenceStore(application)
     private val prefs = application.getSharedPreferences("snaploop.ui", 0)
-    private val pendingFaceJpegs = mutableListOf<ByteArray>()
     private val pendingFaceEmbeddings = mutableListOf<FloatArray>()
 
     private var remoteConfig: RemoteConfigValues = RemoteConfigValues()
@@ -105,7 +104,6 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
             try {
                 val uid = auth.currentUserId
                 if (uid == null) {
-                    pendingFaceJpegs.clear()
                     pendingFaceEmbeddings.clear()
                     update { AppUiState(gate = AppGate.AUTH) }
                     return@launch
@@ -203,7 +201,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     fun addFaceCapture(jpeg: ByteArray) = launchBusy {
         val uid = requireUid()
         require(jpeg.isNotEmpty()) { "Camera capture is empty." }
-        require(pendingFaceJpegs.size < FaceModelPolicy.TARGET_TEMPLATE_COUNT) { "Face Setup already has enough captures." }
+        require(pendingFaceEmbeddings.size < FaceModelPolicy.TARGET_TEMPLATE_COUNT) { "Face Setup already has enough captures." }
 
         val embedding = withContext(Dispatchers.Default) {
             AndroidFacePipeline(getApplication()).use { it.embeddingForSelfie(jpeg) }
@@ -214,34 +212,32 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
                 "This capture does not appear to be the same person. Retake this step."
             }
         }
-        pendingFaceJpegs += jpeg
-        pendingFaceEmbeddings += embedding
-        if (pendingFaceJpegs.size == 1) {
+
+        // Persist only the first guided reference image. Subsequent captures are reduced to
+        // embeddings immediately so high-resolution camera JPEGs do not accumulate in the heap.
+        if (pendingFaceEmbeddings.isEmpty()) {
             faceReferences.save(uid, EncryptedFaceReferenceStore.Kind.GUIDED, jpeg)
         }
+        pendingFaceEmbeddings += embedding
+
         // The guided screen advances visibly after every accepted capture; no modal success dialog.
-        update { copy(faceCaptures = pendingFaceJpegs.size, message = null) }
+        update { copy(faceCaptures = pendingFaceEmbeddings.size, message = null) }
     }
 
     fun resetFaceCaptures() {
-        pendingFaceJpegs.clear()
         pendingFaceEmbeddings.clear()
         update { copy(faceCaptures = 0, message = null) }
     }
 
     fun replayFaceSetupForUpdate() {
-        pendingFaceJpegs.clear()
         pendingFaceEmbeddings.clear()
         update { copy(gate = AppGate.FACE_SETUP, faceCaptures = 0, message = null) }
     }
 
     fun completeFaceSetup() = launchBusy {
         val uid = requireUid()
-        require(pendingFaceJpegs.size == FaceModelPolicy.TARGET_TEMPLATE_COUNT) {
+        require(pendingFaceEmbeddings.size == FaceModelPolicy.TARGET_TEMPLATE_COUNT) {
             "Complete all ${FaceModelPolicy.TARGET_TEMPLATE_COUNT} guided face steps."
-        }
-        require(pendingFaceEmbeddings.size == pendingFaceJpegs.size) {
-            "Face Setup capture state is incomplete. Start over."
         }
         val embeddings = pendingFaceEmbeddings.toList()
         val average = FloatArray(FaceModelPolicy.EMBEDDING_DIMENSION)
@@ -276,7 +272,6 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
                 updatedAtMillis = now,
             )
         )
-        pendingFaceJpegs.clear()
         pendingFaceEmbeddings.clear()
         users.syncMyProfile(uid, state.value.user?.displayName)
         routeAuthenticated(uid)
@@ -390,7 +385,6 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     fun signOut() {
         val uid = auth.currentUserId
         auth.signOut()
-        pendingFaceJpegs.clear()
         pendingFaceEmbeddings.clear()
         if (uid != null) faceReferences.delete(uid)
         update { AppUiState(gate = AppGate.AUTH) }
@@ -401,7 +395,6 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         consent.withdraw(uid)
         runCatching { faceProfiles.delete(uid) }
         faceReferences.delete(uid)
-        pendingFaceJpegs.clear()
         pendingFaceEmbeddings.clear()
         update { copy(gate = AppGate.BIOMETRIC_CONSENT, faceCaptures = 0, photos = emptyList(), selectedEvent = null) }
     }
@@ -412,7 +405,6 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         faceReferences.delete(uid)
         prefs.edit().remove(onboardingKey(uid)).apply()
         auth.signOut()
-        pendingFaceJpegs.clear()
         pendingFaceEmbeddings.clear()
         update { AppUiState(gate = AppGate.AUTH, message = "Account deleted.") }
     }
