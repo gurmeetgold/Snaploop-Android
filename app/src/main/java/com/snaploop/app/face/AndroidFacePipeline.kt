@@ -6,7 +6,7 @@ import com.snaploop.app.core.FaceModelPolicy
 import com.snaploop.app.core.SnapLoopException
 import kotlin.math.abs
 
-internal data class FacePipelineDiagnostics(
+data class FacePipelineDiagnostics(
     val facesDetected: Int,
     val facesWithUsableLandmarks: Int,
     val alignmentFailures: Int,
