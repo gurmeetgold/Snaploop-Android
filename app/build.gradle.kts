@@ -23,15 +23,18 @@ android {
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
-        manifestPlaceholders["snaploopAssociatedDomain"] = providers.gradleProperty("SNAPLOOP_ASSOCIATED_DOMAIN").orElse("snaploop.app").get()
         buildConfigField("boolean", "FIREBASE_CONFIG_PRESENT", hasFirebaseConfig.toString())
     }
 
     buildTypes {
-        debug { isMinifyEnabled = false }
+        debug {
+            isMinifyEnabled = false
+            manifestPlaceholders["snaploopAssociatedDomain"] = "snaploop-dev.web.app"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            manifestPlaceholders["snaploopAssociatedDomain"] = "getsnaploop.web.app"
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
