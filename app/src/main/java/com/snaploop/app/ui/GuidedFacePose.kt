@@ -2,12 +2,13 @@ package com.snaploop.app.ui
 
 import kotlin.math.abs
 
+/** Exact enrollment order from the pinned iOS GuidedFaceEnrollmentView. */
 enum class GuidedFacePose {
-    CENTER,
+    FRONT,
     LEFT,
     RIGHT,
-    UP,
-    DOWN,
+    TILT_DOWN,
+    FINISH_FRONT,
 }
 
 data class FacePoseObservation(
@@ -17,70 +18,86 @@ data class FacePoseObservation(
     val centerXFraction: Float,
     val centerYFraction: Float,
     val widthFraction: Float,
-)
+    val heightFraction: Float,
+) {
+    val areaFraction: Float get() = widthFraction * heightFraction
+}
 
 /**
- * Pure pose gate used by the live CameraX analyzer.
+ * Pure live-pose gate for Android CameraX enrollment.
  *
- * LEFT intentionally accepts either yaw sign for the first side pose because front-camera sensor
- * coordinates differ from the mirrored preview users see. Once LEFT is observed, RIGHT must use
- * the opposite sign. This makes the UX deterministic without hard-coding a device-specific mirror.
+ * Yaw thresholds intentionally match the pinned iOS implementation. ML Kit defines positive
+ * Euler X as looking upward, so the iOS "Tilt Down" step is represented by the corresponding
+ * negative Android pitch range while preserving the same 9–28 degree magnitude.
  */
 class GuidedFacePoseEvaluator {
-    private var firstSideSign: Float? = null
-
-    fun resetAll() {
-        firstSideSign = null
-    }
-
     fun matches(pose: GuidedFacePose, observation: FacePoseObservation): Boolean {
         if (!isWellFramed(observation)) return false
-        if (abs(observation.rollDegrees) > 16f) return false
 
         return when (pose) {
-            GuidedFacePose.CENTER ->
-                abs(observation.yawDegrees) <= 9f && abs(observation.pitchDegrees) <= 9f
+            GuidedFacePose.FRONT ->
+                abs(observation.yawDegrees) <= 8f && abs(observation.pitchDegrees) <= 10f
 
-            GuidedFacePose.LEFT -> {
-                val side = abs(observation.yawDegrees) in 14f..42f && abs(observation.pitchDegrees) <= 18f
-                if (side && firstSideSign == null) {
-                    firstSideSign = if (observation.yawDegrees >= 0f) 1f else -1f
-                }
-                side
-            }
+            GuidedFacePose.LEFT ->
+                observation.yawDegrees in -38f..-16f
 
-            GuidedFacePose.RIGHT -> {
-                val sign = firstSideSign ?: return false
-                abs(observation.yawDegrees) in 14f..42f &&
-                    observation.yawDegrees * sign < 0f &&
-                    abs(observation.pitchDegrees) <= 18f
-            }
+            GuidedFacePose.RIGHT ->
+                observation.yawDegrees in 16f..38f
 
-            GuidedFacePose.UP ->
-                observation.pitchDegrees in 10f..30f && abs(observation.yawDegrees) <= 20f
+            GuidedFacePose.TILT_DOWN ->
+                observation.pitchDegrees in -28f..-9f && abs(observation.yawDegrees) <= 18f
 
-            GuidedFacePose.DOWN ->
-                observation.pitchDegrees in -30f..-10f && abs(observation.yawDegrees) <= 20f
+            GuidedFacePose.FINISH_FRONT ->
+                abs(observation.yawDegrees) <= 10f && abs(observation.pitchDegrees) <= 12f
         }
     }
 
-    fun guidance(pose: GuidedFacePose, observation: FacePoseObservation?): String = when {
-        observation == null -> "Position your face inside the frame"
-        observation.widthFraction < 0.22f -> "Move a little closer"
-        observation.widthFraction > 0.72f -> "Move a little farther away"
-        !isCentered(observation) -> "Center your face"
-        abs(observation.rollDegrees) > 16f -> "Keep your head upright"
-        pose == GuidedFacePose.CENTER -> "Look straight at the camera"
-        pose == GuidedFacePose.LEFT -> "Turn slightly left"
-        pose == GuidedFacePose.RIGHT -> "Turn slightly right"
-        pose == GuidedFacePose.UP -> "Look slightly up"
-        else -> "Look slightly down"
+    fun instruction(pose: GuidedFacePose): String = when (pose) {
+        GuidedFacePose.FRONT -> "Look straight at the camera"
+        GuidedFacePose.LEFT -> "Turn your face LEFT"
+        GuidedFacePose.RIGHT -> "Turn your face RIGHT"
+        GuidedFacePose.TILT_DOWN -> "Tilt slightly DOWN"
+        GuidedFacePose.FINISH_FRONT -> "Look straight again"
+    }
+
+    fun detail(pose: GuidedFacePose, observation: FacePoseObservation?): String = when {
+        observation == null -> "Keep the phone steady"
+        observation.areaFraction < 0.12f -> "Keep your whole face inside the oval"
+        !isCentered(observation) -> "Center your face inside the oval"
+        pose == GuidedFacePose.FRONT || pose == GuidedFacePose.FINISH_FRONT -> when {
+            observation.yawDegrees < -8f -> "Turn slightly RIGHT toward center"
+            observation.yawDegrees > 8f -> "Turn slightly LEFT toward center"
+            observation.pitchDegrees > 10f -> "Lower your chin slightly"
+            observation.pitchDegrees < -10f -> "Raise your chin slightly"
+            else -> "Hold still"
+        }
+        pose == GuidedFacePose.LEFT ->
+            if (observation.yawDegrees > -16f) "Keep turning LEFT" else "Come slightly back toward center"
+        pose == GuidedFacePose.RIGHT ->
+            if (observation.yawDegrees < 16f) "Keep turning RIGHT" else "Come slightly back toward center"
+        else -> when {
+            observation.pitchDegrees > -9f -> "Lower your chin a little"
+            observation.pitchDegrees < -28f -> "Raise your chin slightly"
+            else -> "Hold still"
+        }
+    }
+
+    fun framingStatus(observation: FacePoseObservation?): FaceFramingStatus = when {
+        observation == null -> FaceFramingStatus.NOT_DETECTED
+        observation.areaFraction < 0.12f || !isCentered(observation) -> FaceFramingStatus.NEEDS_ADJUSTMENT
+        else -> FaceFramingStatus.READY
     }
 
     private fun isWellFramed(observation: FacePoseObservation): Boolean =
-        observation.widthFraction in 0.22f..0.72f && isCentered(observation)
+        observation.areaFraction >= 0.12f && isCentered(observation)
 
     private fun isCentered(observation: FacePoseObservation): Boolean =
-        observation.centerXFraction in 0.30f..0.70f &&
-            observation.centerYFraction in 0.25f..0.75f
+        observation.centerXFraction in 0.24f..0.76f &&
+            observation.centerYFraction in 0.20f..0.80f
+}
+
+enum class FaceFramingStatus {
+    NOT_DETECTED,
+    NEEDS_ADJUSTMENT,
+    READY,
 }
