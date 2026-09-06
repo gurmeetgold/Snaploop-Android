@@ -6,6 +6,7 @@ on:
       - feature/android-production-parity-v1
     paths:
       - .github/workflows/apply-guided-face-parity.yml
+      - scripts/apply-guided-face-parity.py
 
 permissions:
   contents: write
@@ -28,6 +29,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/src/main/java/com/snaploop/app/ui/SnapLoopApp.kt
-          git commit -m "fix: replace external face camera with guided auto scan"
+          git add app/src/main/java/com/snaploop/app/ui/SnapLoopApp.kt app/src/main/java/com/snaploop/app/ui/GuidedFaceEnrollmentCamera.kt
+          git commit -m "fix: harden guided auto face scan"
           git push origin HEAD:feature/android-production-parity-v1
