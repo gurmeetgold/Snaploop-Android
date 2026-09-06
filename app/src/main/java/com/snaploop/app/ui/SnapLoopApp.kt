@@ -335,109 +335,12 @@ private fun FaceSetupScreen(
     onReset: () -> Unit,
     onComplete: () -> Unit,
 ) {
-    val context = LocalContext.current
-    var pendingCaptureFile by remember { mutableStateOf<File?>(null) }
-    var captureError by rememberSaveable { mutableStateOf<String?>(null) }
-    val prompts = listOf(
-        "Look straight ahead" to "Keep your face centered and look directly at the camera.",
-        "Turn slightly left" to "Turn your head a little to your left while keeping both eyes visible.",
-        "Turn slightly right" to "Turn your head a little to your right while keeping both eyes visible.",
-        "Look slightly up" to "Raise your chin slightly while keeping your full face inside the frame.",
-        "Look slightly down" to "Lower your chin slightly while keeping your eyes visible.",
+    GuidedFaceEnrollmentCamera(
+        captures = captures,
+        onCapture = onCapture,
+        onReset = onReset,
+        onComplete = onComplete,
     )
-
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        val file = pendingCaptureFile
-        pendingCaptureFile = null
-        val jpeg = file
-            ?.takeIf { it.exists() && it.length() > 0L }
-            ?.let { candidate -> runCatching { prepareFaceCapture(candidate) }.getOrNull() }
-        file?.delete()
-
-        if (jpeg != null && jpeg.isNotEmpty()) {
-            captureError = null
-            onCapture(jpeg)
-        } else {
-            captureError = if (success) {
-                "The camera returned an unusable photo. Retake this step."
-            } else {
-                "The camera did not save the photo. Retake this step."
-            }
-        }
-    }
-    val launchCapture = {
-        captureError = null
-        val directory = File(context.cacheDir, "face-setup").apply { mkdirs() }
-        val file = File.createTempFile("snaploop-face-", ".jpg", directory)
-        pendingCaptureFile = file
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file,
-        )
-        cameraLauncher.launch(uri)
-    }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            launchCapture()
-        } else {
-            captureError = "Camera permission is required to complete Face Setup."
-        }
-    }
-
-    val complete = captures >= prompts.size
-    val current = captures.coerceIn(0, prompts.lastIndex)
-
-    ScreenColumn {
-        BrandHeader(
-            "Face Setup",
-            "Complete all five guided face captures so SnapLoop can recognize you reliably across different angles.",
-        )
-        if (!complete) {
-            GradientCard(
-                title = "Step ${captures + 1} of ${prompts.size} — ${prompts[current].first}",
-                subtitle = prompts[current].second,
-            )
-            Text("Progress: $captures of ${prompts.size} accepted", fontWeight = FontWeight.Bold)
-            captureError?.let { error ->
-                Text(
-                    error,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            Text(
-                "Use good lighting, keep only your face in frame, and remove anything covering your eyes. " +
-                    "If the camera opens on the rear lens, switch it to the front camera.",
-            )
-            Button(
-                onClick = {
-                    val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                    if (granted) launchCapture() else permissionLauncher.launch(Manifest.permission.CAMERA)
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Capture ${captures + 1} of ${prompts.size}") }
-        } else {
-            GradientCard(
-                title = "All 5 face steps captured",
-                subtitle = "Your guided face set is ready to save.",
-            )
-        }
-        Button(
-            onClick = onComplete,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = complete,
-        ) { Text("Complete Face Setup") }
-        if (captures > 0) {
-            TextButton(onClick = onReset, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Text("Start Over")
-            }
-        }
-        Text(
-            "All five guided captures are required. Each accepted capture is checked locally before the next step unlocks.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-    }
 }
 
 @Composable
