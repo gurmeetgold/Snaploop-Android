@@ -41,7 +41,7 @@ data class RemoteConfigValues(
 
 class SnapLoopRemoteConfig(private val firebase: FirebaseRemoteConfig) {
     suspend fun initialize(): RemoteConfigValues {
-        firebase.setConfigSettingsAsync(remoteConfigSettings { minimumFetchIntervalInSeconds = 3600 })
+        firebase.setConfigSettingsAsync(remoteConfigSettings { minimumFetchIntervalInSeconds = 3600 }).awaitResult()
         firebase.setDefaultsAsync(mapOf(
             RemoteConfigValues.MATCH_THRESHOLD to FaceModelPolicy.EVALUATION_MATCH_THRESHOLD,
             RemoteConfigValues.AMBIGUITY_MARGIN to FaceModelPolicy.EVALUATION_AMBIGUITY_MARGIN,
@@ -57,8 +57,8 @@ class SnapLoopRemoteConfig(private val firebase: FirebaseRemoteConfig) {
             RemoteConfigValues.AI_BEST_SHOT to true,
             RemoteConfigValues.AI_BLUR to true,
             RemoteConfigValues.AI_HIGHLIGHTS to true,
-        ))
-        runCatching { firebase.fetchAndActivate() }
+        )).awaitResult()
+        try { firebase.fetchAndActivate().awaitResult() } catch (_: Throwable) { /* fail closed to vetted defaults/cached values */ }
         return readFailClosed()
     }
 
@@ -67,8 +67,8 @@ class SnapLoopRemoteConfig(private val firebase: FirebaseRemoteConfig) {
         val margin = firebase.getDouble(RemoteConfigValues.AMBIGUITY_MARGIN).takeIf { it in 0.0..1.0 } ?: FaceModelPolicy.EVALUATION_AMBIGUITY_MARGIN
         val minFace = firebase.getDouble(RemoteConfigValues.MIN_FACE).takeIf { it in 0.001..1.0 } ?: 0.045
         return RemoteConfigValues(
-            matchConfidenceThreshold = maxOf(threshold, 0.0),
-            matchAmbiguityMargin = maxOf(margin, 0.0),
+            matchConfidenceThreshold = threshold,
+            matchAmbiguityMargin = margin,
             minFaceSizeFraction = minFace,
             maxAssetsPerSyncBatch = firebase.getLong(RemoteConfigValues.MAX_BATCH).toInt().coerceIn(1, 1000),
             thumbnailMaxPixelSize = firebase.getLong(RemoteConfigValues.THUMBNAIL_PIXELS).toInt().coerceIn(256, 4096),
