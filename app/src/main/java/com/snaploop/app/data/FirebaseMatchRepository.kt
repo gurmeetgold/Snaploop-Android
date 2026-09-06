@@ -5,7 +5,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import com.snaploop.app.core.SnapLoopException
-import com.snaploop.app.core.awaitResult
 import com.snaploop.app.domain.PhotoMatch
 import com.snaploop.app.domain.PhotoMatchAppearance
 import kotlinx.coroutines.tasks.await
@@ -78,12 +77,12 @@ class FirebaseMatchRepository(
     }
 
     suspend fun myPhotos(eventId: String, userId: String): List<PhotoMatch> {
-        if (auth.currentUser?.uid != userId) throw SnapLoopException.NotAuthenticated
+        if (auth.currentUser?.uid != userId) throw SnapLoopException.NotAuthenticated()
         return matchedPhotos(eventId)
     }
 
     suspend fun sharedAlbum(eventId: String): List<PhotoMatch> {
-        if (auth.currentUser == null) throw SnapLoopException.NotAuthenticated
+        if (auth.currentUser == null) throw SnapLoopException.NotAuthenticated()
         return matchedPhotos(eventId)
     }
 
