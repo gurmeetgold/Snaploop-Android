@@ -119,10 +119,33 @@ internal class MlKitFaceAligner(
     }.getOrNull()
 
     private fun decodeUpright(bytes: ByteArray): Bitmap? {
-        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
         val orientation = runCatching {
             ExifInterface(ByteArrayInputStream(bytes)).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
         }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+
+        // Camera JPEGs from modern Android devices can be tens of megapixels. Decoding them at
+        // full ARGB resolution can consume 100-250+ MB, and applying EXIF rotation may briefly
+        // require another bitmap of comparable size. Bound the decode before ML Kit/ArcFace work.
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+        var sampleSize = 1
+        val longestEdge = max(bounds.outWidth, bounds.outHeight)
+        while (longestEdge / sampleSize > MAX_DECODE_LONG_EDGE) {
+            sampleSize *= 2
+        }
+
+        val decoded = BitmapFactory.decodeByteArray(
+            bytes,
+            0,
+            bytes.size,
+            BitmapFactory.Options().apply {
+                inSampleSize = sampleSize
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+            },
+        ) ?: return null
+
         val matrix = Matrix()
         when (orientation) {
             ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.setScale(-1f, 1f)
@@ -140,4 +163,9 @@ internal class MlKitFaceAligner(
     }
 
     override fun close() { detector.close() }
+
+    private companion object {
+        // 2K is sufficient for accurate ML Kit face landmarks while keeping bitmap memory bounded.
+        const val MAX_DECODE_LONG_EDGE = 2048
+    }
 }
