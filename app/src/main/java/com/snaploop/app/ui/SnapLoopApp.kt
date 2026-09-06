@@ -337,26 +337,36 @@ private fun FaceSetupScreen(
 ) {
     val context = LocalContext.current
     var pendingCaptureFile by remember { mutableStateOf<File?>(null) }
+    var captureError by rememberSaveable { mutableStateOf<String?>(null) }
     val prompts = listOf(
         "Look straight ahead" to "Keep your face centered and look directly at the camera.",
         "Turn slightly left" to "Turn your head a little to your left while keeping both eyes visible.",
         "Turn slightly right" to "Turn your head a little to your right while keeping both eyes visible.",
-        "Tilt slightly" to "Tilt your head slightly while keeping your full face inside the frame.",
-        "Natural angle" to "Finish with a relaxed, natural front-facing angle.",
+        "Look slightly up" to "Raise your chin slightly while keeping your full face inside the frame.",
+        "Look slightly down" to "Lower your chin slightly while keeping your eyes visible.",
     )
 
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         val file = pendingCaptureFile
         pendingCaptureFile = null
-        if (success && file != null && file.exists()) {
-            val jpeg = runCatching { file.readBytes() }.getOrNull()
-            file.delete()
-            if (jpeg != null && jpeg.isNotEmpty()) onCapture(jpeg)
+        val jpeg = file
+            ?.takeIf { it.exists() && it.length() > 0L }
+            ?.let { runCatching { candidate -> candidate.readBytes() }.getOrNull() }
+        file?.delete()
+
+        if (jpeg != null && jpeg.isNotEmpty()) {
+            captureError = null
+            onCapture(jpeg)
         } else {
-            file?.delete()
+            captureError = if (success) {
+                "The camera returned an empty photo. Retake this step."
+            } else {
+                "The camera did not save the photo. Retake this step."
+            }
         }
     }
     val launchCapture = {
+        captureError = null
         val directory = File(context.cacheDir, "face-setup").apply { mkdirs() }
         val file = File.createTempFile("snaploop-face-", ".jpg", directory)
         pendingCaptureFile = file
@@ -368,7 +378,11 @@ private fun FaceSetupScreen(
         cameraLauncher.launch(uri)
     }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) launchCapture()
+        if (granted) {
+            launchCapture()
+        } else {
+            captureError = "Camera permission is required to complete Face Setup."
+        }
     }
 
     val complete = captures >= prompts.size
@@ -385,6 +399,13 @@ private fun FaceSetupScreen(
                 subtitle = prompts[current].second,
             )
             Text("Progress: $captures of ${prompts.size} accepted", fontWeight = FontWeight.Bold)
+            captureError?.let { error ->
+                Text(
+                    error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
             Text(
                 "Use good lighting, keep only your face in frame, and remove anything covering your eyes. " +
                     "If the camera opens on the rear lens, switch it to the front camera.",
