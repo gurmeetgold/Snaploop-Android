@@ -61,7 +61,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     private val users = FirebaseUserDirectory()
     private val consent = FirebaseBiometricConsentStore()
     private val faceProfiles = FirebaseFaceProfileStore()
-    private val events = FirebaseEventRepository()
+    private val eventRepository = FirebaseEventRepository()
     private val matches = FirebaseMatchRepository()
     private val faceReferences = EncryptedFaceReferenceStore(application)
     private val prefs = application.getSharedPreferences("snaploop.ui", 0)
@@ -236,7 +236,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
 
     fun refreshEvents() = launchBusy {
         val uid = requireUid()
-        update { copy(events = events.eventsForUser(uid)) }
+        update { copy(events = eventRepository.eventsForUser(uid)) }
     }
 
     fun createEvent(name: String, days: Int) = launchBusy {
@@ -256,18 +256,18 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
             endsAt = now.plusSeconds(duration * 86_400L),
             createdAt = now,
         )
-        events.createEvent(event)
-        val persisted = runCatching { events.fetchEvent(event.id) }.getOrDefault(event)
+        eventRepository.createEvent(event)
+        val persisted = runCatching { eventRepository.fetchEvent(event.id) }.getOrDefault(event)
         loadEvent(persisted)
-        update { copy(events = events.eventsForUser(uid), selectedEvent = persisted) }
+        update { copy(events = eventRepository.eventsForUser(uid), selectedEvent = persisted) }
     }
 
     fun joinEvent(code: String) = launchBusy {
         val uid = requireUid()
-        val event = events.resolveJoinCode(code.trim().uppercase(Locale.US))
-        events.join(event.id)
+        val event = eventRepository.resolveJoinCode(code.trim().uppercase(Locale.US))
+        eventRepository.join(event.id)
         loadEvent(event)
-        update { copy(events = events.eventsForUser(uid), selectedEvent = event) }
+        update { copy(events = eventRepository.eventsForUser(uid), selectedEvent = event) }
     }
 
     fun openEvent(event: SnapEvent) = launchBusy { loadEvent(event) }
@@ -279,20 +279,20 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     fun setSharing(enabled: Boolean) = launchBusy {
         val uid = requireUid()
         val event = state.value.selectedEvent ?: error("Open an event first.")
-        events.setSharing(event.id, uid, enabled)
+        eventRepository.setSharing(event.id, uid, enabled)
         loadEvent(event)
     }
 
     fun leaveSelectedEvent() = launchBusy {
         val uid = requireUid()
         val event = state.value.selectedEvent ?: error("Open an event first.")
-        events.leave(event.id, uid)
+        eventRepository.leave(event.id, uid)
         update {
             copy(
                 selectedEvent = null,
                 members = emptyList(),
                 photos = emptyList(),
-                events = events.eventsForUser(uid),
+                events = eventRepository.eventsForUser(uid),
                 scanProgress = null,
                 scanResult = null,
             )
@@ -394,7 +394,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
             copy(
                 gate = AppGate.MAIN,
                 user = user,
-                events = events.eventsForUser(uid),
+                events = eventRepository.eventsForUser(uid),
                 faceCaptures = 0,
             )
         }
@@ -402,7 +402,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
 
     private suspend fun loadEvent(event: SnapEvent) {
         val uid = requireUid()
-        val loadedMembers = events.members(event.id)
+        val loadedMembers = eventRepository.members(event.id)
         update {
             copy(
                 selectedEvent = event,
