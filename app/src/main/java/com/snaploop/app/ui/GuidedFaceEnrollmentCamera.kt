@@ -152,9 +152,9 @@ internal fun GuidedFaceEnrollmentCamera(
                                 detail = nextDetail
                             }
                         },
-                        onQualified = {
-                            val now = System.currentTimeMillis()
-                            if (!captureInFlight.compareAndSet(false, true)) return@GuidedFaceAnalyzer
+                        onQualified = capture@{
+                            val stepAtCapture = currentStepOrdinal.get()
+                            if (!captureInFlight.compareAndSet(false, true)) return@capture
                             mainExecutor.execute {
                                 captureGuidedStill(
                                     context = context,
@@ -167,7 +167,7 @@ internal fun GuidedFaceEnrollmentCamera(
                                         // Coordinator acceptance normally advances captures and clears this flag.
                                         // If embedding/identity validation rejects the frame, allow a safe retry.
                                         Handler(Looper.getMainLooper()).postDelayed({
-                                            if (currentStepOrdinal.get() == captures.coerceIn(0, GuidedEnrollmentStep.entries.lastIndex)) {
+                                            if (currentStepOrdinal.get() == stepAtCapture) {
                                                 captureInFlight.set(false)
                                             }
                                         }, 4_000L)
