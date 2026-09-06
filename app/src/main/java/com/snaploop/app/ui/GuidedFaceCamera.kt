@@ -12,21 +12,15 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -40,13 +34,20 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 
+internal data class GuidedFaceLiveState(
+    val instruction: String,
+    val detail: String,
+    val framingStatus: FaceFramingStatus,
+    val poseQualified: Boolean,
+)
+
 @Composable
 internal fun GuidedFaceCamera(
     step: Int,
     enabled: Boolean,
     processing: Boolean,
     blockingError: String?,
-    onGuidance: (String) -> Unit,
+    onLiveState: (GuidedFaceLiveState) -> Unit,
     onCaptured: (ByteArray) -> Unit,
     onError: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -57,7 +58,7 @@ internal fun GuidedFaceCamera(
     val currentEnabled by rememberUpdatedState(enabled)
     val currentProcessing by rememberUpdatedState(processing)
     val currentBlockingError by rememberUpdatedState(blockingError)
-    val currentOnGuidance by rememberUpdatedState(onGuidance)
+    val currentOnLiveState by rememberUpdatedState(onLiveState)
     val currentOnCaptured by rememberUpdatedState(onCaptured)
     val currentOnError by rememberUpdatedState(onError)
 
@@ -66,7 +67,6 @@ internal fun GuidedFaceCamera(
     val evaluator = remember { GuidedFacePoseEvaluator() }
     val captureInFlight = remember { AtomicBoolean(false) }
     val stability = remember { PoseStabilityTracker() }
-    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
 
     val previewView = remember(context) {
         PreviewView(context).apply {
@@ -78,12 +78,10 @@ internal fun GuidedFaceCamera(
     LaunchedEffect(step) {
         stability.reset()
         captureInFlight.set(false)
-        if (step == 0) evaluator.resetAll()
     }
 
     LaunchedEffect(processing, blockingError) {
-        // A rejected embedding leaves us on the same step. Once its error is dismissed and the
-        // coordinator is idle, re-arm automatic capture for that same pose.
+        // A rejected embedding stays on the same step. Dismissing the error re-arms auto capture.
         if (!processing && blockingError == null) {
             stability.reset()
             captureInFlight.set(false)
@@ -97,7 +95,7 @@ internal fun GuidedFaceCamera(
                 .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
                 .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
                 .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
-                .setMinFaceSize(0.12f)
+                .setMinFaceSize(0.10f)
                 .build()
         )
         val providerFuture = ProcessCameraProvider.getInstance(context)
@@ -118,7 +116,6 @@ internal fun GuidedFaceCamera(
                 val capture = ImageCapture.Builder()
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
-                imageCapture = capture
 
                 val analyzer = ImageAnalysis.Builder()
                     .setTargetResolution(Size(640, 480))
@@ -134,7 +131,7 @@ internal fun GuidedFaceCamera(
                                 evaluator = evaluator,
                                 stability = stability,
                                 canCapture = currentEnabled && !currentProcessing && currentBlockingError == null && !captureInFlight.get(),
-                                onGuidance = { text -> mainExecutor.execute { currentOnGuidance(text) } },
+                                onLiveState = { state -> mainExecutor.execute { currentOnLiveState(state) } },
                                 onStable = {
                                     if (captureInFlight.compareAndSet(false, true)) {
                                         captureAutomatic(
@@ -174,7 +171,6 @@ internal fun GuidedFaceCamera(
             disposed.set(true)
             analysis?.clearAnalyzer()
             provider?.unbindAll()
-            imageCapture = null
             detector.close()
             cameraExecutor.shutdown()
         }
@@ -182,10 +178,7 @@ internal fun GuidedFaceCamera(
 
     AndroidView(
         factory = { previewView },
-        modifier = modifier
-            .fillMaxWidth()
-            .height(430.dp)
-            .clip(RoundedCornerShape(28.dp)),
+        modifier = modifier.fillMaxSize(),
     )
 }
 
@@ -197,7 +190,7 @@ private fun analyzeFrame(
     evaluator: GuidedFacePoseEvaluator,
     stability: PoseStabilityTracker,
     canCapture: Boolean,
-    onGuidance: (String) -> Unit,
+    onLiveState: (GuidedFaceLiveState) -> Unit,
     onStable: () -> Unit,
 ) {
     val mediaImage = imageProxy.image
@@ -209,24 +202,41 @@ private fun analyzeFrame(
     val input = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
     detector.process(input)
         .addOnSuccessListener { faces ->
-            val observation = faces.singleOrNull()?.toObservation(input.width, input.height)
-            onGuidance(
-                when {
-                    faces.size > 1 -> "Only one face should be visible"
-                    else -> evaluator.guidance(pose, observation)
-                }
-            )
+            if (faces.size != 1) {
+                stability.reset()
+                onLiveState(
+                    GuidedFaceLiveState(
+                        instruction = if (faces.isEmpty()) "Place your face inside the oval" else "Only one face should be visible",
+                        detail = "Keep the phone steady",
+                        framingStatus = FaceFramingStatus.NOT_DETECTED,
+                        poseQualified = false,
+                    )
+                )
+                return@addOnSuccessListener
+            }
 
-            if (!canCapture || faces.size != 1 || observation == null) {
+            val observation = faces.single().toObservation(input.width, input.height)
+            val framing = evaluator.framingStatus(observation)
+            val qualified = framing == FaceFramingStatus.READY && evaluator.matches(pose, observation)
+            val instruction = when (framing) {
+                FaceFramingStatus.NOT_DETECTED -> "Place your face inside the oval"
+                FaceFramingStatus.NEEDS_ADJUSTMENT ->
+                    if (observation.areaFraction < 0.12f) "Move a little closer" else "Center your face inside the oval"
+                FaceFramingStatus.READY -> evaluator.instruction(pose)
+            }
+            val detail = when (framing) {
+                FaceFramingStatus.NOT_DETECTED -> "Keep the phone steady"
+                FaceFramingStatus.NEEDS_ADJUSTMENT -> "Keep your whole face inside the oval"
+                FaceFramingStatus.READY -> evaluator.detail(pose, observation)
+            }
+            onLiveState(GuidedFaceLiveState(instruction, detail, framing, qualified))
+
+            if (!canCapture || !qualified) {
                 stability.reset()
                 return@addOnSuccessListener
             }
 
-            if (evaluator.matches(pose, observation)) {
-                if (stability.observeMatch(SystemClock.elapsedRealtime())) onStable()
-            } else {
-                stability.reset()
-            }
+            if (stability.observeMatch(SystemClock.elapsedRealtime())) onStable()
         }
         .addOnFailureListener {
             stability.reset()
@@ -246,6 +256,7 @@ private fun Face.toObservation(imageWidth: Int, imageHeight: Int): FacePoseObser
         centerXFraction = boundingBox.exactCenterX() / width,
         centerYFraction = boundingBox.exactCenterY() / height,
         widthFraction = boundingBox.width() / width,
+        heightFraction = boundingBox.height() / height,
     )
 }
 
@@ -269,7 +280,7 @@ private fun captureAutomatic(
                 val jpeg = runCatching { prepareFaceCapture(file) }.getOrNull()
                 file.delete()
                 mainExecutor.execute {
-                    if (jpeg.isNullOrEmpty()) {
+                    if (jpeg == null || jpeg.isEmpty()) {
                         onError("SnapLoop could not process the automatic face capture. Hold still and try again.")
                     } else {
                         onCaptured(jpeg)
@@ -299,6 +310,7 @@ private class PoseStabilityTracker {
     fun observeMatch(nowMillis: Long): Boolean {
         if (matchingFrames == 0) firstMatchAtMillis = nowMillis
         matchingFrames += 1
-        return matchingFrames >= 4 && nowMillis - firstMatchAtMillis >= 450L
+        // Mirrors iOS's "hold briefly" behavior while suppressing one-frame false positives.
+        return matchingFrames >= 3 && nowMillis - firstMatchAtMillis >= 300L
     }
 }
