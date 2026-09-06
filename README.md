@@ -1,5 +1,14 @@
 # SnapLoop Android
 
-Production Android client for SnapLoop. This repository is intentionally separate from the iOS client and targets cross-platform parity against the shared Firebase backend.
+Production Android client for SnapLoop, developed independently from iOS while preserving the shared Firebase/backend, biometric, privacy and Event contracts.
 
-Development is performed on isolated feature branches. Do not commit production secrets, signing keys, `google-services.json`, or biometric model binaries unless explicitly approved and safely handled.
+Active implementation branch: `feature/android-production-parity-v1`.
+
+## Local prerequisites
+- JDK 17
+- Android SDK API 37 / Build Tools 36+
+- Android Studio compatible with AGP 9.4
+- `app/google-services.json` from the existing SnapLoop Firebase project (never commit it)
+- verified AuraFace `glintr100.onnx` at `app/src/main/assets/models/glintr100.onnx` (never commit it)
+
+The Android client intentionally matches the current iOS release behavior for original-photo retrieval; full cross-platform original transfer is deferred to a later shared-backend release.
