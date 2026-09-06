@@ -351,7 +351,7 @@ private fun FaceSetupScreen(
         pendingCaptureFile = null
         val jpeg = file
             ?.takeIf { it.exists() && it.length() > 0L }
-            ?.let { candidate -> runCatching { candidate.readBytes() }.getOrNull() }
+            ?.let { candidate -> runCatching { prepareFaceCapture(candidate) }.getOrNull() }
         file?.delete()
 
         if (jpeg != null && jpeg.isNotEmpty()) {
@@ -359,7 +359,7 @@ private fun FaceSetupScreen(
             onCapture(jpeg)
         } else {
             captureError = if (success) {
-                "The camera returned an empty photo. Retake this step."
+                "The camera returned an unusable photo. Retake this step."
             } else {
                 "The camera did not save the photo. Retake this step."
             }
