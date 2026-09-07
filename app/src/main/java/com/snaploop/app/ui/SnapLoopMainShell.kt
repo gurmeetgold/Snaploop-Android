@@ -174,7 +174,7 @@ internal fun SnapLoopMainShell(
         }
     }
 
-    if (state.busy) {
+    if (state.busy && state.scanProgress == null) {
         Box(
             Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.18f)),
             contentAlignment = Alignment.Center,
@@ -658,7 +658,7 @@ private fun ShellEventPhotos(state: AppUiState, coordinator: AppCoordinator, onB
                 )
             }
         } else {
-            state.photos.forEach { match -> ShellMatchCard(match, coordinator::dismissPhoto) }
+            state.photos.forEach { match -> ShellMatchCard(match) }
         }
         OutlinedButton(onClick = coordinator::refreshPhotos, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Filled.Refresh, null)
@@ -866,7 +866,7 @@ private fun ShellGallery(state: AppUiState, coordinator: AppCoordinator) {
             }
         } else {
             state.allPhotos.forEach { match ->
-                ShellMatchCard(match, coordinator::dismissPhoto, Modifier.padding(horizontal = 18.dp))
+                ShellMatchCard(match, Modifier.padding(horizontal = 18.dp))
             }
         }
         TextButton(onClick = coordinator::refreshAllPhotos, modifier = Modifier.align(Alignment.CenterHorizontally)) {
@@ -877,7 +877,7 @@ private fun ShellGallery(state: AppUiState, coordinator: AppCoordinator) {
 }
 
 @Composable
-private fun ShellMatchCard(match: PhotoMatch, onNotMe: (PhotoMatch) -> Unit, modifier: Modifier = Modifier) {
+private fun ShellMatchCard(match: PhotoMatch, modifier: Modifier = Modifier) {
     ShellCard(modifier) {
         MatchedThumbnailCell(
             path = match.thumbnailPath,
@@ -886,9 +886,6 @@ private fun ShellMatchCard(match: PhotoMatch, onNotMe: (PhotoMatch) -> Unit, mod
         )
         Text("Matched photo", fontWeight = FontWeight.Black, fontSize = 18.sp, modifier = Modifier.padding(top = 8.dp))
         Text(shellFormatMillis(match.capturedAtMillis), color = ShellColors.Secondary, fontSize = 13.sp)
-        TextButton(onClick = { onNotMe(match) }, modifier = Modifier.align(Alignment.End)) {
-            Text("Not Me", color = ShellColors.Coral)
-        }
     }
 }
 
@@ -911,9 +908,11 @@ private fun ShellYou(state: AppUiState, coordinator: AppCoordinator) {
         Text("You", fontSize = 34.sp, fontWeight = FontWeight.Black)
         ShellCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(66.dp).background(shellSoftGradient(), CircleShape), contentAlignment = Alignment.Center) {
-                    Text((state.user?.displayName ?: "?").take(1).uppercase(), fontSize = 25.sp, fontWeight = FontWeight.Black, color = ShellColors.Lilac)
-                }
+                FaceReferenceThumbnail(
+                    userId = state.user?.id,
+                    fallbackInitial = state.user?.displayName ?: "?",
+                    modifier = Modifier.size(66.dp),
+                )
                 Column(Modifier.weight(1f).padding(start = 14.dp)) {
                     Text(state.user?.displayName ?: "Add your name", fontSize = 19.sp, fontWeight = FontWeight.Black)
                     Text(state.user?.phoneNumber.orEmpty(), color = ShellColors.Secondary, fontSize = 13.sp)

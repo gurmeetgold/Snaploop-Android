@@ -320,7 +320,7 @@ private fun OnboardingScreen(onContinue: () -> Unit) {
     val pages = listOf(
         "Your photos, automatically" to "SnapLoop finds photos you're in across an Event without uploading everyone's full photo library.",
         "Private by design" to "Face matching happens on-device. Only Event matches and the minimum data needed to share them are published.",
-        "You stay in control" to "Scanning is Event-scoped and time-bounded. You can mark a match Not Me, withdraw biometric consent, or delete your account.",
+        "You stay in control" to "Scanning is Event-scoped and time-bounded. You can withdraw biometric consent or delete your account at any time.",
     )
     val item = pages[page]
     BrandBackground {
