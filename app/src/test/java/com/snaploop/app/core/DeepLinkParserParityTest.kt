@@ -37,4 +37,15 @@ class DeepLinkParserParityTest {
         assertTrue(copy.startsWith("Gurmeet invited you to join \"Banff Weekend\" on SnapLoop:"))
         assertTrue(copy.endsWith(url))
     }
+
+    @Test
+    fun defaultInviteHostIsProductionCanonicalForCrossPlatformSharing() {
+        val token = "AbCdEfGhJkLmNpQrStUvWx"
+        assertEquals("getsnaploop.web.app", DeepLinkParser.allowedHttpsHost())
+        assertEquals(
+            "https://getsnaploop.web.app/e/$token",
+            DeepLinkParser.inviteUrl(token),
+        )
+        assertEquals("snaploop-dev.web.app", DeepLinkParser.LEGACY_DEV_HTTPS_HOST)
+    }
 }
