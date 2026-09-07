@@ -3,7 +3,6 @@ package com.snaploop.app.security
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
-import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -27,10 +26,14 @@ class KeystoreAes(private val alias: String) {
     }
 
     fun encrypt(plain: ByteArray): ByteArray {
-        val iv = ByteArray(12).also(SecureRandom()::nextBytes)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, key(), GCMParameterSpec(128, iv))
+        // With randomized encryption required, Android Keystore must generate the nonce/IV.
+        // Supplying our own IV on ENCRYPT_MODE is rejected by KeyMint/Keymaster and would also
+        // weaken the platform's nonce-reuse protection. Persist the generated IV with ciphertext.
+        cipher.init(Cipher.ENCRYPT_MODE, key())
         val encrypted = cipher.doFinal(plain)
+        val iv = requireNotNull(cipher.iv) { "Android Keystore did not return an AES-GCM IV" }
+        require(iv.size in 12..16) { "Unexpected AES-GCM IV length" }
         return byteArrayOf(iv.size.toByte()) + iv + encrypted
     }
 
