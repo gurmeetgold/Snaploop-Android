@@ -10,6 +10,10 @@ import kotlin.math.abs
  * phones to qualify as Left/Right/Tilt. The tracker first learns a stable straight-ahead baseline,
  * then evaluates every remaining pose relative to that baseline and requires several consecutive
  * qualifying frames before a capture is allowed.
+ *
+ * CameraX analyzes the unmirrored sensor image while the user sees a mirrored selfie preview.
+ * ML Kit therefore reports the opposite horizontal direction from the direction presented to the
+ * user. Positive relative Euler-Y is the user's LEFT in the mirrored preview; negative is RIGHT.
  */
 internal class GuidedFacePoseTracker(
     private val calibrationSamplesRequired: Int = 6,
@@ -72,8 +76,10 @@ internal class GuidedFacePoseTracker(
         val pitch = observation.pitchDegrees - neutralPitch!!
         val qualifies = when (pose) {
             GuidedFacePose.FRONT -> abs(yaw) <= 7f && abs(pitch) <= 8f
-            GuidedFacePose.LEFT -> yaw in -42f..-18f && abs(pitch) <= 11f
-            GuidedFacePose.RIGHT -> yaw in 18f..42f && abs(pitch) <= 11f
+            // ML Kit observes the unmirrored sensor frame. These signs intentionally mirror the
+            // displayed selfie preview so LEFT/RIGHT mean the direction the user is instructed to turn.
+            GuidedFacePose.LEFT -> yaw in 18f..42f && abs(pitch) <= 11f
+            GuidedFacePose.RIGHT -> yaw in -42f..-18f && abs(pitch) <= 11f
             GuidedFacePose.TILT_DOWN -> pitch in -32f..-12f && abs(yaw) <= 11f
             GuidedFacePose.FINISH_FRONT -> abs(yaw) <= 8f && abs(pitch) <= 10f
         }
@@ -172,21 +178,21 @@ internal class GuidedFacePoseTracker(
 
     private fun directionHint(pose: GuidedFacePose, yaw: Float, pitch: Float): String = when (pose) {
         GuidedFacePose.FRONT, GuidedFacePose.FINISH_FRONT -> when {
-            yaw < -8f -> "Turn slightly RIGHT toward center"
-            yaw > 8f -> "Turn slightly LEFT toward center"
+            yaw > 8f -> "Turn slightly RIGHT toward center"
+            yaw < -8f -> "Turn slightly LEFT toward center"
             pitch < -10f -> "Raise your chin slightly"
             pitch > 10f -> "Lower your chin slightly"
             else -> "Hold still"
         }
         GuidedFacePose.LEFT -> when {
-            yaw > -18f -> "Keep turning LEFT"
-            yaw < -42f -> "Come slightly back toward center"
+            yaw < 18f -> "Keep turning LEFT"
+            yaw > 42f -> "Come slightly back toward center"
             abs(pitch) > 11f -> "Keep your chin level"
             else -> "Hold still"
         }
         GuidedFacePose.RIGHT -> when {
-            yaw < 18f -> "Keep turning RIGHT"
-            yaw > 42f -> "Come slightly back toward center"
+            yaw > -18f -> "Keep turning RIGHT"
+            yaw < -42f -> "Come slightly back toward center"
             abs(pitch) > 11f -> "Keep your chin level"
             else -> "Hold still"
         }
