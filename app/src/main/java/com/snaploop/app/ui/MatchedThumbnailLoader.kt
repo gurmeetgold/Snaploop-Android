@@ -3,6 +3,25 @@ package com.snaploop.app.ui
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
@@ -11,7 +30,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
-import android.util.Base64
 
 /**
  * Memory-bounded matched-photo preview loader mirroring the iOS StorageThumbnailLoader contract.
@@ -125,5 +143,54 @@ internal class MatchedThumbnailLoader(
         )
         if (scaled !== decoded) decoded.recycle()
         return scaled
+    }
+}
+
+private sealed interface ThumbnailLoadState {
+    data object Loading : ThumbnailLoadState
+    data class Ready(val bitmap: Bitmap) : ThumbnailLoadState
+    data object Failed : ThumbnailLoadState
+}
+
+/** Reusable Gallery/Event photo surface with an explicit loading/error state instead of a silent placeholder. */
+@Composable
+internal fun MatchedThumbnailCell(
+    path: String?,
+    modifier: Modifier = Modifier,
+    maxPixelSize: Int = 720,
+) {
+    val context = LocalContext.current
+    val loader = remember(context) { MatchedThumbnailLoader(context) }
+    val loadState by produceState<ThumbnailLoadState>(
+        initialValue = ThumbnailLoadState.Loading,
+        key1 = path,
+        key2 = maxPixelSize,
+    ) {
+        value = ThumbnailLoadState.Loading
+        value = runCatching { loader.load(path, maxPixelSize) }
+            .fold(
+                onSuccess = { ThumbnailLoadState.Ready(it) },
+                onFailure = { ThumbnailLoadState.Failed },
+            )
+    }
+
+    Box(
+        modifier = modifier.background(Color(0xFFF5F0F8)),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (val state = loadState) {
+            ThumbnailLoadState.Loading -> CircularProgressIndicator()
+            ThumbnailLoadState.Failed -> Icon(
+                imageVector = Icons.Filled.BrokenImage,
+                contentDescription = "Matched photo unavailable",
+                tint = Color(0xFF777078),
+            )
+            is ThumbnailLoadState.Ready -> Image(
+                bitmap = state.bitmap.asImageBitmap(),
+                contentDescription = "Matched Event photo",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        }
     }
 }
