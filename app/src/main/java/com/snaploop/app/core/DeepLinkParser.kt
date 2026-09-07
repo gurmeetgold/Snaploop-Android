@@ -100,13 +100,18 @@ object DeepLinkParser {
         return "https://$allowedHttpsHost/e/$canonical"
     }
 
-    fun shareText(eventName: String, inviterName: String?, token: String): String {
+    fun shareText(
+        eventName: String,
+        inviterName: String?,
+        token: String,
+        allowedHttpsHost: String = allowedHttpsHost(),
+    ): String {
         val cleaned = inviterName?.trim().orEmpty()
         val intro = if (cleaned.isEmpty()) {
             "You're invited to join \"$eventName\" on SnapLoop:"
         } else {
             "$cleaned invited you to join \"$eventName\" on SnapLoop:"
         }
-        return "$intro\n${inviteUrl(token)}"
+        return "$intro\n${inviteUrl(token, allowedHttpsHost)}"
     }
 }
