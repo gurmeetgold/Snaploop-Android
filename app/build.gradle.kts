@@ -59,7 +59,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
 
-    // In-app front-camera preview + analysis + automatic still capture for iOS-parity Face Setup.
+    // In-app front-camera preview + analysis + automatic still capture for iOS-parity Face Setup and QR joining.
     val cameraXVersion = "1.6.2"
     implementation("androidx.camera:camera-core:$cameraXVersion")
     implementation("androidx.camera:camera-camera2:$cameraXVersion")
@@ -77,8 +77,10 @@ dependencies {
     implementation("com.google.firebase:firebase-perf")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
 
-    // Bundled face detector is available immediately and never depends on a first-run model download.
+    // Bundled ML models are available immediately and never depend on a first-run download.
     implementation("com.google.mlkit:face-detection:16.1.7")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("com.google.zxing:core:3.5.4")
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.25.1")
 
     testImplementation("junit:junit:4.13.2")
