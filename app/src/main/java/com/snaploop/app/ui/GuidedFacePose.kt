@@ -28,10 +28,10 @@ data class FacePoseObservation(
 /**
  * Pure pose gate used by tests and non-camera callers.
  *
- * The live CameraX enrollment additionally calibrates yaw/pitch from the accepted front pose and
- * requires several consecutive qualifying frames. These absolute limits deliberately stay strict:
- * a side pose must also remain level, and a tilt must remain close to the user's forward yaw. This
- * prevents a noisy straight-ahead ML Kit estimate from satisfying several enrollment steps.
+ * CameraX/ML Kit analyze the unmirrored sensor frame while the selfie preview is mirrored. For
+ * horizontal poses, positive ML Kit Euler-Y therefore corresponds to the user's LEFT in the UI and
+ * negative Euler-Y corresponds to the user's RIGHT. Pitch follows Android/ML Kit convention: a
+ * downward chin movement is negative.
  */
 class GuidedFacePoseEvaluator {
     fun matches(pose: GuidedFacePose, observation: FacePoseObservation): Boolean {
@@ -42,10 +42,10 @@ class GuidedFacePoseEvaluator {
                 abs(observation.yawDegrees) <= 8f && abs(observation.pitchDegrees) <= 10f
 
             GuidedFacePose.LEFT ->
-                observation.yawDegrees in -38f..-18f && abs(observation.pitchDegrees) <= 12f
+                observation.yawDegrees in 18f..38f && abs(observation.pitchDegrees) <= 12f
 
             GuidedFacePose.RIGHT ->
-                observation.yawDegrees in 18f..38f && abs(observation.pitchDegrees) <= 12f
+                observation.yawDegrees in -38f..-18f && abs(observation.pitchDegrees) <= 12f
 
             GuidedFacePose.TILT_DOWN ->
                 observation.pitchDegrees in -30f..-12f && abs(observation.yawDegrees) <= 12f
@@ -69,16 +69,16 @@ class GuidedFacePoseEvaluator {
         !isCentered(observation) -> "Center your face inside the oval"
         abs(observation.rollDegrees) > 12f -> "Keep your head level"
         pose == GuidedFacePose.FRONT || pose == GuidedFacePose.FINISH_FRONT -> when {
-            observation.yawDegrees < -8f -> "Turn slightly RIGHT toward center"
-            observation.yawDegrees > 8f -> "Turn slightly LEFT toward center"
+            observation.yawDegrees > 8f -> "Turn slightly RIGHT toward center"
+            observation.yawDegrees < -8f -> "Turn slightly LEFT toward center"
             observation.pitchDegrees > 10f -> "Lower your chin slightly"
             observation.pitchDegrees < -10f -> "Raise your chin slightly"
             else -> "Hold still"
         }
         pose == GuidedFacePose.LEFT ->
-            if (observation.yawDegrees > -18f) "Keep turning LEFT" else "Come slightly back toward center"
+            if (observation.yawDegrees < 18f) "Keep turning LEFT" else "Come slightly back toward center"
         pose == GuidedFacePose.RIGHT ->
-            if (observation.yawDegrees < 18f) "Keep turning RIGHT" else "Come slightly back toward center"
+            if (observation.yawDegrees > -18f) "Keep turning RIGHT" else "Come slightly back toward center"
         else -> when {
             observation.pitchDegrees > -12f -> "Lower your chin a little"
             observation.pitchDegrees < -30f -> "Raise your chin slightly"
