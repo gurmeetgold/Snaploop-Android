@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -65,6 +66,7 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.delay
 import kotlin.math.max
 
 /**
@@ -147,7 +149,10 @@ internal fun GuidedFaceEnrollmentCamera(
             terminal.set(true)
             captureInFlight.set(true)
             runCatching { provider?.unbindAll() }
-            if (completionDispatched.compareAndSet(false, true)) onComplete()
+            if (completionDispatched.compareAndSet(false, true)) {
+                delay(450L)
+                onComplete()
+            }
         }
     }
 
@@ -201,11 +206,13 @@ internal fun GuidedFaceEnrollmentCamera(
                                 // A valid frame normally advances the coordinator immediately. If the
                                 // embedding/identity layer rejects it, allow a fresh stable sequence
                                 // quickly rather than freezing the enrollment screen.
-                                Handler(Looper.getMainLooper()).postDelayed({
-                                    if (!terminal.get() && currentStepOrdinal.get() == stepAtCapture) {
-                                        captureInFlight.set(false)
-                                    }
-                                }, 900L)
+                                if (stepAtCapture < GuidedFacePose.entries.lastIndex) {
+                                    Handler(Looper.getMainLooper()).postDelayed({
+                                        if (!terminal.get() && currentStepOrdinal.get() == stepAtCapture) {
+                                            captureInFlight.set(false)
+                                        }
+                                    }, 900L)
+                                }
                             }
                             true
                         },
@@ -411,9 +418,12 @@ private fun GuidedStepRail(captures: Int) {
                 Text(
                     step.title(),
                     color = Color.White,
-                    fontSize = 10.sp,
+                    fontSize = if (step == GuidedFacePose.TILT_DOWN) 9.sp else 10.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 4.dp),
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
                 )
             }
         }

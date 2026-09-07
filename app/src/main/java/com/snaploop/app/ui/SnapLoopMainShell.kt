@@ -174,7 +174,7 @@ internal fun SnapLoopMainShell(
         }
     }
 
-    if (state.busy && state.scanProgress == null) {
+    if (state.busy && state.scanProgress == null && state.scanResult == null) {
         Box(
             Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.18f)),
             contentAlignment = Alignment.Center,
@@ -233,7 +233,9 @@ private fun ShellHome(state: AppUiState, coordinator: AppCoordinator) {
                     modifier = Modifier.padding(top = 5.dp),
                 )
             }
-            ShellBrandMark(46)
+            IconButton(onClick = coordinator::refreshEvents) {
+                Icon(Icons.Filled.Refresh, contentDescription = "Refresh Events", tint = ShellColors.Coral)
+            }
         }
 
         Row(
@@ -297,13 +299,6 @@ private fun ShellHome(state: AppUiState, coordinator: AppCoordinator) {
             }
         }
 
-        TextButton(
-            onClick = coordinator::refreshEvents,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        ) {
-            Icon(Icons.Filled.Refresh, contentDescription = null)
-            Text("  Refresh Events", color = ShellColors.Coral, fontWeight = FontWeight.Bold)
-        }
         Spacer(Modifier.height(12.dp))
     }
 
@@ -638,75 +633,19 @@ private fun ShellEventHero(event: SnapEvent, role: EventMember.Role?) {
 
 @Composable
 private fun ShellEventPhotos(state: AppUiState, coordinator: AppCoordinator, onBack: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        ShellSubpageHeader("My Photos", onBack)
-        ShellInsightBanner(
-            state.photos.size.toString(),
-            if (state.photos.size == 1) "photo of you found in this Event" else "photos of you found in this Event",
-        )
-        if (state.photos.isEmpty()) {
-            ShellCard {
-                Text("No photos of you yet", fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text(
-                    "Scan Event Photos, or ask other members to scan their Event photos.",
-                    textAlign = TextAlign.Center,
-                    color = ShellColors.Secondary,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                )
-            }
-        } else {
-            state.photos.forEach { match -> ShellMatchCard(match) }
-        }
-        OutlinedButton(onClick = coordinator::refreshPhotos, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Filled.Refresh, null)
-            Text("  Refresh Gallery")
-        }
-    }
+    ParityPhotoGallery(
+        title = "My Photos",
+        subtitle = if (state.photos.size == 1) "1 photo of you found in this Event" else "${state.photos.size} photos of you found in this Event",
+        photos = state.photos,
+        userId = state.user?.id,
+        onRefresh = coordinator::refreshPhotos,
+        onBack = onBack,
+    )
 }
 
 @Composable
 private fun ShellEventScan(state: AppUiState, coordinator: AppCoordinator, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-        if (result.values.any { it }) coordinator.scanSelectedEvent()
-    }
-    Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        ShellSubpageHeader("Scan Photos", onBack)
-        Spacer(Modifier.height(22.dp))
-        ShellCard {
-            Icon(Icons.Filled.PhotoLibrary, null, tint = ShellColors.Lilac, modifier = Modifier.align(Alignment.CenterHorizontally).size(54.dp))
-            Text("Scan Event Photos", fontSize = 22.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterHorizontally))
-            Text(
-                "Only photos within ${state.selectedEvent?.let(::shellEventRange).orEmpty()} are considered.",
-                textAlign = TextAlign.Center,
-                color = ShellColors.Secondary,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-            state.scanProgress?.let { progress ->
-                Text("Scanning ${progress.checked} / ${progress.total} • ${progress.published} matches shared", textAlign = TextAlign.Center)
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-            state.scanResult?.let { result ->
-                Text("Scan complete: ${result.checked} checked, ${result.published} published, ${result.remaining} remaining.", textAlign = TextAlign.Center)
-            }
-            ShellPrimaryButton(
-                if (state.scanProgress == null) "Start Scan" else "Scanning…",
-                Icons.Filled.CameraAlt,
-                onClick = {
-                    val permissions = shellPhotoPermissions()
-                    if (permissions.any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }) {
-                        coordinator.scanSelectedEvent()
-                    } else {
-                        permissionLauncher.launch(permissions)
-                    }
-                },
-                enabled = state.scanProgress == null,
-            )
-        }
-    }
+    ParityEventScanScreen(state = state, coordinator = coordinator, onBack = onBack)
 }
 
 @Composable
@@ -843,37 +782,13 @@ private fun ShellInvite(state: AppUiState, onBack: () -> Unit) {
 
 @Composable
 private fun ShellGallery(state: AppUiState, coordinator: AppCoordinator) {
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Text("Gallery", fontSize = 34.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 18.dp))
-        ShellInsightBanner(
-            state.allPhotos.size.toString(),
-            if (state.allPhotos.size == 1) "photo of you found across all Events" else "photos of you found across all Events",
-            Modifier.padding(horizontal = 18.dp),
-        )
-        if (state.allPhotos.isEmpty()) {
-            ShellCard(Modifier.padding(horizontal = 18.dp)) {
-                Icon(Icons.Filled.Image, null, tint = ShellColors.Lilac, modifier = Modifier.align(Alignment.CenterHorizontally).size(44.dp))
-                Text("No photos of you yet", fontWeight = FontWeight.Black, fontSize = 20.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text(
-                    "SnapLoop checks eligible Events for matched photos. You can also use Scan Photos from an Event at any time.",
-                    textAlign = TextAlign.Center,
-                    color = ShellColors.Secondary,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                )
-            }
-        } else {
-            state.allPhotos.forEach { match ->
-                ShellMatchCard(match, Modifier.padding(horizontal = 18.dp))
-            }
-        }
-        TextButton(onClick = coordinator::refreshAllPhotos, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Icon(Icons.Filled.Refresh, null)
-            Text("  Refresh Gallery", color = ShellColors.Coral, fontWeight = FontWeight.Bold)
-        }
-    }
+    ParityPhotoGallery(
+        title = "Gallery",
+        subtitle = if (state.allPhotos.size == 1) "1 photo of you across all Events" else "${state.allPhotos.size} photos of you across all Events",
+        photos = state.allPhotos,
+        userId = state.user?.id,
+        onRefresh = coordinator::refreshAllPhotos,
+    )
 }
 
 @Composable
@@ -958,7 +873,13 @@ private fun ShellYou(state: AppUiState, coordinator: AppCoordinator) {
             dismissButton = { TextButton(onClick = { editName = false }) { Text("Cancel") } },
         )
     }
-    if (privacy) ShellPrivacyDialog({ privacy = false }, { privacy = false; coordinator.withdrawBiometrics() }, { privacy = false; coordinator.deleteAccount() })
+    if (privacy) {
+        ParityPrivacyScreen(
+            onDismiss = { privacy = false },
+            onWithdraw = { privacy = false; coordinator.withdrawBiometrics() },
+            onDelete = { privacy = false; coordinator.deleteAccount() },
+        )
+    }
     if (signOutConfirm) {
         AlertDialog(
             onDismissRequest = { signOutConfirm = false },

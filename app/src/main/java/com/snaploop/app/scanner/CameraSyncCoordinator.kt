@@ -152,7 +152,6 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
                     System.currentTimeMillis(),
                 )
                 state.photoCorpus[asset.id] = corpus
-                states.save(state)
             }
 
             val pendingIds = state.pendingRecipientUserIds(asset.id, matchableIds)

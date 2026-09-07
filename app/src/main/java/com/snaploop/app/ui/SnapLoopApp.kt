@@ -90,8 +90,11 @@ fun SnapLoopApp(
                 initialName = state.user?.displayName.orEmpty(),
                 onSave = coordinator::saveDisplayName,
             )
-            AppGate.BIOMETRIC_CONSENT -> ConsentScreen(onAccept = coordinator::acceptBiometricConsent)
-            AppGate.FACE_SETUP -> FaceSetupScreen(
+            AppGate.BIOMETRIC_CONSENT -> ParityConsentScreen(
+                onAccept = coordinator::acceptBiometricConsent,
+                onNotNow = coordinator::skipFaceSetup,
+            )
+            AppGate.FACE_SETUP -> ParityFaceSetupScreen(
                 state = state,
                 onCapture = coordinator::addFaceCapture,
                 onReset = coordinator::resetFaceCaptures,
@@ -101,7 +104,7 @@ fun SnapLoopApp(
             AppGate.MAIN -> MainTabs(state, coordinator)
         }
 
-        if (state.busy) {
+        if (state.busy && state.gate != AppGate.FACE_SETUP) {
             Box(
                 Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,

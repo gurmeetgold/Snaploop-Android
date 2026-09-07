@@ -25,6 +25,7 @@ import com.snaploop.app.domain.FaceTemplateRecord
 import com.snaploop.app.domain.PhotoMatch
 import com.snaploop.app.domain.SnapUser
 import com.snaploop.app.face.AndroidFacePipeline
+import com.snaploop.app.face.FaceReferenceCropper
 import com.snaploop.app.model.BiometricConsentRecord
 import com.snaploop.app.model.EventCategory
 import com.snaploop.app.model.EventMember
@@ -82,6 +83,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     private val faceReferences = EncryptedFaceReferenceStore(application)
     private val prefs = application.getSharedPreferences("snaploop.ui", 0)
     private val pendingFaceEmbeddings = mutableListOf<FloatArray>()
+    private var pendingFaceReferenceJpeg: ByteArray? = null
     private val secureRandom = SecureRandom()
 
     private var remoteConfig: RemoteConfigValues = RemoteConfigValues()
@@ -216,24 +218,23 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     }
 
     fun addFaceCapture(jpeg: ByteArray) = launchBusy {
-        val uid = requireUid()
+        requireUid()
         require(jpeg.isNotEmpty()) { "Camera capture is empty." }
         require(pendingFaceEmbeddings.size < FaceModelPolicy.TARGET_TEMPLATE_COUNT) {
             "Face Setup already has enough captures."
         }
 
+        val captureIndex = pendingFaceEmbeddings.size
         val embedding = withContext(Dispatchers.Default) {
             AndroidFacePipeline(getApplication()).use { it.embeddingForSelfie(jpeg) }
         }
-        if (pendingFaceEmbeddings.isNotEmpty()) {
-            val similarity = Embeddings.cosine(pendingFaceEmbeddings.first(), embedding) ?: 0.0
-            require(similarity >= FaceModelPolicy.EVALUATION_MATCH_THRESHOLD) {
-                "This capture does not appear to be the same person. Retake this step."
-            }
-        }
 
-        if (pendingFaceEmbeddings.isEmpty()) {
-            faceReferences.save(uid, EncryptedFaceReferenceStore.Kind.GUIDED, jpeg)
+        // Guided poses are intentionally different views of the same person. Comparing every side
+        // pose only to the first frontal embedding can reject valid enrollment angles and reduce
+        // cross-device recall. Replacement identity protection remains enforced when the complete
+        // profile is saved. Prefer the final straight-on frame for the visible local reference.
+        if (captureIndex == 0 || captureIndex == FaceModelPolicy.TARGET_TEMPLATE_COUNT - 1) {
+            pendingFaceReferenceJpeg = jpeg.copyOf()
         }
         pendingFaceEmbeddings += embedding
         update { copy(faceCaptures = pendingFaceEmbeddings.size, message = null) }
@@ -241,12 +242,14 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
 
     fun resetFaceCaptures() {
         pendingFaceEmbeddings.clear()
+        pendingFaceReferenceJpeg = null
         update { copy(faceCaptures = 0, message = null) }
     }
 
     /** Opens Face Setup from the authenticated app and always permits returning to Main. */
     fun openFaceSetupFromMain() {
         pendingFaceEmbeddings.clear()
+        pendingFaceReferenceJpeg = null
         update {
             copy(
                 gate = AppGate.FACE_SETUP,
@@ -262,6 +265,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
 
     fun cancelFaceSetup() {
         pendingFaceEmbeddings.clear()
+        pendingFaceReferenceJpeg = null
         if (state.value.faceSetupMode == FaceSetupMode.RETURN_TO_MAIN) {
             update { copy(gate = AppGate.MAIN, faceCaptures = 0, message = null) }
         } else {
@@ -273,6 +277,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         val uid = auth.currentUserId ?: return
         prefs.edit().putBoolean(faceSetupSkippedKey(uid), true).apply()
         pendingFaceEmbeddings.clear()
+        pendingFaceReferenceJpeg = null
         viewModelScope.launch { routeAuthenticated(uid) }
     }
 
@@ -282,6 +287,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
             "Complete all ${FaceModelPolicy.TARGET_TEMPLATE_COUNT} guided face steps."
         }
         val embeddings = pendingFaceEmbeddings.toList()
+        val referenceJpeg = pendingFaceReferenceJpeg
         val average = FloatArray(FaceModelPolicy.EMBEDDING_DIMENSION)
         embeddings.forEach { vector ->
             for (i in vector.indices) average[i] += vector[i]
@@ -314,8 +320,22 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
                 updatedAtMillis = now,
             )
         )
+
+        // Save only the aligned face crop locally, and only after the server-authoritative profile
+        // succeeds. This mirrors iOS and prevents the You/Update Face thumbnail from retaining the
+        // full camera frame, shoulders or background.
+        val croppedReference = referenceJpeg?.let { bytes ->
+            withContext(Dispatchers.Default) {
+                runCatching { FaceReferenceCropper.crop(bytes) }.getOrNull()
+            }
+        }
+        if (croppedReference != null) {
+            runCatching { faceReferences.save(uid, EncryptedFaceReferenceStore.Kind.GUIDED, croppedReference) }
+        }
+
         prefs.edit().putBoolean(faceSetupSkippedKey(uid), false).apply()
         pendingFaceEmbeddings.clear()
+        pendingFaceReferenceJpeg = null
         users.syncMyProfile(uid, state.value.user?.displayName)
         routeAuthenticated(uid)
     }
@@ -544,23 +564,29 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         require(preference.sharingEnabled) {
             "You have turned off photo sharing for this Event. Turn it on before scanning."
         }
-        val result = withContext(Dispatchers.IO) {
-            CameraSyncCoordinator(getApplication()).use { coordinator ->
-                coordinator.scan(
-                    eventId = event.id,
-                    startMillis = event.startsAt.toEpochMilli(),
-                    endMillis = event.endsAt.toEpochMilli(),
-                    sharingEnabled = preference.sharingEnabled,
-                    includeOwnMatches = preference.includeOwnMatches,
-                    ownMatchesRevision = preference.revisionToken,
-                    config = remoteConfig,
-                    onProgress = { progress -> update { copy(scanProgress = progress) } },
-                )
+        update { copy(scanProgress = CameraSyncCoordinator.Progress(0, 0, 0), scanResult = null) }
+        try {
+            val result = withContext(Dispatchers.IO) {
+                CameraSyncCoordinator(getApplication()).use { coordinator ->
+                    coordinator.scan(
+                        eventId = event.id,
+                        startMillis = event.startsAt.toEpochMilli(),
+                        endMillis = event.endsAt.toEpochMilli(),
+                        sharingEnabled = preference.sharingEnabled,
+                        includeOwnMatches = preference.includeOwnMatches,
+                        ownMatchesRevision = preference.revisionToken,
+                        config = remoteConfig,
+                        onProgress = { progress -> update { copy(scanProgress = progress) } },
+                    )
+                }
             }
+            update { copy(scanResult = result, scanProgress = null) }
+            loadEvent(eventRepository.fetchEvent(event.id))
+            refreshAllPhotosInternal(uid, state.value.events)
+        } catch (t: Throwable) {
+            update { copy(scanProgress = null) }
+            throw t
         }
-        update { copy(scanResult = result, scanProgress = null) }
-        loadEvent(eventRepository.fetchEvent(event.id))
-        refreshAllPhotosInternal(uid, state.value.events)
     }
 
     fun refreshPhotos() = launchBusy {
@@ -586,6 +612,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     fun signOut() {
         auth.signOut()
         pendingFaceEmbeddings.clear()
+        pendingFaceReferenceJpeg = null
         // Face reference is intentionally retained encrypted in no-backup storage,
         // matching iOS. Signing out is not a deletion request.
         update { AppUiState(gate = AppGate.AUTH) }
@@ -598,6 +625,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         runCatching { faceProfiles.delete(uid) }
         faceReferences.delete(uid)
         pendingFaceEmbeddings.clear()
+        pendingFaceReferenceJpeg = null
         prefs.edit().putBoolean(faceSetupSkippedKey(uid), false).apply()
         update {
             copy(
@@ -618,6 +646,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         prefs.edit().remove(onboardingKey(uid)).remove(faceSetupSkippedKey(uid)).apply()
         auth.signOut()
         pendingFaceEmbeddings.clear()
+        pendingFaceReferenceJpeg = null
         update { AppUiState(gate = AppGate.AUTH, message = "Account deleted.") }
     }
 
