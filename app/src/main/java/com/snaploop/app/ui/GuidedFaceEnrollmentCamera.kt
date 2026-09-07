@@ -65,15 +65,15 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Guided Face Setup that mirrors the proven iOS capture model.
+ * Guided Face Setup using the exact live analysis frame that qualifies for a requested pose.
  *
- * The important behavior is intentional: the exact live analysis frame that qualifies for the
- * requested pose is encoded and accepted. We do not qualify one frame and then fire a separate
- * CameraX still-photo shutter, because the user's head can move between those two moments.
+ * The live stream first calibrates the device/user neutral Euler offset and then requires several
+ * consecutive stable frames for every pose. This is intentionally stricter than a one-frame gate:
+ * some OEM front cameras (observed on Redmi/Xiaomi hardware) can report noisy/bias-shifted Euler
+ * angles that would otherwise let a straight face race through Left, Right and Tilt.
  */
 @Composable
 internal fun GuidedFaceEnrollmentCamera(
@@ -93,9 +93,13 @@ internal fun GuidedFaceEnrollmentCamera(
         }
     }
     val currentStepOrdinal = remember {
-        AtomicInteger(captures.coerceIn(0, GuidedEnrollmentStep.entries.lastIndex))
+        AtomicInteger(captures.coerceIn(0, GuidedFacePose.entries.lastIndex))
     }
     val captureInFlight = remember { AtomicBoolean(false) }
+    val terminal = remember { AtomicBoolean(false) }
+    val completionDispatched = remember { AtomicBoolean(false) }
+    val poseTracker = remember { GuidedFacePoseTracker() }
+
     var permissionGranted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -103,7 +107,7 @@ internal fun GuidedFaceEnrollmentCamera(
         )
     }
     var instruction by remember {
-        mutableStateOf(GuidedEnrollmentStep.fromCaptureCount(captures).shortInstruction)
+        mutableStateOf(GuidedFacePose.fromCaptureCount(captures).shortInstruction())
     }
     var detail by remember { mutableStateOf("Center your face inside the oval") }
     var cameraError by remember { mutableStateOf<String?>(null) }
@@ -117,20 +121,34 @@ internal fun GuidedFaceEnrollmentCamera(
     }
 
     LaunchedEffect(captures) {
-        currentStepOrdinal.set(captures.coerceIn(0, GuidedEnrollmentStep.entries.lastIndex))
+        if (captures == 0) {
+            poseTracker.reset()
+            completionDispatched.set(false)
+            terminal.set(false)
+        }
+
+        currentStepOrdinal.set(captures.coerceIn(0, GuidedFacePose.entries.lastIndex))
         captureInFlight.set(false)
-        val step = GuidedEnrollmentStep.fromCaptureCount(captures)
-        instruction = if (captures >= GuidedEnrollmentStep.entries.size) {
+        val step = GuidedFacePose.fromCaptureCount(captures)
+        instruction = if (captures >= GuidedFacePose.entries.size) {
             "Face scan complete"
         } else {
-            step.shortInstruction
+            step.shortInstruction()
         }
-        detail = if (captures >= GuidedEnrollmentStep.entries.size) {
-            "${GuidedEnrollmentStep.entries.size} useful angles captured"
+        detail = if (captures >= GuidedFacePose.entries.size) {
+            "${GuidedFacePose.entries.size} useful angles captured"
+        } else if (captures == 0) {
+            "Look straight briefly while SnapLoop calibrates this camera"
         } else {
             "Follow the direction — SnapLoop captures automatically"
         }
-        if (captures >= GuidedEnrollmentStep.entries.size) onComplete()
+
+        if (captures >= GuidedFacePose.entries.size) {
+            terminal.set(true)
+            captureInFlight.set(true)
+            runCatching { provider?.unbindAll() }
+            if (completionDispatched.compareAndSet(false, true)) onComplete()
+        }
     }
 
     DisposableEffect(permissionGranted, lifecycleOwner) {
@@ -144,7 +162,7 @@ internal fun GuidedFaceEnrollmentCamera(
             var analyzer: GuidedFaceAnalyzer? = null
 
             future.addListener({
-                if (disposed) return@addListener
+                if (disposed || terminal.get()) return@addListener
                 runCatching {
                     val cameraProvider = future.get()
                     provider = cameraProvider
@@ -155,28 +173,36 @@ internal fun GuidedFaceEnrollmentCamera(
                     val guidedAnalyzer = GuidedFaceAnalyzer(
                         detector = detector,
                         analysisBusy = analysisBusy,
+                        poseTracker = poseTracker,
+                        isTerminal = terminal::get,
                         currentStep = {
-                            GuidedEnrollmentStep.entries[currentStepOrdinal.get()]
+                            GuidedFacePose.entries[
+                                currentStepOrdinal.get().coerceIn(0, GuidedFacePose.entries.lastIndex)
+                            ]
                         },
                         onGuidance = { nextInstruction, nextDetail ->
                             mainExecutor.execute {
-                                instruction = nextInstruction
-                                detail = nextDetail
+                                if (!terminal.get()) {
+                                    instruction = nextInstruction
+                                    detail = nextDetail
+                                }
                             }
                         },
                         onQualified = qualified@{ jpeg ->
+                            if (terminal.get()) return@qualified false
                             val stepAtCapture = currentStepOrdinal.get()
                             if (!captureInFlight.compareAndSet(false, true)) {
                                 return@qualified false
                             }
                             mainExecutor.execute {
+                                if (terminal.get()) return@execute
                                 cameraError = null
                                 onCapture(jpeg)
                                 // A valid frame normally advances the coordinator immediately. If the
-                                // embedding/identity layer rejects it, retry quickly instead of freezing
-                                // Face Setup for four seconds.
+                                // embedding/identity layer rejects it, allow a fresh stable sequence
+                                // quickly rather than freezing the enrollment screen.
                                 Handler(Looper.getMainLooper()).postDelayed({
-                                    if (currentStepOrdinal.get() == stepAtCapture) {
+                                    if (!terminal.get() && currentStepOrdinal.get() == stepAtCapture) {
                                         captureInFlight.set(false)
                                     }
                                 }, 900L)
@@ -208,6 +234,7 @@ internal fun GuidedFaceEnrollmentCamera(
 
             onDispose {
                 disposed = true
+                terminal.set(true)
                 runCatching { provider?.unbindAll() }
                 runCatching { analyzer?.close() }
                 runCatching { detector.close() }
@@ -300,7 +327,7 @@ internal fun GuidedFaceEnrollmentCamera(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        "${captures.coerceAtMost(GuidedEnrollmentStep.entries.size)} of ${GuidedEnrollmentStep.entries.size}",
+                        "${captures.coerceAtMost(GuidedFacePose.entries.size)} of ${GuidedFacePose.entries.size}",
                         style = MaterialTheme.typography.labelMedium,
                     )
                     Text(
@@ -317,12 +344,12 @@ internal fun GuidedFaceEnrollmentCamera(
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        "No shutter button — the matching angle is captured automatically.",
+                        "No shutter button — each angle must stay stable briefly before it is captured.",
                         modifier = Modifier.padding(top = 10.dp),
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                     )
-                    if (captures > 0 && captures < GuidedEnrollmentStep.entries.size) {
+                    if (captures > 0 && captures < GuidedFacePose.entries.size) {
                         TextButton(onClick = onReset, modifier = Modifier.padding(top = 4.dp)) {
                             Text("Start Over")
                         }
@@ -333,47 +360,24 @@ internal fun GuidedFaceEnrollmentCamera(
     }
 }
 
-private enum class GuidedEnrollmentStep(
-    val title: String,
-    val shortInstruction: String,
-) {
-    FRONT("Front", "Look straight at the camera"),
-    LEFT("Left", "Turn your face LEFT"),
-    RIGHT("Right", "Turn your face RIGHT"),
-    TILT_DOWN("Tilt Down", "Tilt slightly DOWN"),
-    FINISH_FRONT("Finish", "Look straight again");
-
-    fun qualifies(yaw: Double, pitch: Double): Boolean = when (this) {
-        FRONT -> abs(yaw) <= 8.0 && abs(pitch) <= 10.0
-        LEFT -> yaw in -38.0..-16.0
-        RIGHT -> yaw in 16.0..38.0
-        // ML Kit Euler X is positive when looking up, so lowering the chin is negative.
-        TILT_DOWN -> pitch in -28.0..-9.0 && abs(yaw) <= 18.0
-        FINISH_FRONT -> abs(yaw) <= 10.0 && abs(pitch) <= 12.0
-    }
-
-    fun directionHint(yaw: Double, pitch: Double): String = when (this) {
-        FRONT, FINISH_FRONT -> when {
-            yaw < -8.0 -> "Turn slightly RIGHT toward center"
-            yaw > 8.0 -> "Turn slightly LEFT toward center"
-            pitch < -10.0 -> "Raise your chin slightly"
-            pitch > 10.0 -> "Lower your chin slightly"
-            else -> "Hold briefly"
-        }
-        LEFT -> if (yaw > -16.0) "Keep turning LEFT" else "Come slightly back toward center"
-        RIGHT -> if (yaw < 16.0) "Keep turning RIGHT" else "Come slightly back toward center"
-        TILT_DOWN -> when {
-            pitch > -9.0 -> "Lower your chin a little"
-            pitch < -28.0 -> "Raise your chin slightly"
-            else -> "Hold briefly"
-        }
-    }
-
-    companion object {
-        fun fromCaptureCount(captures: Int): GuidedEnrollmentStep =
-            entries[captures.coerceIn(0, entries.lastIndex)]
-    }
+private fun GuidedFacePose.shortInstruction(): String = when (this) {
+    GuidedFacePose.FRONT -> "Look straight at the camera"
+    GuidedFacePose.LEFT -> "Turn your face LEFT"
+    GuidedFacePose.RIGHT -> "Turn your face RIGHT"
+    GuidedFacePose.TILT_DOWN -> "Tilt slightly DOWN"
+    GuidedFacePose.FINISH_FRONT -> "Look straight again"
 }
+
+private fun GuidedFacePose.title(): String = when (this) {
+    GuidedFacePose.FRONT -> "Front"
+    GuidedFacePose.LEFT -> "Left"
+    GuidedFacePose.RIGHT -> "Right"
+    GuidedFacePose.TILT_DOWN -> "Tilt Down"
+    GuidedFacePose.FINISH_FRONT -> "Finish"
+}
+
+private fun GuidedFacePose.Companion.fromCaptureCount(captures: Int): GuidedFacePose =
+    GuidedFacePose.entries[captures.coerceIn(0, GuidedFacePose.entries.lastIndex)]
 
 @Composable
 private fun GuidedStepRail(captures: Int) {
@@ -385,7 +389,7 @@ private fun GuidedStepRail(captures: Int) {
             .padding(10.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        GuidedEnrollmentStep.entries.forEachIndexed { index, step ->
+        GuidedFacePose.entries.forEachIndexed { index, step ->
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     Modifier.size(34.dp).background(
@@ -405,7 +409,7 @@ private fun GuidedStepRail(captures: Int) {
                     )
                 }
                 Text(
-                    step.title,
+                    step.title(),
                     color = Color.White,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
@@ -419,18 +423,16 @@ private fun GuidedStepRail(captures: Int) {
 private class GuidedFaceAnalyzer(
     private val detector: FaceDetector,
     private val analysisBusy: AtomicBoolean,
-    private val currentStep: () -> GuidedEnrollmentStep,
+    private val poseTracker: GuidedFacePoseTracker,
+    private val isTerminal: () -> Boolean,
+    private val currentStep: () -> GuidedFacePose,
     private val onGuidance: (String, String) -> Unit,
     private val onQualified: (ByteArray) -> Boolean,
 ) : ImageAnalysis.Analyzer, AutoCloseable {
-    private var frameCounter = 0
     private var lastCaptureAt = 0L
 
     override fun analyze(imageProxy: ImageProxy) {
-        frameCounter += 1
-        // Redmi/Xiaomi devices can have a lower effective analyzer cadence than iPhones. Analyze
-        // every other available frame while KEEP_ONLY_LATEST prevents a backlog.
-        if (frameCounter % 2 != 0 || !analysisBusy.compareAndSet(false, true)) {
+        if (isTerminal() || !analysisBusy.compareAndSet(false, true)) {
             imageProxy.close()
             return
         }
@@ -444,9 +446,11 @@ private class GuidedFaceAnalyzer(
 
         val input = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
         detector.process(input)
-            .addOnSuccessListener { faces -> processFaces(faces, imageProxy) }
+            .addOnSuccessListener { faces ->
+                if (!isTerminal()) processFaces(faces, imageProxy)
+            }
             .addOnFailureListener {
-                onGuidance("Hold briefly", "Checking face position…")
+                if (!isTerminal()) onGuidance("Hold briefly", "Checking face position…")
             }
             .addOnCompleteListener {
                 analysisBusy.set(false)
@@ -464,24 +468,31 @@ private class GuidedFaceAnalyzer(
         }
 
         val face = faces.single()
-        val imageArea = max(1L, imageProxy.width.toLong() * imageProxy.height.toLong()).toDouble()
-        val faceArea = max(0, face.boundingBox.width()).toLong() *
-            max(0, face.boundingBox.height()).toLong()
-        if (faceArea / imageArea < 0.12) {
-            onGuidance("Move a little closer", "Keep your whole face inside the oval")
-            return
-        }
+        val rotation = imageProxy.imageInfo.rotationDegrees
+        val uprightWidth = if (rotation == 90 || rotation == 270) imageProxy.height else imageProxy.width
+        val uprightHeight = if (rotation == 90 || rotation == 270) imageProxy.width else imageProxy.height
+        val width = max(1, uprightWidth).toFloat()
+        val height = max(1, uprightHeight).toFloat()
+        val box = face.boundingBox
+        val observation = FacePoseObservation(
+            yawDegrees = face.headEulerAngleY,
+            pitchDegrees = face.headEulerAngleX,
+            rollDegrees = face.headEulerAngleZ,
+            centerXFraction = box.exactCenterX() / width,
+            centerYFraction = box.exactCenterY() / height,
+            widthFraction = max(0, box.width()).toFloat() / width,
+            heightFraction = max(0, box.height()).toFloat() / height,
+        )
 
         val step = currentStep()
-        val yaw = face.headEulerAngleY.toDouble()
-        val pitch = face.headEulerAngleX.toDouble()
-        if (!step.qualifies(yaw, pitch)) {
-            onGuidance(step.shortInstruction, step.directionHint(yaw, pitch))
+        val decision = poseTracker.evaluate(step, observation)
+        if (!decision.readyToCapture) {
+            onGuidance(decision.instruction, decision.detail)
             return
         }
 
         val now = System.currentTimeMillis()
-        if (now - lastCaptureAt < 650L) return
+        if (now - lastCaptureAt < 550L) return
 
         val jpeg = runCatching { imageProxy.toFrontFacingJpeg() }.getOrNull()
         if (jpeg == null) {
@@ -491,6 +502,7 @@ private class GuidedFaceAnalyzer(
 
         if (onQualified(jpeg)) {
             lastCaptureAt = now
+            poseTracker.onCaptured()
             onGuidance("Captured", "Great — moving to the next angle")
         }
     }
@@ -500,7 +512,7 @@ private class GuidedFaceAnalyzer(
 
 private fun createGuidedFaceDetector(): FaceDetector = FaceDetection.getClient(
     FaceDetectorOptions.Builder()
-        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
         .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
         .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
         .setMinFaceSize(0.15f)
