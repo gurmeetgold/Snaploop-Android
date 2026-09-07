@@ -3,19 +3,15 @@ package com.snaploop.app.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -55,7 +51,7 @@ internal fun ParityConsentScreen(
     val provinces = listOf("AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT")
     val available = country == "IN" || (country == "CA" && subdivision != "QC")
 
-    BrandBackground {
+    ParityBrandBackground {
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -66,7 +62,7 @@ internal fun ParityConsentScreen(
                 Spacer(Modifier.padding(horizontal = 28.dp))
             }
 
-            BrandMark(58)
+            ParityBrandMark(58)
             Text("Face Match Consent", fontSize = 28.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 14.dp))
             Text(
                 "Please review how Face Match works before you choose whether to use it.",
@@ -75,7 +71,7 @@ internal fun ParityConsentScreen(
                 modifier = Modifier.padding(top = 8.dp, bottom = 14.dp),
             )
 
-            PremiumCard {
+            ParityPremiumCard {
                 ConsentSection(
                     "Purpose & storage",
                     "SnapLoop uses Face Match only to find photos that contain you. Your guided Face Setup photo stays on this device; SnapLoop stores a numerical face template for matching.",
@@ -102,7 +98,7 @@ internal fun ParityConsentScreen(
                 }
             }
 
-            PremiumCard(Modifier.padding(top = 12.dp)) {
+            ParityPremiumCard(Modifier.padding(top = 12.dp)) {
                 Text("Your residence", fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     OutlinedButton(onClick = { countryMenu = true }, modifier = Modifier.fillMaxWidth()) {
@@ -135,7 +131,7 @@ internal fun ParityConsentScreen(
                 }
             }
 
-            PremiumCard(Modifier.padding(top = 12.dp)) {
+            ParityPremiumCard(Modifier.padding(top = 12.dp)) {
                 ConsentRow(
                     checked = ageAndResidence,
                     onChecked = { ageAndResidence = it },
@@ -152,7 +148,7 @@ internal fun ParityConsentScreen(
                 )
             }
 
-            PrimaryButton(
+            ParityPrimaryButton(
                 "I Agree & Continue",
                 onClick = { onAccept(country, if (country == "IN") "" else subdivision, true, true, true) },
                 modifier = Modifier.padding(top = 14.dp),
@@ -161,7 +157,7 @@ internal fun ParityConsentScreen(
             TextButton(onClick = onNotNow, modifier = Modifier.padding(top = 4.dp)) {
                 Text("Not Now", color = Color(0xFF66636C), fontWeight = FontWeight.Bold)
             }
-            Spacer(Modifier.height(26.dp))
+            Spacer(Modifier.padding(vertical = 13.dp))
         }
     }
 }
