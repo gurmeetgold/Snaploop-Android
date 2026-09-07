@@ -132,14 +132,23 @@ class MediaStorePhotoLibrary(private val context: Context) {
         require(maxPixelSize > 0)
         require(quality in 1..100)
 
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        openAsset(asset).use { BitmapFactory.decodeStream(it, null, bounds) }
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+        // MediaStore already exposes image dimensions for normal local rows. Using those dimensions
+        // avoids opening/decoding every photo once purely for BitmapFactory bounds before the real
+        // sampled decode. OEM/cloud providers that omit dimensions still use the safe bounds fallback.
+        var sourceWidth = asset.width
+        var sourceHeight = asset.height
+        if (sourceWidth <= 0 || sourceHeight <= 0) {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            openAsset(asset).use { BitmapFactory.decodeStream(it, null, bounds) }
+            sourceWidth = bounds.outWidth
+            sourceHeight = bounds.outHeight
+        }
+        if (sourceWidth <= 0 || sourceHeight <= 0) {
             throw PhotoUnavailableException("Photo ${asset.id} can no longer be decoded")
         }
 
         var sample = 1
-        while (max(bounds.outWidth / sample, bounds.outHeight / sample) > maxPixelSize * 2) {
+        while (max(sourceWidth / sample, sourceHeight / sample) > maxPixelSize * 2) {
             sample *= 2
         }
 
