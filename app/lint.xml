@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- CameraX ImageProxy.image is the deliberate zero-copy bridge into bundled ML Kit analysis
+         for Face Setup and QR scanning. Opt in once at the app boundary instead of scattering
+         fragile annotations across each analyzer. -->
+    <issue id="UnsafeOptInUsageError">
+        <option name="opt-in" value="androidx.camera.core.ExperimentalGetImage" />
+    </issue>
+
+    <!-- Legacy pre-auth PhoneAuth UI still reads the initial device country directly. It is
+         replaced after authentication by SnapLoopMainShell and does not format mutable locale
+         content. Keep this narrowly scoped until the auth screen is moved into the parity shell. -->
+    <issue id="NonObservableLocale">
+        <ignore path="src/main/java/com/snaploop/app/ui/SnapLoopApp.kt" />
+    </issue>
+</lint>
