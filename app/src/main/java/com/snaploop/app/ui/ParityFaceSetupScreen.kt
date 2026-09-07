@@ -48,7 +48,7 @@ internal fun ParityFaceSetupScreen(
     }
 
     BackHandler(onBack = onExit)
-    BrandBackground {
+    ParityBrandBackground {
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -69,7 +69,7 @@ internal fun ParityFaceSetupScreen(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
             )
 
-            PremiumCard(Modifier.padding(top = 4.dp)) {
+            ParityPremiumCard(Modifier.padding(top = 4.dp)) {
                 if (state.user?.hasFaceProfile == true) {
                     FaceReferenceThumbnail(
                         userId = state.user?.id,
@@ -89,7 +89,7 @@ internal fun ParityFaceSetupScreen(
                         modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 5.dp),
                     )
                 } else {
-                    BrandMark(92)
+                    ParityBrandMark(92)
                     Text(
                         "Five guided angles create your private face template.",
                         fontWeight = FontWeight.Bold,
@@ -99,7 +99,7 @@ internal fun ParityFaceSetupScreen(
                 }
             }
 
-            PrimaryButton(
+            ParityPrimaryButton(
                 if (state.user?.hasFaceProfile == true) "◎  Update Face Setup" else "◎  Selfie Scan",
                 onClick = { onReset(); scanOpen = true },
                 modifier = Modifier.padding(top = 18.dp),
