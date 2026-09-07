@@ -72,8 +72,8 @@ internal fun ParityFaceSetupScreen(
             PremiumCard(Modifier.padding(top = 4.dp)) {
                 if (state.user?.hasFaceProfile == true) {
                     FaceReferenceThumbnail(
-                        userId = state.user.id,
-                        fallbackInitial = state.user.displayName ?: "?",
+                        userId = state.user?.id,
+                        fallbackInitial = state.user?.displayName ?: "?",
                         modifier = Modifier.align(Alignment.CenterHorizontally).height(174.dp).fillMaxWidth(0.56f),
                     )
                     Text(
