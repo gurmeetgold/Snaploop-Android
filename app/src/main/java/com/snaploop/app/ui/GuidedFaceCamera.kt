@@ -182,7 +182,7 @@ internal fun GuidedFaceCamera(
     )
 }
 
-@OptIn(ExperimentalGetImage::class)
+@ExperimentalGetImage
 private fun analyzeFrame(
     imageProxy: ImageProxy,
     detector: com.google.mlkit.vision.face.FaceDetector,
