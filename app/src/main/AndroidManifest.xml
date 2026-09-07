@@ -34,19 +34,30 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!--
+              Invite links are a cross-platform product contract. Debug/beta Android builds must
+              open links shared by an iPhone Release build and vice versa, so both official
+              SnapLoop Hosting domains are accepted. New Android shares use getsnaploop.web.app.
+            -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="${snaploopAssociatedDomain}" android:pathPrefix="/e/" />
-                <data android:scheme="https" android:host="${snaploopAssociatedDomain}" android:pathPrefix="/c/" />
+                <data android:scheme="https" />
+                <data android:host="getsnaploop.web.app" />
+                <data android:host="snaploop-dev.web.app" />
+                <data android:pathPrefix="/e/" />
+                <data android:pathPrefix="/c/" />
             </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="snaploop" android:host="e" />
                 <data android:scheme="snaploop" android:host="c" />
+                <data android:scheme="snaploop" android:host="join" />
             </intent-filter>
         </activity>
     </application>
