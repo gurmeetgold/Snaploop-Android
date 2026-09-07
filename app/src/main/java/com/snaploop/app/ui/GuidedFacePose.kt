@@ -24,28 +24,29 @@ data class FacePoseObservation(
 }
 
 /**
- * Pure live-pose gate for Android CameraX enrollment.
+ * Pure pose gate used by tests and non-camera callers.
  *
- * Yaw thresholds intentionally match the pinned iOS implementation. ML Kit defines positive
- * Euler X as looking upward, so the iOS "Tilt Down" step is represented by the corresponding
- * negative Android pitch range while preserving the same 9–28 degree magnitude.
+ * The live CameraX enrollment additionally calibrates yaw/pitch from the accepted front pose and
+ * requires several consecutive qualifying frames. These absolute limits deliberately stay strict:
+ * a side pose must also remain level, and a tilt must remain close to the user's forward yaw. This
+ * prevents a noisy straight-ahead ML Kit estimate from satisfying several enrollment steps.
  */
 class GuidedFacePoseEvaluator {
     fun matches(pose: GuidedFacePose, observation: FacePoseObservation): Boolean {
-        if (!isWellFramed(observation)) return false
+        if (!isWellFramed(observation) || abs(observation.rollDegrees) > 12f) return false
 
         return when (pose) {
             GuidedFacePose.FRONT ->
                 abs(observation.yawDegrees) <= 8f && abs(observation.pitchDegrees) <= 10f
 
             GuidedFacePose.LEFT ->
-                observation.yawDegrees in -38f..-16f
+                observation.yawDegrees in -38f..-18f && abs(observation.pitchDegrees) <= 12f
 
             GuidedFacePose.RIGHT ->
-                observation.yawDegrees in 16f..38f
+                observation.yawDegrees in 18f..38f && abs(observation.pitchDegrees) <= 12f
 
             GuidedFacePose.TILT_DOWN ->
-                observation.pitchDegrees in -28f..-9f && abs(observation.yawDegrees) <= 18f
+                observation.pitchDegrees in -30f..-12f && abs(observation.yawDegrees) <= 12f
 
             GuidedFacePose.FINISH_FRONT ->
                 abs(observation.yawDegrees) <= 10f && abs(observation.pitchDegrees) <= 12f
@@ -62,8 +63,9 @@ class GuidedFacePoseEvaluator {
 
     fun detail(pose: GuidedFacePose, observation: FacePoseObservation?): String = when {
         observation == null -> "Keep the phone steady"
-        observation.areaFraction < 0.12f -> "Keep your whole face inside the oval"
+        observation.areaFraction < 0.12f -> "Move a little closer"
         !isCentered(observation) -> "Center your face inside the oval"
+        abs(observation.rollDegrees) > 12f -> "Keep your head level"
         pose == GuidedFacePose.FRONT || pose == GuidedFacePose.FINISH_FRONT -> when {
             observation.yawDegrees < -8f -> "Turn slightly RIGHT toward center"
             observation.yawDegrees > 8f -> "Turn slightly LEFT toward center"
@@ -72,12 +74,12 @@ class GuidedFacePoseEvaluator {
             else -> "Hold still"
         }
         pose == GuidedFacePose.LEFT ->
-            if (observation.yawDegrees > -16f) "Keep turning LEFT" else "Come slightly back toward center"
+            if (observation.yawDegrees > -18f) "Keep turning LEFT" else "Come slightly back toward center"
         pose == GuidedFacePose.RIGHT ->
-            if (observation.yawDegrees < 16f) "Keep turning RIGHT" else "Come slightly back toward center"
+            if (observation.yawDegrees < 18f) "Keep turning RIGHT" else "Come slightly back toward center"
         else -> when {
-            observation.pitchDegrees > -9f -> "Lower your chin a little"
-            observation.pitchDegrees < -28f -> "Raise your chin slightly"
+            observation.pitchDegrees > -12f -> "Lower your chin a little"
+            observation.pitchDegrees < -30f -> "Raise your chin slightly"
             else -> "Hold still"
         }
     }
