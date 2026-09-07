@@ -15,7 +15,11 @@ import com.snaploop.app.security.AccountInstallationIdentityStore
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
-/** User-triggered scanner. It never schedules continuous/background gallery inspection. */
+/**
+ * User-triggered event scanner. No continuous/background gallery inspection.
+ * Recipient eligibility mirrors iOS, including the explicit include-own-matches
+ * preference so a user's own photos are evaluated only when they opt in.
+ */
 class CameraSyncCoordinator(context: Context) : AutoCloseable {
     data class Progress(val checked: Int, val total: Int, val published: Int)
     data class Result(val checked: Int, val published: Int, val remaining: Int)
@@ -34,6 +38,8 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         startMillis: Long,
         endMillis: Long,
         sharingEnabled: Boolean,
+        includeOwnMatches: Boolean = false,
+        ownMatchesRevision: String? = null,
         config: RemoteConfigValues,
         onProgress: (Progress) -> Unit = {},
     ): Result {
@@ -41,7 +47,10 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         val manifest = rosterClient.manifest(eventId)
         val sourceMembershipId = manifest.sourceMembershipId ?: error("Current Event membership is unavailable")
         val participants = manifest.participants.filter {
-            it.membershipId != null && it.faceIdentityId?.isNotBlank() == true && it.faceProfileRevision.isNotBlank()
+            it.membershipId != null &&
+                it.faceIdentityId?.isNotBlank() == true &&
+                it.faceProfileRevision.isNotBlank() &&
+                (it.userId != uid || includeOwnMatches)
         }
         val matcherParticipants = participants.map { it.asMatcherParticipant() }
         val matchableIds = participants.mapTo(linkedSetOf()) { it.userId }
@@ -56,19 +65,42 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         participants.forEach {
             state.reconcileRecipient(it.userId, it.membershipId!!, it.stableFaceIdentityId, it.faceProfileRevision)
         }
+
+        // When own-photo visibility is disabled, dropping the current user's cursor
+        // ensures no self appearance is published. Turning it back on creates a fresh
+        // cursor, replaying the protected local corpus without a full ML extraction.
         state.retainRecipientCursors(matchableIds)
-        if (state.rosterAmbiguityRevision != null && state.rosterAmbiguityRevision != rosterRevision) state.markAllRecipientEvaluationsStale()
+        val normalizedOwnRevision = ownMatchesRevision?.trim()?.takeIf { it.isNotEmpty() }
+        if (includeOwnMatches && state.sourceOwnMatchesRevision != null &&
+            normalizedOwnRevision != null && state.sourceOwnMatchesRevision != normalizedOwnRevision
+        ) {
+            state.recipientCursors[uid]?.markAllEvaluatedStale()
+        }
+        state.sourceOwnMatchesRevision = normalizedOwnRevision ?: includeOwnMatches.toString()
+
+        if (state.rosterAmbiguityRevision != null && state.rosterAmbiguityRevision != rosterRevision) {
+            state.markAllRecipientEvaluationsStale()
+        }
         state.rosterAmbiguityRevision = rosterRevision
+
         val sharingRevision = if (sharingEnabled) "on" else "off"
-        if (state.sourceSharingRevision != null && state.sourceSharingRevision != sharingRevision && sharingEnabled) state.clearPositiveRecipientEvaluations()
+        if (state.sourceSharingRevision != null && state.sourceSharingRevision != sharingRevision && sharingEnabled) {
+            // Server-side sharing OFF removes source rows; OFF -> ON must replay
+            // previously-positive recipients so those matches can be republished.
+            state.clearPositiveRecipientEvaluations()
+        }
         state.sourceSharingRevision = sharingRevision
 
         val assets = library.assets(startMillis, endMillis)
         val validIds = assets.mapTo(hashSetOf()) { it.id }
         state.retainCurrentAssets(validIds)
         val sourceInstallationId = installationIdentity.idFor(uid)
-        val matcher = FaceMatcher(MatchConfig(config.matchConfidenceThreshold, config.matchAmbiguityMargin, config.minFaceSizeFraction))
-        val pendingAssets = assets.filter { asset -> state.pendingRecipientUserIds(asset.id, matchableIds).isNotEmpty() }
+        val matcher = FaceMatcher(
+            MatchConfig(config.matchConfidenceThreshold, config.matchAmbiguityMargin, config.minFaceSizeFraction)
+        )
+        val pendingAssets = assets.filter { asset ->
+            state.pendingRecipientUserIds(asset.id, matchableIds).isNotEmpty()
+        }
         val batch = pendingAssets.take(config.maxAssetsPerSyncBatch.coerceAtLeast(0))
         var published = 0
 
@@ -76,12 +108,22 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
             coroutineContext.ensureActive()
             var corpus = state.photoCorpus[asset.id]
             if (corpus == null) {
-                val image = library.normalizedJpeg(asset, config.thumbnailMaxPixelSize, (config.thumbnailJpegQuality * 100).toInt().coerceIn(1,100))
+                val image = library.normalizedJpeg(
+                    asset,
+                    config.thumbnailMaxPixelSize,
+                    (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
+                )
                 val detected = faces.detectFaces(image)
-                corpus = PhotoCorpusRecord(asset.id, asset.creationDateMillis, detected.map { CachedPhotoFace(it.embedding, it.sizeFraction) }, System.currentTimeMillis())
+                corpus = PhotoCorpusRecord(
+                    asset.id,
+                    asset.creationDateMillis,
+                    detected.map { CachedPhotoFace(it.embedding, it.sizeFraction) },
+                    System.currentTimeMillis(),
+                )
                 state.photoCorpus[asset.id] = corpus
                 states.save(state)
             }
+
             val pendingIds = state.pendingRecipientUserIds(asset.id, matchableIds)
             if (pendingIds.isEmpty()) continue
             val appearances = matcher.appearances(corpus.faces.map(CachedPhotoFace::detected), matcherParticipants)
@@ -93,24 +135,48 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
                 val wasMatched = cursor.wasMatched(asset.id)
                 val nowMatched = appearancesByUser.containsKey(participant.userId)
                 if (wasMatched && !nowMatched) {
-                    removals += RecipientContext(participant.userId, participant.membershipId, participant.stableFaceIdentityId, participant.faceProfileRevision)
+                    removals += RecipientContext(
+                        participant.userId,
+                        participant.membershipId,
+                        participant.stableFaceIdentityId,
+                        participant.faceProfileRevision,
+                    )
                 }
             }
+
             if (sharingEnabled && (publishAppearances.isNotEmpty() || removals.isNotEmpty())) {
-                val thumbnail = if (publishAppearances.isNotEmpty())
-                    library.normalizedJpeg(asset, config.thumbnailMaxPixelSize, (config.thumbnailJpegQuality * 100).toInt().coerceIn(1,100))
-                else byteArrayOf()
+                val thumbnail = if (publishAppearances.isNotEmpty()) {
+                    library.normalizedJpeg(
+                        asset,
+                        config.thumbnailMaxPixelSize,
+                        (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
+                    )
+                } else {
+                    byteArrayOf()
+                }
                 matches.upload(
                     PhotoMatch.fromMatcher(
-                        eventId, uid, sourceInstallationId, sourceMembershipId, asset.id,
-                        publishAppearances, removals, asset.creationDateMillis, System.currentTimeMillis(),
+                        eventId,
+                        uid,
+                        sourceInstallationId,
+                        sourceMembershipId,
+                        asset.id,
+                        publishAppearances,
+                        removals,
+                        asset.creationDateMillis,
+                        System.currentTimeMillis(),
                     ),
                     thumbnail,
                 )
                 published++
             }
+
             for (participant in participants.filter { it.userId in pendingIds }) {
-                state.markRecipientEvaluation(participant.userId, asset.id, appearancesByUser.containsKey(participant.userId))
+                state.markRecipientEvaluation(
+                    participant.userId,
+                    asset.id,
+                    appearancesByUser.containsKey(participant.userId),
+                )
             }
             state.lastSyncedAtMillis = System.currentTimeMillis()
             states.save(state)
@@ -119,5 +185,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         return Result(batch.size, published, pendingAssets.size - batch.size)
     }
 
-    override fun close() { faces.close() }
+    override fun close() {
+        faces.close()
+    }
 }
