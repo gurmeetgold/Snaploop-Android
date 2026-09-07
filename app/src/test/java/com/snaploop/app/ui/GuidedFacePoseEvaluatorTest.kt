@@ -22,12 +22,12 @@ class GuidedFacePoseEvaluatorTest {
         assertFalse(evaluator.matches(GuidedFacePose.FRONT, observation(width = 0.18f, height = 0.18f)))
     }
 
-    @Test fun left_and_right_require_the_expected_yaw_direction() {
+    @Test fun left_and_right_match_the_mirrored_selfie_preview() {
         val evaluator = GuidedFacePoseEvaluator()
-        assertTrue(evaluator.matches(GuidedFacePose.LEFT, observation(yaw = -22f)))
-        assertFalse(evaluator.matches(GuidedFacePose.LEFT, observation(yaw = 22f)))
-        assertTrue(evaluator.matches(GuidedFacePose.RIGHT, observation(yaw = 24f)))
-        assertFalse(evaluator.matches(GuidedFacePose.RIGHT, observation(yaw = -24f)))
+        assertTrue(evaluator.matches(GuidedFacePose.LEFT, observation(yaw = 22f)))
+        assertFalse(evaluator.matches(GuidedFacePose.LEFT, observation(yaw = -22f)))
+        assertTrue(evaluator.matches(GuidedFacePose.RIGHT, observation(yaw = -24f)))
+        assertFalse(evaluator.matches(GuidedFacePose.RIGHT, observation(yaw = 24f)))
     }
 
     @Test fun tilt_down_uses_android_negative_pitch() {
