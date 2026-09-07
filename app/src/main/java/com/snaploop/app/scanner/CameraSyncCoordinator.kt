@@ -11,6 +11,7 @@ import com.snaploop.app.domain.PhotoMatch
 import com.snaploop.app.domain.RecipientContext
 import com.snaploop.app.face.AndroidFacePipeline
 import com.snaploop.app.media.MediaStorePhotoLibrary
+import com.snaploop.app.media.PhotoUnavailableException
 import com.snaploop.app.security.AccountInstallationIdentityStore
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
@@ -45,7 +46,8 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
     ): Result {
         val uid = auth.currentUser?.uid ?: error("Authentication is required")
         val manifest = rosterClient.manifest(eventId)
-        val sourceMembershipId = manifest.sourceMembershipId ?: error("Current Event membership is unavailable")
+        val sourceMembershipId =
+            manifest.sourceMembershipId ?: error("Current Event membership is unavailable")
         val participants = manifest.participants.filter {
             it.membershipId != null &&
                 it.faceIdentityId?.isNotBlank() == true &&
@@ -63,16 +65,24 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
             state.resetRecipientCursors()
         }
         participants.forEach {
-            state.reconcileRecipient(it.userId, it.membershipId!!, it.stableFaceIdentityId, it.faceProfileRevision)
+            state.reconcileRecipient(
+                it.userId,
+                it.membershipId!!,
+                it.stableFaceIdentityId,
+                it.faceProfileRevision,
+            )
         }
 
-        // When own-photo visibility is disabled, dropping the current user's cursor
-        // ensures no self appearance is published. Turning it back on creates a fresh
-        // cursor, replaying the protected local corpus without a full ML extraction.
+        // When own-photo visibility is disabled, dropping the current user's cursor ensures no
+        // self appearance is published. Turning it back on creates a fresh cursor and replays the
+        // encrypted local corpus without requiring face extraction again.
         state.retainRecipientCursors(matchableIds)
         val normalizedOwnRevision = ownMatchesRevision?.trim()?.takeIf { it.isNotEmpty() }
-        if (includeOwnMatches && state.sourceOwnMatchesRevision != null &&
-            normalizedOwnRevision != null && state.sourceOwnMatchesRevision != normalizedOwnRevision
+        if (
+            includeOwnMatches &&
+            state.sourceOwnMatchesRevision != null &&
+            normalizedOwnRevision != null &&
+            state.sourceOwnMatchesRevision != normalizedOwnRevision
         ) {
             state.recipientCursors[uid]?.markAllEvaluatedStale()
         }
@@ -84,9 +94,13 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         state.rosterAmbiguityRevision = rosterRevision
 
         val sharingRevision = if (sharingEnabled) "on" else "off"
-        if (state.sourceSharingRevision != null && state.sourceSharingRevision != sharingRevision && sharingEnabled) {
-            // Server-side sharing OFF removes source rows; OFF -> ON must replay
-            // previously-positive recipients so those matches can be republished.
+        if (
+            state.sourceSharingRevision != null &&
+            state.sourceSharingRevision != sharingRevision &&
+            sharingEnabled
+        ) {
+            // Server-side sharing OFF removes source rows; OFF -> ON must replay previously-positive
+            // recipients so those matches can be republished.
             state.clearPositiveRecipientEvaluations()
         }
         state.sourceSharingRevision = sharingRevision
@@ -96,7 +110,11 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         state.retainCurrentAssets(validIds)
         val sourceInstallationId = installationIdentity.idFor(uid)
         val matcher = FaceMatcher(
-            MatchConfig(config.matchConfidenceThreshold, config.matchAmbiguityMargin, config.minFaceSizeFraction)
+            MatchConfig(
+                config.matchConfidenceThreshold,
+                config.matchAmbiguityMargin,
+                config.minFaceSizeFraction,
+            ),
         )
         val pendingAssets = assets.filter { asset ->
             state.pendingRecipientUserIds(asset.id, matchableIds).isNotEmpty()
@@ -106,14 +124,27 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
 
         for ((index, asset) in batch.withIndex()) {
             coroutineContext.ensureActive()
+
+            // Keep the normalized bytes for this iteration so a newly-processed photo is not read
+            // from MediaStore a second time just to publish its thumbnail.
+            var sourceJpeg: ByteArray? = null
             var corpus = state.photoCorpus[asset.id]
             if (corpus == null) {
-                val image = library.normalizedJpeg(
-                    asset,
-                    config.thumbnailMaxPixelSize,
-                    (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
-                )
-                val detected = faces.detectFaces(image)
+                sourceJpeg = try {
+                    library.normalizedJpeg(
+                        asset,
+                        config.thumbnailMaxPixelSize,
+                        (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
+                    )
+                } catch (_: PhotoUnavailableException) {
+                    // MediaStore can return a row and revoke/remove it before the stream is opened
+                    // (common with Android selected-photo access and OEM gallery providers). A
+                    // single stale row must never terminate the whole Event scan.
+                    onProgress(Progress(index + 1, batch.size, published))
+                    continue
+                }
+
+                val detected = faces.detectFaces(sourceJpeg)
                 corpus = PhotoCorpusRecord(
                     asset.id,
                     asset.creationDateMillis,
@@ -125,8 +156,15 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
             }
 
             val pendingIds = state.pendingRecipientUserIds(asset.id, matchableIds)
-            if (pendingIds.isEmpty()) continue
-            val appearances = matcher.appearances(corpus.faces.map(CachedPhotoFace::detected), matcherParticipants)
+            if (pendingIds.isEmpty()) {
+                onProgress(Progress(index + 1, batch.size, published))
+                continue
+            }
+
+            val appearances = matcher.appearances(
+                corpus.faces.map(CachedPhotoFace::detected),
+                matcherParticipants,
+            )
             val appearancesByUser = appearances.associateBy { it.participantUserId }
             val publishAppearances = appearances.filter { it.participantUserId in pendingIds }
             val removals = mutableListOf<RecipientContext>()
@@ -146,14 +184,22 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
 
             if (sharingEnabled && (publishAppearances.isNotEmpty() || removals.isNotEmpty())) {
                 val thumbnail = if (publishAppearances.isNotEmpty()) {
-                    library.normalizedJpeg(
-                        asset,
-                        config.thumbnailMaxPixelSize,
-                        (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
-                    )
+                    sourceJpeg ?: try {
+                        library.normalizedJpeg(
+                            asset,
+                            config.thumbnailMaxPixelSize,
+                            (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
+                        )
+                    } catch (_: PhotoUnavailableException) {
+                        // The corpus can be cached even after the underlying photo is removed. Do
+                        // not mark a positive as delivered when its preview could not be published.
+                        onProgress(Progress(index + 1, batch.size, published))
+                        continue
+                    }
                 } else {
                     byteArrayOf()
                 }
+
                 matches.upload(
                     PhotoMatch.fromMatcher(
                         eventId,
