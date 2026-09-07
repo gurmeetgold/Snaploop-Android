@@ -23,7 +23,6 @@ class GuidedFacePoseTrackerTest {
     fun neutralEulerBiasDoesNotBecomeLeftRightOrTilt() {
         val tracker = GuidedFacePoseTracker(calibrationSamplesRequired = 3, stableFramesRequired = 2)
 
-        // Simulate a Redmi/OEM camera whose straight-ahead estimate is biased.
         repeat(3) { tracker.evaluate(GuidedFacePose.FRONT, observation(yaw = 19f, pitch = -10f)) }
         val front = tracker.evaluate(GuidedFacePose.FRONT, observation(yaw = 19f, pitch = -10f))
         assertTrue(front.readyToCapture)
@@ -42,12 +41,29 @@ class GuidedFacePoseTrackerTest {
         assertTrue(tracker.evaluate(GuidedFacePose.FRONT, observation()).readyToCapture)
         tracker.onCaptured()
 
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = -23f)).readyToCapture)
-        // A large jump resets the stability sequence.
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = -36f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 23f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 36f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 24f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 23f)).readyToCapture)
+        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 22f)).readyToCapture)
+    }
+
+    @Test
+    fun mirroredPreviewMapsPositiveYawToUserLeftAndNegativeToRight() {
+        val tracker = GuidedFacePoseTracker(calibrationSamplesRequired = 2, stableFramesRequired = 2)
+        repeat(2) { tracker.evaluate(GuidedFacePose.FRONT, observation()) }
+        tracker.evaluate(GuidedFacePose.FRONT, observation())
+        assertTrue(tracker.evaluate(GuidedFacePose.FRONT, observation()).readyToCapture)
+        tracker.onCaptured()
+
         assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = -24f)).readyToCapture)
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = -23f)).readyToCapture)
-        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = -22f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 24f)).readyToCapture)
+        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 24f)).readyToCapture)
+        tracker.onCaptured()
+
+        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = 24f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = -24f)).readyToCapture)
+        assertTrue(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = -24f)).readyToCapture)
     }
 
     @Test
@@ -58,7 +74,6 @@ class GuidedFacePoseTrackerTest {
         assertTrue(tracker.evaluate(GuidedFacePose.FRONT, observation(pitch = -11f)).readyToCapture)
         tracker.onCaptured()
 
-        // Raw -11 is neutral, not a tilt after calibration.
         assertFalse(tracker.evaluate(GuidedFacePose.TILT_DOWN, observation(pitch = -11f)).readyToCapture)
         assertFalse(tracker.evaluate(GuidedFacePose.TILT_DOWN, observation(pitch = -27f)).readyToCapture)
         assertTrue(tracker.evaluate(GuidedFacePose.TILT_DOWN, observation(pitch = -27f)).readyToCapture)
