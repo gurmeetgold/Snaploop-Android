@@ -54,6 +54,12 @@ class FirebaseFaceProfileStore(
             "version" to profile.version,
             "updatedAtMillis" to profile.updatedAtMillis,
         ))
+
+        // iOS explicitly refreshes the authenticated user's Event-scoped face roster after
+        // enrollment/update. Android must do the same so iPhone participants scanning an Event
+        // immediately receive the new Android templates instead of matching against a stale or
+        // missing profile. Keep this server-authoritative; no biometric data is logged locally.
+        callable.call("refreshMyFaceProfile", emptyMap<String, Any>())
     }
 
     suspend fun delete(userId: String) {
