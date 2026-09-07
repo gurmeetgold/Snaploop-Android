@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -47,12 +46,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
@@ -99,7 +98,6 @@ internal fun GuidedFaceEnrollmentCamera(
     var detail by remember { mutableStateOf("Center your face inside the oval") }
     var cameraError by remember { mutableStateOf<String?>(null) }
     var provider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
-    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         permissionGranted = granted
@@ -140,9 +138,8 @@ internal fun GuidedFaceEnrollmentCamera(
                     val capture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                         .build()
-                    imageCapture = capture
 
-                    analyzer = GuidedFaceAnalyzer(
+                    val guidedAnalyzer = GuidedFaceAnalyzer(
                         detector = detector,
                         analysisBusy = analysisBusy,
                         currentStep = { GuidedEnrollmentStep.entries[currentStepOrdinal.get()] },
@@ -180,11 +177,12 @@ internal fun GuidedFaceEnrollmentCamera(
                             }
                         },
                     )
+                    analyzer = guidedAnalyzer
 
                     val analysis = ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
-                    analysis.setAnalyzer(cameraExecutor, analyzer!!)
+                    analysis.setAnalyzer(cameraExecutor, guidedAnalyzer)
 
                     cameraProvider.unbindAll()
                     cameraProvider.bindToLifecycle(
@@ -300,7 +298,8 @@ private enum class GuidedEnrollmentStep(
         FRONT -> abs(yaw) <= 8.0 && abs(pitch) <= 10.0
         LEFT -> yaw in -38.0..-16.0
         RIGHT -> yaw in 16.0..38.0
-        TILT_DOWN -> pitch in 9.0..28.0 && abs(yaw) <= 18.0
+        // ML Kit Euler X is positive when looking up, so down is the negative range.
+        TILT_DOWN -> pitch in -28.0..-9.0 && abs(yaw) <= 18.0
         FINISH_FRONT -> abs(yaw) <= 10.0 && abs(pitch) <= 12.0
     }
 
@@ -314,7 +313,11 @@ private enum class GuidedEnrollmentStep(
         }
         LEFT -> if (yaw > -16.0) "Keep turning LEFT" else "Come slightly back toward center"
         RIGHT -> if (yaw < 16.0) "Keep turning RIGHT" else "Come slightly back toward center"
-        TILT_DOWN -> if (pitch < 9.0) "Lower your chin a little" else "Raise your chin slightly"
+        TILT_DOWN -> when {
+            pitch > -9.0 -> "Lower your chin a little"
+            pitch < -28.0 -> "Raise your chin slightly"
+            else -> "Hold still"
+        }
     }
 
     companion object {
