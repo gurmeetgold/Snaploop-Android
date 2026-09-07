@@ -102,9 +102,15 @@ internal fun QrCodeScannerScreen(
         if (!granted) error = "Camera access is required to scan an Event QR code."
     }
 
+    // Keep the executor alive when the permission state flips from denied to granted.
+    // It is owned by this scanner screen and shut down only when the screen leaves composition.
+    DisposableEffect(Unit) {
+        onDispose { cameraExecutor.shutdownNow() }
+    }
+
     DisposableEffect(permissionGranted, lifecycleOwner) {
         if (!permissionGranted) {
-            onDispose { cameraExecutor.shutdownNow() }
+            onDispose { }
         } else {
             val scanner = BarcodeScanning.getClient(
                 BarcodeScannerOptions.Builder()
@@ -154,7 +160,6 @@ internal fun QrCodeScannerScreen(
                 runCatching { provider?.unbindAll() }
                 runCatching { analyzer?.close() }
                 runCatching { scanner.close() }
-                cameraExecutor.shutdownNow()
             }
         }
     }
