@@ -8,7 +8,9 @@ enum class GuidedFacePose {
     LEFT,
     RIGHT,
     TILT_DOWN,
-    FINISH_FRONT,
+    FINISH_FRONT;
+
+    companion object
 }
 
 data class FacePoseObservation(
