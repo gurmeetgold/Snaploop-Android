@@ -1,0 +1,31 @@
+name: One-time September 7 Android Parity Patch
+on:
+  push:
+    branches: [feature/android-production-parity-v1]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/android-production-parity-v1
+      - name: Apply Android parity patch
+        run: python3 scripts/apply_20260907_parity_patch.py
+      - name: Commit patched sources
+        run: |
+          if git diff --quiet; then
+            echo "No patch changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/java/com/snaploop/app/ui/SnapLoopApp.kt \
+                  app/src/main/java/com/snaploop/app/ui/AppCoordinator.kt \
+                  app/src/main/java/com/snaploop/app/ui/GuidedFaceEnrollmentCamera.kt \
+                  app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt \
+                  app/src/main/java/com/snaploop/app/scanner/CameraSyncCoordinator.kt
+          git commit -m "fix: complete Android face scan gallery and privacy parity pass"
+          git push origin HEAD:feature/android-production-parity-v1
