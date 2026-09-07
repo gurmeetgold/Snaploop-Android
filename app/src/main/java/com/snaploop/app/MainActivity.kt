@@ -14,14 +14,25 @@ import com.snaploop.app.ui.SnapLoopRoot
 import com.snaploop.app.ui.SnapLoopTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 
+/**
+ * Single-activity host. Pending invite URLs are persisted until the coordinator
+ * consumes them so a cold-start invitation survives authentication, process
+ * recreation, or an Activity restart, matching the iOS PendingInviteStore model.
+ */
 class MainActivity : ComponentActivity() {
     private lateinit var coordinator: AppCoordinator
     private val pendingDeepLink = MutableStateFlow<Uri?>(null)
+    private val invitePrefs by lazy { getSharedPreferences("snaploop.pending.invite", MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         coordinator = ViewModelProvider(this)[AppCoordinator::class.java]
-        pendingDeepLink.value = intent?.data
+        capturePendingDeepLink(intent?.data)
+        if (pendingDeepLink.value == null) {
+            invitePrefs.getString(KEY_PENDING_URL, null)
+                ?.let { raw -> runCatching { Uri.parse(raw) }.getOrNull() }
+                ?.let { pendingDeepLink.value = it }
+        }
 
         setContent {
             SnapLoopTheme {
@@ -29,7 +40,7 @@ class MainActivity : ComponentActivity() {
                 SnapLoopDeepLinkEffect(
                     uri = deepLink,
                     coordinator = coordinator,
-                    onConsumed = { pendingDeepLink.value = null },
+                    onConsumed = ::clearPendingDeepLink,
                 )
                 SnapLoopRoot(
                     activity = this@MainActivity,
@@ -42,6 +53,21 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingDeepLink.value = intent.data
+        capturePendingDeepLink(intent.data)
+    }
+
+    private fun capturePendingDeepLink(uri: Uri?) {
+        if (uri == null) return
+        invitePrefs.edit().putString(KEY_PENDING_URL, uri.toString()).apply()
+        pendingDeepLink.value = uri
+    }
+
+    private fun clearPendingDeepLink() {
+        invitePrefs.edit().remove(KEY_PENDING_URL).apply()
+        pendingDeepLink.value = null
+    }
+
+    private companion object {
+        const val KEY_PENDING_URL = "pending_url"
     }
 }
