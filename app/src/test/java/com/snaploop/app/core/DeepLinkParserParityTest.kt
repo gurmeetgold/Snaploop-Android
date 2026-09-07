@@ -30,9 +30,10 @@ class DeepLinkParserParityTest {
     @Test
     fun generatedInviteUrlAndShareCopyUseCanonicalEventRoute() {
         val token = "AbCdEfGhJkLmNpQrStUvWx"
-        val url = DeepLinkParser.inviteUrl(token, "getsnaploop.web.app")
-        assertEquals("https://getsnaploop.web.app/e/$token", url)
-        val copy = DeepLinkParser.shareText("Banff Weekend", "Gurmeet", token)
+        val host = "getsnaploop.web.app"
+        val url = DeepLinkParser.inviteUrl(token, host)
+        assertEquals("https://$host/e/$token", url)
+        val copy = DeepLinkParser.shareText("Banff Weekend", "Gurmeet", token, host)
         assertTrue(copy.startsWith("Gurmeet invited you to join \"Banff Weekend\" on SnapLoop:"))
         assertTrue(copy.endsWith(url))
     }
