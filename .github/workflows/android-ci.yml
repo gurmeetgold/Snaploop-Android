@@ -14,4 +14,13 @@ jobs:
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '9.6.0' }
-      - run: gradle test lint assembleDebug assembleDebugAndroidTest
+      - name: Verify Android build
+        run: gradle test lint assembleDebug assembleDebugAndroidTest
+      - name: Print lint report on failure
+        if: failure()
+        run: |
+          REPORT="app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt"
+          if [ -f "$REPORT" ]; then
+            echo "===== Android lint report ====="
+            cat "$REPORT"
+          fi
