@@ -10,7 +10,7 @@ enum class GuidedFacePose {
     TILT_DOWN,
     FINISH_FRONT;
 
-    companion object
+    companion object {}
 }
 
 data class FacePoseObservation(
