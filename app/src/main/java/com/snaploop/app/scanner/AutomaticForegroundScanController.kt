@@ -22,10 +22,11 @@ import kotlinx.coroutines.withTimeoutOrNull
  * Opportunistic foreground Event scanning, mirroring the current iOS lifecycle.
  *
  * The UI asks this controller to run when the authenticated app becomes active
- * and whenever the authenticated Event snapshot changes (for example after a
- * join). The controller itself enforces live-Event eligibility, sharing,
- * photo-access, Low Power / battery-saver avoidance, a one-hour per-Event
- * cooldown, and one bounded scanner batch per Event.
+ * and whenever the authenticated Event/preference snapshot changes. The
+ * controller enforces Event+grace eligibility, sharing, photo access, battery
+ * saver avoidance, a one-hour per-Event cooldown, and one bounded scanner batch.
+ * Event or sharing/own-match generation changes bypass the cooldown so newly
+ * eligible recipient work is replayed immediately from the protected corpus.
  *
  * It deliberately does not run a service or WorkManager job: Android must not
  * inspect the photo library continuously in the background.
@@ -45,17 +46,23 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
     private var cachedConfig: RemoteConfigValues? = null
 
     @Synchronized
-    fun request(events: List<SnapEvent>) {
+    fun request(events: List<SnapEvent>, triggerGeneration: String? = null) {
         val snapshot = events.toList()
-        val signature = snapshot
-            .sortedBy { it.id }
-            .joinToString(";") { "${it.id}|${it.status}|${it.updatedAt}" }
+        val signature = buildString {
+            append(
+                snapshot
+                    .sortedBy { it.id }
+                    .joinToString(";") { "${it.id}|${it.status}|${it.updatedAt}" },
+            )
+            append("|trigger=")
+            append(triggerGeneration.orEmpty())
+        }
 
         if (activeJob?.isActive == true && activeSignature == signature) return
 
-        // A changed Event snapshot (notably a just-joined Event) should be
-        // considered immediately. Cancelling the old pass is safe because the
-        // scanner checkpoints after each processed asset.
+        // A changed Event/preference snapshot (notably join, sharing generation,
+        // or own-match visibility) should be considered immediately. Cancelling
+        // the old pass is safe because the scanner checkpoints after each asset.
         activeJob?.cancel()
         activeSignature = signature
         activeJob = scope.launch {
@@ -92,6 +99,8 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
                 val lastRun = preferences
                     .getLong(lastRunKey(event.id), NO_TIMESTAMP)
                     .takeUnless { it == NO_TIMESTAMP }
+                val fingerprint = AutomaticScanPolicy.triggerFingerprint(event, preference.revisionToken)
+                val triggerChanged = preferences.getString(fingerprintKey(event.id), null) != fingerprint
 
                 if (
                     !AutomaticScanPolicy.shouldRun(
@@ -101,6 +110,8 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
                         sharingEnabled = preference.sharingEnabled,
                         photoAccess = photoAccess,
                         powerSaveMode = powerManager.isPowerSaveMode,
+                        gracePeriodDays = config.eventGracePeriodDays,
+                        triggerChanged = triggerChanged,
                     )
                 ) continue
 
@@ -116,6 +127,7 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
 
                 preferences.edit()
                     .putLong(lastRunKey(event.id), System.currentTimeMillis())
+                    .putString(fingerprintKey(event.id), fingerprint)
                     .apply()
             }
         }
@@ -138,6 +150,7 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
     }
 
     private fun lastRunKey(eventId: String) = "last_auto_scan.$eventId.v1"
+    private fun fingerprintKey(eventId: String) = "fingerprint.$eventId.v2"
 
     private companion object {
         const val PREFS = "snaploop.auto.scan"
