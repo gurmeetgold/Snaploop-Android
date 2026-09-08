@@ -14,8 +14,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.snaploop.app.core.DeepLinkParser
 import com.snaploop.app.core.InvitationActionPolicy
-import com.snaploop.app.data.EventInviteClient
 import com.snaploop.app.data.FirebaseEventRepository
+import com.snaploop.app.invite.EventInviteClient
 import com.snaploop.app.model.EventStatus
 
 /**
