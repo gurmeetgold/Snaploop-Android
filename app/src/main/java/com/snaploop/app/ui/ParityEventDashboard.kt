@@ -205,6 +205,9 @@ internal fun ParityEventDashboard(
 
     var confirmEnd by remember(event.id) { mutableStateOf(false) }
     var confirmDelete by remember(event.id) { mutableStateOf(false) }
+    var editOpen by remember(event.id) { mutableStateOf(false) }
+    @Suppress("UNUSED_VARIABLE")
+    val legacyEditRoute = onEdit
 
     Column(
         Modifier
@@ -241,7 +244,7 @@ internal fun ParityEventDashboard(
                     event = event,
                     role = role,
                     busy = state.busy,
-                    onEdit = onEdit,
+                    onEdit = { editOpen = true },
                     onEnd = { confirmEnd = true },
                     onReopen = coordinator::reopenSelectedEvent,
                     onMoveToDeleted = { confirmDelete = true },
@@ -316,7 +319,7 @@ internal fun ParityEventDashboard(
                     event = event,
                     role = role,
                     busy = state.busy,
-                    onEdit = onEdit,
+                    onEdit = { editOpen = true },
                     onEnd = { confirmEnd = true },
                     onReopen = coordinator::reopenSelectedEvent,
                     onMoveToDeleted = { confirmDelete = true },
@@ -359,6 +362,24 @@ internal fun ParityEventDashboard(
                 }
             },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+        )
+    }
+
+    if (editOpen) {
+        ParityEditEventDialog(
+            event = event,
+            busy = state.busy,
+            onDismiss = { editOpen = false },
+            onSubmit = { name, category, location, startsOn, endsOn ->
+                coordinator.editSelectedEvent(
+                    name = name,
+                    category = category,
+                    locationName = location,
+                    startsOn = startsOn,
+                    endsOn = endsOn,
+                    onSuccess = { editOpen = false },
+                )
+            },
         )
     }
 }
