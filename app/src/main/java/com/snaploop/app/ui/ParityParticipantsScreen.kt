@@ -108,6 +108,9 @@ internal fun ParityParticipantsScreen(
     var confirmLeave by remember(event.id) { mutableStateOf(false) }
     var memberActionUserId by remember(event.id) { mutableStateOf<String?>(null) }
     var memberActionObservedBusy by remember(event.id) { mutableStateOf(false) }
+    var shareOpen by remember(event.id) { mutableStateOf(false) }
+    @Suppress("UNUSED_VARIABLE")
+    val legacyInviteRoute = onInvite
 
     LaunchedEffect(state.busy, state.members, state.message, memberActionUserId) {
         if (memberActionUserId == null) return@LaunchedEffect
@@ -215,7 +218,7 @@ internal fun ParityParticipantsScreen(
 
             if (ParticipantsParityPolicy.canInvite(role)) {
                 Button(
-                    onClick = onInvite,
+                    onClick = { shareOpen = true },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(15.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
@@ -348,6 +351,15 @@ internal fun ParityParticipantsScreen(
             dismissButton = {
                 TextButton(onClick = { confirmLeave = false }) { Text("Cancel") }
             },
+        )
+    }
+
+    if (shareOpen) {
+        ParityShareEventDialog(
+            event = event,
+            inviterName = state.user?.displayName,
+            canManageInvites = ParticipantsParityPolicy.canInvite(role),
+            onDismiss = { shareOpen = false },
         )
     }
 }
