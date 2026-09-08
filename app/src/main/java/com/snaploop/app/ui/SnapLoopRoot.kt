@@ -78,10 +78,9 @@ fun SnapLoopRoot(
             onReset = coordinator::resetFaceCaptures,
             onComplete = coordinator::completeFaceSetup,
             onExit = coordinator::cancelFaceSetup,
-            // The existing server-authoritative withdrawal path erases the
-            // face profile, encrypted local reference and own-match opt-ins.
-            // A later fresh setup therefore requires active consent again.
-            onDelete = coordinator::withdrawBiometrics,
+            // iOS keeps biometric consent active when only Face Setup is deleted.
+            // Consent withdrawal remains a separate Privacy action.
+            onDelete = coordinator::deleteFaceSetupPreservingConsent,
         )
         else -> SnapLoopApp(activity = activity, coordinator = coordinator)
     }
