@@ -115,7 +115,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-private enum class ShellEventPage { DASHBOARD, PHOTOS, SCAN, MEMBERS, INVITE, EDIT }
+private enum class ShellEventPage { DASHBOARD, PHOTOS, SCAN, MEMBERS, INVITE, PHONE_INVITE, EDIT }
 
 /**
  * The authenticated product shell. Unlike the original Android prototype, the main tab bar lives
@@ -463,8 +463,11 @@ private fun ShellEventHost(state: AppUiState, coordinator: AppCoordinator) {
     var page by rememberSaveable(event.id) { mutableStateOf(ShellEventPage.DASHBOARD) }
 
     BackHandler {
-        if (page == ShellEventPage.DASHBOARD) coordinator.closeEvent()
-        else page = ShellEventPage.DASHBOARD
+        when (page) {
+            ShellEventPage.DASHBOARD -> coordinator.closeEvent()
+            ShellEventPage.PHONE_INVITE -> page = ShellEventPage.INVITE
+            else -> page = ShellEventPage.DASHBOARD
+        }
     }
 
     when (page) {
@@ -472,7 +475,12 @@ private fun ShellEventHost(state: AppUiState, coordinator: AppCoordinator) {
         ShellEventPage.PHOTOS -> ShellEventPhotos(state, coordinator) { page = ShellEventPage.DASHBOARD }
         ShellEventPage.SCAN -> ShellEventScan(state, coordinator) { page = ShellEventPage.DASHBOARD }
         ShellEventPage.MEMBERS -> ShellMembers(state, coordinator, { page = ShellEventPage.DASHBOARD }) { page = ShellEventPage.INVITE }
-        ShellEventPage.INVITE -> ShellInvite(state) { page = ShellEventPage.DASHBOARD }
+        ShellEventPage.INVITE -> ShellInvite(
+            state = state,
+            onBack = { page = ShellEventPage.DASHBOARD },
+            onPhoneInvite = { page = ShellEventPage.PHONE_INVITE },
+        )
+        ShellEventPage.PHONE_INVITE -> ParityPhoneInviteScreen(event = event) { page = ShellEventPage.INVITE }
         ShellEventPage.EDIT -> ShellEventFormDialog(
             title = "Edit Event",
             initialName = event.name,
@@ -559,7 +567,7 @@ private fun ShellEventDashboard(
                     Icon(Icons.Filled.Share, null, tint = ShellColors.Coral, modifier = Modifier.size(30.dp))
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text("Invite People", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Share code, link or QR", color = ShellColors.Secondary, fontSize = 13.sp)
+                        Text("Share code, link, QR or phone invite", color = ShellColors.Secondary, fontSize = 13.sp)
                     }
                     Icon(Icons.Filled.ChevronRight, null, tint = Color.Gray)
                 }
@@ -723,7 +731,11 @@ private fun ShellMembers(
 }
 
 @Composable
-private fun ShellInvite(state: AppUiState, onBack: () -> Unit) {
+private fun ShellInvite(
+    state: AppUiState,
+    onBack: () -> Unit,
+    onPhoneInvite: () -> Unit,
+) {
     val event = state.selectedEvent ?: return
     val context = LocalContext.current
     val inviteUrl = DeepLinkParser.inviteUrl(event.inviteToken)
@@ -763,6 +775,27 @@ private fun ShellInvite(state: AppUiState, onBack: () -> Unit) {
             }
         }
         copied?.let { Text("✓ $it", color = Color(0xFF008F61), fontWeight = FontWeight.Bold) }
+
+        ShellCard(Modifier.clickable(onClick = onPhoneInvite)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(42.dp).background(shellSoftGradient(), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.Person, contentDescription = null, tint = ShellColors.Lilac)
+                }
+                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text("Invite by Phone or Contacts", fontWeight = FontWeight.Black, fontSize = 17.sp)
+                    Text(
+                        "Existing users get an in-app invite; others can receive the link.",
+                        color = ShellColors.Secondary,
+                        fontSize = 12.sp,
+                    )
+                }
+                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.Gray)
+            }
+        }
+
         ShellCard {
             Text("Scan to join", fontSize = 19.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterHorizontally))
             QrCodeImage(
