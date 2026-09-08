@@ -45,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -155,8 +156,9 @@ internal fun ParityEventDashboard(
     val role = parityCurrentRole(event, state.members, uid)
     val me = state.members.firstOrNull { it.userId == uid }
     val now = Instant.now()
-    val lifecycle = EventDashboardParityPolicy.lifecycle(event, now)
-    val canSync = EventDashboardParityPolicy.canSync(event, now)
+    val gracePeriodDays by coordinator.eventGracePeriodDays.collectAsState()
+    val lifecycle = EventDashboardParityPolicy.lifecycle(event, now, gracePeriodDays)
+    val canSync = EventDashboardParityPolicy.canSync(event, now, gracePeriodDays)
     val canManageMembers = role == EventMember.Role.organizer || role == EventMember.Role.admin
     val canManageEvent = canManageMembers
     val isOrganizer = role == EventMember.Role.organizer
