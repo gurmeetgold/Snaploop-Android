@@ -33,7 +33,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -263,7 +262,7 @@ internal fun ParityPhoneInviteScreen(
                             Icon(
                                 Icons.Filled.Message,
                                 contentDescription = null,
-                                tint = if (row.delivery == "in_app") SnapColors.Aqua else SnapColors.Coral,
+                                tint = if (row.delivery == "in_app") SnapColors.Mint else SnapColors.Coral,
                             )
                             Column(Modifier.weight(1f).padding(start = 10.dp)) {
                                 Text(row.phoneNumber, fontWeight = FontWeight.SemiBold)
