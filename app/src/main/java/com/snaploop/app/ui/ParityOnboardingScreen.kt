@@ -1,7 +1,6 @@
 package com.snaploop.app.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -117,7 +117,6 @@ internal fun ParityOnboardingScreen(onCompleted: () -> Unit) {
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f),
-                flingBehavior = rememberSnapFlingBehavior(pagerState),
             ) { index ->
                 val item = parityOnboardingPages[index]
                 Column(
