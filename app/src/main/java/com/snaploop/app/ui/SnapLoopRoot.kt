@@ -72,6 +72,17 @@ fun SnapLoopRoot(
             initialName = state.user?.displayName.orEmpty(),
             onSave = coordinator::saveDisplayName,
         )
+        AppGate.FACE_SETUP -> ParityFaceSetupScreen(
+            state = state,
+            onCapture = coordinator::addFaceCapture,
+            onReset = coordinator::resetFaceCaptures,
+            onComplete = coordinator::completeFaceSetup,
+            onExit = coordinator::cancelFaceSetup,
+            // The existing server-authoritative withdrawal path erases the
+            // face profile, encrypted local reference and own-match opt-ins.
+            // A later fresh setup therefore requires active consent again.
+            onDelete = coordinator::withdrawBiometrics,
+        )
         else -> SnapLoopApp(activity = activity, coordinator = coordinator)
     }
 }
