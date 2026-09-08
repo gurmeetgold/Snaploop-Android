@@ -411,30 +411,35 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         locationName: String?,
         startsOn: LocalDate,
         endsOn: LocalDate,
+        onSuccess: () -> Unit = {},
     ) = launchBusy {
         val uid = requireUid()
         val current = state.value.selectedEvent ?: error("Open an Event first.")
         val clean = name.trim()
         require(clean.isNotEmpty() && clean.length <= 20) { "Event name must be 1–20 characters." }
-        validateEventDates(startsOn, endsOn)
-        val zone = runCatching { ZoneId.of(current.photoWindowTimeZoneId ?: ZoneId.systemDefault().id) }
-            .getOrDefault(ZoneId.systemDefault())
-        val updated = current.copy(
+
+        val plan = EventEditParityPolicy.plan(
+            current = current,
             name = clean,
             category = category,
-            locationName = locationName?.trim()?.takeIf { it.isNotEmpty() },
-            startsAt = startsOn.atStartOfDay(zone).toInstant(),
-            endsAt = endsOn.plusDays(1).atStartOfDay(zone).toInstant().minusMillis(1),
-            photoWindowVersion = SnapEvent.CANONICAL_PHOTO_WINDOW_VERSION,
-            photoWindowTimeZoneId = zone.id,
-            photoWindowStartDayNumber = startsOn.toEpochDay().toInt(),
-            photoWindowEndDayNumber = endsOn.toEpochDay().toInt(),
-            updatedAt = Instant.now(),
+            locationName = locationName,
+            startsOn = startsOn,
+            endsOn = endsOn,
         )
-        eventRepository.updateEvent(updated, includeDates = true)
+        require(plan.hasChanges) { "No changes to save." }
+        if (plan.datesChanged) {
+            validateEventDates(startsOn, endsOn)
+        }
+
+        eventRepository.updateEvent(
+            event = plan.event,
+            includeDates = plan.datesChanged,
+            expectedUpdatedAt = current.updatedAt,
+        )
         val persisted = eventRepository.fetchEvent(current.id)
         loadEvent(persisted)
         update { copy(events = eventRepository.eventsForUser(uid), selectedEvent = persisted) }
+        onSuccess()
     }
 
     fun resolveJoinInput(raw: String) = launchBusy {
