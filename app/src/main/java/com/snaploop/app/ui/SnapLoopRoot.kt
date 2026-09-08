@@ -11,6 +11,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.snaploop.app.core.InviteAction
+import com.snaploop.app.core.InvitationResumeStore
 import com.snaploop.app.scanner.AutomaticForegroundScanController
 
 /**
@@ -24,10 +26,46 @@ fun SnapLoopRoot(
     coordinator: AppCoordinator,
 ) {
     val state by coordinator.state.collectAsState()
+    val invitationResume by InvitationResumeStore.state.collectAsState()
     val context = LocalContext.current.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
     val automaticScanner = remember(context) { AutomaticForegroundScanController(context) }
     val scanTriggerGeneration = "${state.selectedEvent?.id.orEmpty()}:own=${state.includeOwnMatches}"
+
+    // Successful Face Setup rebuilds authenticated UI state. Replay only the
+    // non-sensitive invitation routing intent after the profile is confirmed,
+    // preserving REVIEW versus direct ACCEPT semantics without creating
+    // membership before Face Setup.
+    LaunchedEffect(state.gate, state.user?.hasFaceProfile, invitationResume) {
+        val resume = invitationResume ?: return@LaunchedEffect
+        if (
+            resume.awaitingFaceSetup &&
+            state.gate == AppGate.MAIN &&
+            state.user?.hasFaceProfile == true
+        ) {
+            InvitationResumeStore.markFaceSetupResumed()
+            coordinator.resolveInvitation(
+                code = resume.code,
+                token = resume.token,
+                autoJoin = resume.action == InviteAction.ACCEPT,
+            )
+        }
+    }
+
+    // Once a resumed/direct invitation has successfully opened the Event, its
+    // routing context is no longer needed. Review contexts stay alive while the
+    // invitation card is visible so token invitations retain Decline semantics.
+    LaunchedEffect(state.pendingInvite?.id, state.selectedEvent?.id, invitationResume?.awaitingFaceSetup) {
+        val resume = invitationResume ?: return@LaunchedEffect
+        if (
+            state.gate == AppGate.MAIN &&
+            !resume.awaitingFaceSetup &&
+            state.pendingInvite == null &&
+            state.selectedEvent != null
+        ) {
+            InvitationResumeStore.clear()
+        }
+    }
 
     // Authenticated startup, Face Setup completion, Event membership changes and
     // own-match preference changes all get an immediate foreground opportunity.
@@ -75,7 +113,13 @@ fun SnapLoopRoot(
     }
 
     when (state.gate) {
-        AppGate.MAIN -> SnapLoopMainShell(state = state, coordinator = coordinator)
+        AppGate.MAIN -> {
+            if (state.pendingInvite != null) {
+                ParityInvitationReviewScreen(state = state, coordinator = coordinator)
+            } else {
+                SnapLoopMainShell(state = state, coordinator = coordinator)
+            }
+        }
         AppGate.ONBOARDING -> ParityOnboardingScreen(onCompleted = coordinator::finishOnboarding)
         AppGate.NAME_SETUP -> ParityNameSetupScreen(
             initialName = state.user?.displayName.orEmpty(),
