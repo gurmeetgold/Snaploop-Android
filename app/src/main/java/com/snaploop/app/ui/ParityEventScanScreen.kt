@@ -1,8 +1,8 @@
 package com.snaploop.app.ui
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -28,9 +28,15 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -40,7 +46,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.snaploop.app.media.PhotoAccessLevel
+import com.snaploop.app.media.PhotoAccessState
+import com.snaploop.app.scanner.ScanCancellationRegistry
 
 @Composable
 internal fun ParityEventScanScreen(
@@ -49,17 +60,42 @@ internal fun ParityEventScanScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val permissions = androidPhotoPermissions()
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-        if (result.values.any { it }) coordinator.scanSelectedEvent()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var photoAccess by remember { mutableStateOf(PhotoAccessState.current(context)) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        PhotoAccessState.markRequested(context)
+        photoAccess = PhotoAccessState.current(context)
+        if (photoAccess.canRead) coordinator.scanSelectedEvent()
+    }
+
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                photoAccess = PhotoAccessState.current(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     fun startScan() {
-        if (permissions.any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }) {
+        photoAccess = PhotoAccessState.current(context)
+        if (photoAccess.canRead) {
             coordinator.scanSelectedEvent()
         } else {
-            permissionLauncher.launch(permissions)
+            PhotoAccessState.markRequested(context)
+            permissionLauncher.launch(PhotoAccessState.requestPermissions())
         }
+    }
+
+    fun openPhotoSettings() {
+        context.startActivity(
+            Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts("package", context.packageName, null),
+            ),
+        )
     }
 
     Column(
@@ -68,7 +104,13 @@ internal fun ParityEventScanScreen(
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("‹ Back") }
-            Text("Scan Photos", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 21.sp, fontWeight = FontWeight.Black)
+            Text(
+                "Scan Photos",
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Black,
+            )
             Spacer(Modifier.size(56.dp))
         }
         Spacer(Modifier.height(34.dp))
@@ -97,16 +139,25 @@ internal fun ParityEventScanScreen(
                             CircularProgressIndicator(color = Color.White)
                         }
                         Text(
-                            if (progress.total > 0) "Scanning ${progress.checked} of ${progress.total} Event photos" else "Preparing your Event photos…",
+                            if (progress.total > 0) {
+                                "Scanning ${progress.checked} of ${progress.total} Event photos"
+                            } else {
+                                "Preparing your Event photos…"
+                            },
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black,
                             textAlign = TextAlign.Center,
                         )
                         if (progress.total > 0) {
                             LinearProgressIndicator(
-                                progress = { (progress.checked.toFloat() / progress.total.toFloat()).coerceIn(0f, 1f) },
+                                progress = {
+                                    (progress.checked.toFloat() / progress.total.toFloat()).coerceIn(0f, 1f)
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                             )
+                        }
+                        if (photoAccess == PhotoAccessLevel.SELECTED) {
+                            LimitedAccessNotice()
                         }
                         Text(
                             "Keep SnapLoop open in the foreground until the scan finishes.",
@@ -114,6 +165,14 @@ internal fun ParityEventScanScreen(
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
                         )
+                        OutlinedButton(
+                            onClick = {
+                                state.selectedEvent?.id?.let(ScanCancellationRegistry::cancel)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Stop Scan", fontWeight = FontWeight.Bold)
+                        }
                     }
 
                     state.scanResult != null -> {
@@ -125,7 +184,12 @@ internal fun ParityEventScanScreen(
                             ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(42.dp))
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(42.dp),
+                            )
                         }
                         Text(
                             if (result.checked > 0) "Scan complete" else "You're up to date",
@@ -141,6 +205,9 @@ internal fun ParityEventScanScreen(
                             color = Color(0xFF6B6670),
                             textAlign = TextAlign.Center,
                         )
+                        if (photoAccess == PhotoAccessLevel.SELECTED) {
+                            LimitedAccessNotice()
+                        }
                         if (result.remaining > 0) {
                             Button(onClick = { coordinator.scanSelectedEvent() }, modifier = Modifier.fillMaxWidth()) {
                                 Text("Scan Next Batch", fontWeight = FontWeight.Bold)
@@ -161,7 +228,12 @@ internal fun ParityEventScanScreen(
                             ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(Icons.Filled.PhotoLibrary, contentDescription = null, tint = Color.White, modifier = Modifier.size(42.dp))
+                            Icon(
+                                Icons.Filled.PhotoLibrary,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(42.dp),
+                            )
                         }
                         Text("Scan Event Photos", fontSize = 22.sp, fontWeight = FontWeight.Black)
                         Text(
@@ -169,9 +241,29 @@ internal fun ParityEventScanScreen(
                             color = Color(0xFF6B6670),
                             textAlign = TextAlign.Center,
                         )
+
+                        when (photoAccess) {
+                            PhotoAccessLevel.SELECTED -> LimitedAccessNotice()
+                            PhotoAccessLevel.DENIED -> {
+                                Text(
+                                    "Photo access is off. Enable photo access in Android Settings to scan this Event.",
+                                    color = Color(0xFF6B6670),
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center,
+                                )
+                                OutlinedButton(onClick = ::openPhotoSettings, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Open Photo Settings", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            else -> Unit
+                        }
+
                         Button(onClick = ::startScan, modifier = Modifier.fillMaxWidth().height(54.dp)) {
                             Icon(Icons.Filled.CameraAlt, contentDescription = null)
-                            Text("  Start Scan", fontWeight = FontWeight.Bold)
+                            Text(
+                                if (photoAccess == PhotoAccessLevel.DENIED) "  Check Photo Access" else "  Start Scan",
+                                fontWeight = FontWeight.Bold,
+                            )
                         }
                     }
                 }
@@ -180,8 +272,12 @@ internal fun ParityEventScanScreen(
     }
 }
 
-private fun androidPhotoPermissions(): Array<String> = when {
-    Build.VERSION.SDK_INT >= 34 -> arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
-    Build.VERSION.SDK_INT >= 33 -> arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
-    else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+@Composable
+private fun LimitedAccessNotice() {
+    Text(
+        "Selected photos only: SnapLoop can scan only the photos you allowed Android to share with this app. Choose full photo access for complete Event matching.",
+        color = Color(0xFF6B6670),
+        fontSize = 12.sp,
+        textAlign = TextAlign.Center,
+    )
 }
