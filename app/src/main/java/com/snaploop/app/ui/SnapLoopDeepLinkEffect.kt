@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.snaploop.app.core.DeepLinkParser
 import com.snaploop.app.core.InvitationActionPolicy
+import com.snaploop.app.core.InvitationResumeStore
 import com.snaploop.app.data.FirebaseEventRepository
 import com.snaploop.app.invite.EventInviteClient
 import com.snaploop.app.model.EventStatus
@@ -47,6 +48,7 @@ fun SnapLoopDeepLinkEffect(
 
         when (InvitationActionPolicy.dispatch(joinIntent.action)) {
             InvitationActionPolicy.Dispatch.REVIEW -> {
+                InvitationResumeStore.capture(joinIntent)
                 coordinator.resolveInvitation(
                     code = joinIntent.code,
                     token = joinIntent.token,
@@ -56,11 +58,24 @@ fun SnapLoopDeepLinkEffect(
             }
 
             InvitationActionPolicy.Dispatch.ACCEPT -> {
-                coordinator.resolveInvitation(
-                    code = joinIntent.code,
-                    token = joinIntent.token,
-                    autoJoin = true,
-                )
+                if (state.user?.hasFaceProfile == true) {
+                    InvitationResumeStore.clear()
+                    coordinator.resolveInvitation(
+                        code = joinIntent.code,
+                        token = joinIntent.token,
+                        autoJoin = true,
+                    )
+                } else {
+                    // Mirror iOS: resolve the Event first, show the Face Setup
+                    // prerequisite, then replay the original ACCEPT only after
+                    // successful enrollment. No membership is created yet.
+                    InvitationResumeStore.capture(joinIntent)
+                    coordinator.resolveInvitation(
+                        code = joinIntent.code,
+                        token = joinIntent.token,
+                        autoJoin = false,
+                    )
+                }
                 onConsumed()
             }
 
@@ -83,12 +98,14 @@ fun SnapLoopDeepLinkEffect(
                             repository.members(event.id).any { it.userId == uid }
                         }.getOrDefault(false))
                     if (alreadyMember) {
+                        InvitationResumeStore.clear()
                         coordinator.openEvent(event)
                         onConsumed()
                         return@LaunchedEffect
                     }
 
                     EventInviteClient().decline(event.id)
+                    InvitationResumeStore.clear()
                     coordinator.dismissPendingInvite()
                     declinedEventName = event.name
                     onConsumed()
@@ -132,6 +149,7 @@ fun SnapLoopDeepLinkEffect(
                 TextButton(
                     onClick = {
                         actionError = null
+                        InvitationResumeStore.clear()
                         onConsumed()
                     },
                 ) {
