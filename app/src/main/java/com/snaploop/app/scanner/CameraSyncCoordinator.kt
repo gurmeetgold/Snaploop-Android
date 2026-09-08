@@ -17,7 +17,8 @@ import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
 /**
- * User-triggered event scanner. No continuous/background gallery inspection.
+ * Event scanner shared by manual and foreground-automatic orchestration.
+ * No continuous/background gallery inspection.
  * Recipient eligibility mirrors iOS, including the explicit include-own-matches
  * preference so a user's own photos are evaluated only when they opt in.
  */
@@ -44,8 +45,14 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         config: RemoteConfigValues,
         onProgress: (Progress) -> Unit = {},
     ): Result {
+        val cancellationToken = ScanCancellationRegistry.start(eventId)
+        coroutineContext.ensureActive()
+        ScanCancellationRegistry.ensureActive(cancellationToken)
+
         val uid = auth.currentUser?.uid ?: error("Authentication is required")
         val manifest = rosterClient.manifest(eventId)
+        ScanCancellationRegistry.ensureActive(cancellationToken)
+
         val sourceMembershipId =
             manifest.sourceMembershipId ?: error("Current Event membership is unavailable")
         val participants = manifest.participants.filter {
@@ -105,6 +112,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         }
         state.sourceSharingRevision = sharingRevision
 
+        ScanCancellationRegistry.ensureActive(cancellationToken)
         val assets = library.assets(startMillis, endMillis)
         val validIds = assets.mapTo(hashSetOf()) { it.id }
         state.retainCurrentAssets(validIds)
@@ -124,6 +132,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
 
         for ((index, asset) in batch.withIndex()) {
             coroutineContext.ensureActive()
+            ScanCancellationRegistry.ensureActive(cancellationToken)
 
             // Keep the normalized bytes for this iteration so a newly-processed photo is not read
             // from MediaStore a second time just to publish its thumbnail.
@@ -144,6 +153,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
                     continue
                 }
 
+                ScanCancellationRegistry.ensureActive(cancellationToken)
                 val detected = faces.detectFaces(sourceJpeg)
                 corpus = PhotoCorpusRecord(
                     asset.id,
@@ -181,6 +191,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
                 }
             }
 
+            ScanCancellationRegistry.ensureActive(cancellationToken)
             if (sharingEnabled && (publishAppearances.isNotEmpty() || removals.isNotEmpty())) {
                 val thumbnail = if (publishAppearances.isNotEmpty()) {
                     sourceJpeg ?: try {
@@ -199,6 +210,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
                     byteArrayOf()
                 }
 
+                ScanCancellationRegistry.ensureActive(cancellationToken)
                 matches.upload(
                     PhotoMatch.fromMatcher(
                         eventId,
@@ -216,6 +228,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
                 published++
             }
 
+            ScanCancellationRegistry.ensureActive(cancellationToken)
             for (participant in participants.filter { it.userId in pendingIds }) {
                 state.markRecipientEvaluation(
                     participant.userId,
