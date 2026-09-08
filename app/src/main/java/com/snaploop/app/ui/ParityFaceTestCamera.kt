@@ -60,7 +60,7 @@ internal fun ParityFaceTestCamera(
             GuidedFaceLiveState(
                 instruction = "Look straight",
                 detail = "Center your face inside the frame",
-                framingStatus = FaceFramingStatus.NO_FACE,
+                framingStatus = FaceFramingStatus.NOT_DETECTED,
                 poseQualified = false,
             ),
         )
