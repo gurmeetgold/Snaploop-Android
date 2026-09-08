@@ -27,16 +27,20 @@ fun SnapLoopRoot(
     val context = LocalContext.current.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
     val automaticScanner = remember(context) { AutomaticForegroundScanController(context) }
+    val scanTriggerGeneration = "${state.selectedEvent?.id.orEmpty()}:own=${state.includeOwnMatches}"
 
-    // Authenticated startup, Face Setup completion and Event membership changes
-    // all flow through MAIN with a refreshed Event snapshot. Requesting here
-    // gives newly joined live Events the same immediate opportunity as iOS.
-    LaunchedEffect(state.gate, state.events) {
+    // Authenticated startup, Face Setup completion, Event membership changes and
+    // own-match preference changes all get an immediate foreground opportunity.
+    // The controller's persisted fingerprint still prevents unnecessary rescans.
+    LaunchedEffect(state.gate, state.events, scanTriggerGeneration) {
         if (
             state.gate == AppGate.MAIN &&
             lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
         ) {
-            automaticScanner.request(state.events)
+            automaticScanner.request(
+                events = state.events,
+                triggerGeneration = scanTriggerGeneration,
+            )
         }
     }
 
@@ -48,7 +52,12 @@ fun SnapLoopRoot(
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
                     val current = coordinator.state.value
-                    if (current.gate == AppGate.MAIN) automaticScanner.request(current.events)
+                    if (current.gate == AppGate.MAIN) {
+                        automaticScanner.request(
+                            events = current.events,
+                            triggerGeneration = "${current.selectedEvent?.id.orEmpty()}:own=${current.includeOwnMatches}",
+                        )
+                    }
                 }
                 Lifecycle.Event.ON_STOP -> automaticScanner.cancelActive()
                 else -> Unit
