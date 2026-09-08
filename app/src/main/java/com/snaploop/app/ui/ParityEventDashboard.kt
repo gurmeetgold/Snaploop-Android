@@ -564,7 +564,7 @@ private fun ParityEventMembersRow(
                         member.userId == currentUserId && !currentUserName.isNullOrBlank() -> currentUserName.trim().take(1)
                         !member.displayName.isNullOrBlank() -> member.displayName.trim().take(1)
                         else -> "•"
-                    }.uppercase(Locale.getDefault())
+                    }.uppercase()
                     Box(
                         Modifier
                             .size(42.dp)
