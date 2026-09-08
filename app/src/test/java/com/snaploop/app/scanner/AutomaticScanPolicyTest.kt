@@ -5,7 +5,9 @@ import com.snaploop.app.model.EventCategory
 import com.snaploop.app.model.EventStatus
 import com.snaploop.app.model.SnapEvent
 import java.time.Instant
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -36,6 +38,48 @@ class AutomaticScanPolicyTest {
                 sharingEnabled = true,
                 photoAccess = PhotoAccessLevel.SELECTED,
                 powerSaveMode = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `active event remains eligible during configured grace window`() {
+        val recentlyEnded = event(end = now.minusSeconds(60L * 60L))
+        assertTrue(
+            AutomaticScanPolicy.shouldRun(
+                event = recentlyEnded,
+                now = now,
+                lastAutomaticScanAtMillis = null,
+                sharingEnabled = true,
+                photoAccess = PhotoAccessLevel.FULL,
+                powerSaveMode = false,
+                gracePeriodDays = 2,
+            ),
+        )
+        assertFalse(
+            AutomaticScanPolicy.shouldRun(
+                event = recentlyEnded,
+                now = now,
+                lastAutomaticScanAtMillis = null,
+                sharingEnabled = true,
+                photoAccess = PhotoAccessLevel.FULL,
+                powerSaveMode = false,
+                gracePeriodDays = 0,
+            ),
+        )
+    }
+
+    @Test
+    fun `active event is rejected after configured grace window`() {
+        assertFalse(
+            AutomaticScanPolicy.shouldRun(
+                event = event(end = now.minusSeconds(3L * 24L * 60L * 60L)),
+                now = now,
+                lastAutomaticScanAtMillis = null,
+                sharingEnabled = true,
+                photoAccess = PhotoAccessLevel.FULL,
+                powerSaveMode = false,
+                gracePeriodDays = 2,
             ),
         )
     }
@@ -121,6 +165,31 @@ class AutomaticScanPolicyTest {
         )
     }
 
+    @Test
+    fun `changed preference generation bypasses cooldown`() {
+        val justRan = now.toEpochMilli() - 1_000L
+        assertTrue(
+            AutomaticScanPolicy.shouldRun(
+                event = event(),
+                now = now,
+                lastAutomaticScanAtMillis = justRan,
+                sharingEnabled = true,
+                photoAccess = PhotoAccessLevel.FULL,
+                powerSaveMode = false,
+                triggerChanged = true,
+            ),
+        )
+    }
+
+    @Test
+    fun `trigger fingerprint changes with own match preference revision`() {
+        val event = event()
+        val before = AutomaticScanPolicy.triggerFingerprint(event, "share=id:a;own=id:off")
+        val after = AutomaticScanPolicy.triggerFingerprint(event, "share=id:a;own=id:on")
+        assertNotEquals(before, after)
+        assertEquals(before, AutomaticScanPolicy.triggerFingerprint(event, "share=id:a;own=id:off"))
+    }
+
     private fun event(
         start: Instant = now.minusSeconds(60),
         end: Instant = now.plusSeconds(60),
@@ -134,6 +203,7 @@ class AutomaticScanPolicyTest {
         category = EventCategory.trip,
         startsAt = start,
         endsAt = end,
+        photoWindowTimeZoneId = "UTC",
         status = status,
         createdAt = now.minusSeconds(3600),
         updatedAt = now.minusSeconds(60),
