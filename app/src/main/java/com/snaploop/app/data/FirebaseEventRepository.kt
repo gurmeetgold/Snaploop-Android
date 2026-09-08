@@ -76,24 +76,18 @@ class FirebaseEventRepository(
         ).await()
     }
 
-    suspend fun updateEvent(event: SnapEvent, includeDates: Boolean = true) {
-        val payload = mutableMapOf<String, Any?>(
-            "eventId" to event.id,
-            "name" to event.name,
-            "category" to event.category.name,
-            "coverImagePath" to event.coverImagePath,
-            "locationName" to event.locationName,
-        )
-        if (includeDates) {
-            payload["startsAtMillis"] = event.startsAt.toEpochMilli()
-            payload["endsAtMillis"] = event.endsAt.toEpochMilli()
-            payload["startsAtOffsetMinutes"] = offsetMinutes(event.startsAt, event.photoWindowTimeZoneId)
-            payload["endsAtOffsetMinutes"] = offsetMinutes(event.endsAt, event.photoWindowTimeZoneId)
-            payload["nowOffsetMinutes"] = offsetMinutes(Instant.now(), event.photoWindowTimeZoneId)
-            event.photoWindowVersion?.let { payload["photoWindowVersion"] = it }
-            event.photoWindowTimeZoneId?.takeIf { it.isNotBlank() }?.let { payload["photoWindowTimeZoneId"] = it }
-        }
-        functions.getHttpsCallable("updateEventManaged").call(payload).await()
+    suspend fun updateEvent(
+        event: SnapEvent,
+        includeDates: Boolean = true,
+        expectedUpdatedAt: Instant = event.updatedAt,
+    ) {
+        functions.getHttpsCallable("updateEventManaged").call(
+            managedEventUpdatePayload(
+                event = event,
+                includeDates = includeDates,
+                expectedUpdatedAt = expectedUpdatedAt,
+            )
+        ).await()
     }
 
     suspend fun setStatus(eventId: String, status: EventStatus) {
