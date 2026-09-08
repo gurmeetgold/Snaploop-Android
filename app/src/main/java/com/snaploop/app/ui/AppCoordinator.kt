@@ -89,6 +89,8 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     private var remoteConfig: RemoteConfigValues = RemoteConfigValues()
     private val _state = MutableStateFlow(AppUiState())
     val state: StateFlow<AppUiState> = _state.asStateFlow()
+    private val _eventGracePeriodDays = MutableStateFlow(RemoteConfigValues().eventGracePeriodDays)
+    val eventGracePeriodDays: StateFlow<Int> = _eventGracePeriodDays.asStateFlow()
 
     init {
         if (BuildConfig.FIREBASE_CONFIG_PRESENT) {
@@ -98,6 +100,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
                         SnapLoopRemoteConfig(FirebaseRemoteConfig.getInstance()).initialize()
                     }.getOrDefault(RemoteConfigValues())
                 } ?: RemoteConfigValues()
+                _eventGracePeriodDays.value = remoteConfig.eventGracePeriodDays
             }
             restore()
         }
