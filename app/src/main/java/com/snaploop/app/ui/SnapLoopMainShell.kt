@@ -471,7 +471,16 @@ private fun ShellEventHost(state: AppUiState, coordinator: AppCoordinator) {
     }
 
     when (page) {
-        ShellEventPage.DASHBOARD -> ShellEventDashboard(state, coordinator) { page = it }
+        ShellEventPage.DASHBOARD -> ParityEventDashboard(
+            state = state,
+            coordinator = coordinator,
+            onBack = coordinator::closeEvent,
+            onPhotos = { page = ShellEventPage.PHOTOS },
+            onScan = { page = ShellEventPage.SCAN },
+            onMembers = { page = ShellEventPage.MEMBERS },
+            onInvite = { page = ShellEventPage.INVITE },
+            onEdit = { page = ShellEventPage.EDIT },
+        )
         ShellEventPage.PHOTOS -> ShellEventPhotos(state, coordinator) { page = ShellEventPage.DASHBOARD }
         ShellEventPage.SCAN -> ShellEventScan(state, coordinator) { page = ShellEventPage.DASHBOARD }
         ShellEventPage.MEMBERS -> ShellMembers(state, coordinator, { page = ShellEventPage.DASHBOARD }) { page = ShellEventPage.INVITE }
@@ -881,15 +890,7 @@ private fun ShellYou(state: AppUiState, coordinator: AppCoordinator) {
         ShellSettingsCard(Icons.Filled.Person, if (state.user?.hasFaceProfile == true) "Update Face Setup" else "Set Up Your Face", "Guided face scan and Face Setup controls") {
             coordinator.openFaceSetupFromMain()
         }
-        ShellCard {
-            Text("Photo Access", fontWeight = FontWeight.Black, fontSize = 18.sp)
-            Text(if (photoPermissionGranted) "Photos access is enabled" else "Photo access is off or not yet granted", color = ShellColors.Secondary, fontSize = 13.sp)
-            if (!photoPermissionGranted) {
-                ShellPrimaryButton("Allow Photo Access", Icons.Filled.PhotoLibrary, { permissionLauncher.launch(shellPhotoPermissions()) })
-            } else {
-                OutlinedButton(onClick = { shellOpenAppSettings(context) }, modifier = Modifier.fillMaxWidth()) { Text("Manage Photo Access") }
-            }
-        }
+        ParityPhotoAccessCard()
         ShellSettingsCard(Icons.Filled.PrivacyTip, "Privacy & Data", "Face data, deletion and account controls") { privacy = true }
         ShellSettingsCard(Icons.Filled.RestartAlt, "Replay Onboarding", "Review how Events, matching and permissions work") { replayConfirm = true }
         ShellSettingsCard(Icons.Filled.Logout, "Sign Out", "Sign out without deleting your account") { signOutConfirm = true }
