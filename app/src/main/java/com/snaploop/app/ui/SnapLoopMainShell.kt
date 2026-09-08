@@ -483,7 +483,12 @@ private fun ShellEventHost(state: AppUiState, coordinator: AppCoordinator) {
         )
         ShellEventPage.PHOTOS -> ShellEventPhotos(state, coordinator) { page = ShellEventPage.DASHBOARD }
         ShellEventPage.SCAN -> ShellEventScan(state, coordinator) { page = ShellEventPage.DASHBOARD }
-        ShellEventPage.MEMBERS -> ShellMembers(state, coordinator, { page = ShellEventPage.DASHBOARD }) { page = ShellEventPage.INVITE }
+        ShellEventPage.MEMBERS -> ParityParticipantsScreen(
+            state = state,
+            coordinator = coordinator,
+            onBack = { page = ShellEventPage.DASHBOARD },
+            onInvite = { page = ShellEventPage.INVITE },
+        )
         ShellEventPage.INVITE -> ShellInvite(
             state = state,
             onBack = { page = ShellEventPage.DASHBOARD },
