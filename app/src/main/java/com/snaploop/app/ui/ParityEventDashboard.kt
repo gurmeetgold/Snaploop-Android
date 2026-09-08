@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -57,11 +56,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -155,8 +154,9 @@ internal fun ParityEventDashboard(
     val uid = state.user?.id
     val role = parityCurrentRole(event, state.members, uid)
     val me = state.members.firstOrNull { it.userId == uid }
-    val lifecycle = EventDashboardParityPolicy.lifecycle(event, Instant.now())
-    val canSync = EventDashboardParityPolicy.canSync(event, Instant.now())
+    val now = Instant.now()
+    val lifecycle = EventDashboardParityPolicy.lifecycle(event, now)
+    val canSync = EventDashboardParityPolicy.canSync(event, now)
     val canManageMembers = role == EventMember.Role.organizer || role == EventMember.Role.admin
     val canManageEvent = canManageMembers
     val isOrganizer = role == EventMember.Role.organizer
@@ -185,8 +185,7 @@ internal fun ParityEventDashboard(
         initialValue = state.photos.size,
         key1 = event.id,
         key2 = uid,
-        key3 = me?.sharingEnabled,
-        key4 = state.photos,
+        key3 = Pair(me?.sharingEnabled, state.photos),
     ) {
         if (uid == null) {
             value = 0
@@ -560,7 +559,7 @@ private fun ParityEventMembersRow(
                 Text("View all", color = SnapColors.Coral, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
-                members.take(6).forEachIndexed { index, member ->
+                members.take(6).forEach { member ->
                     val initial = when {
                         member.userId == currentUserId && !currentUserName.isNullOrBlank() -> currentUserName.trim().take(1)
                         !member.displayName.isNullOrBlank() -> member.displayName.trim().take(1)
@@ -568,7 +567,6 @@ private fun ParityEventMembersRow(
                     }.uppercase(Locale.getDefault())
                     Box(
                         Modifier
-                            .offset(x = if (index == 0) 0.dp else 0.dp)
                             .size(42.dp)
                             .background(parityMemberGradient(member.role), CircleShape),
                         contentAlignment = Alignment.Center,
