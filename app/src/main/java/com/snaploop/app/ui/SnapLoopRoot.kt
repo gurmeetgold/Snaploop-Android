@@ -33,8 +33,41 @@ fun SnapLoopRoot(
     val context = LocalContext.current.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
     val automaticScanner = remember(context) { AutomaticForegroundScanController(context) }
+    val uiPrefs = remember(context) { context.getSharedPreferences("snaploop.ui", 0) }
+    var preAuthOnboardingCompleted by remember(context) {
+        mutableStateOf(
+            PreAuthOnboardingParity.hasCompleted(
+                globalCompleted = uiPrefs.getBoolean(PreAuthOnboardingParity.GLOBAL_KEY, false),
+                legacyEntries = uiPrefs.all,
+            ),
+        )
+    }
     val scanTriggerGeneration = "${state.selectedEvent?.id.orEmpty()}:own=${state.includeOwnMatches}"
     var resumeResolutionInFlight by remember { mutableStateOf(false) }
+
+    // Pinned iOS onboarding is device-level and occurs before authentication. Migrate any
+    // previously completed account-scoped Android onboarding state to the new global key.
+    LaunchedEffect(preAuthOnboardingCompleted) {
+        if (
+            preAuthOnboardingCompleted &&
+            !uiPrefs.getBoolean(PreAuthOnboardingParity.GLOBAL_KEY, false)
+        ) {
+            uiPrefs.edit().putBoolean(PreAuthOnboardingParity.GLOBAL_KEY, true).apply()
+        }
+    }
+
+    // The coordinator still maintains its legacy per-account onboarding gate. After a user who
+    // completed the new pre-auth flow signs in, consume that internal gate immediately so they do
+    // not see onboarding twice. This also preserves compatibility with existing coordinator logic.
+    LaunchedEffect(state.gate, state.user?.id, preAuthOnboardingCompleted) {
+        if (
+            preAuthOnboardingCompleted &&
+            state.gate == AppGate.ONBOARDING &&
+            state.user != null
+        ) {
+            coordinator.finishOnboarding()
+        }
+    }
 
     SnapLoopPushLifecycleEffect(
         activity = activity,
@@ -162,6 +195,16 @@ fun SnapLoopRoot(
 
     DisposableEffect(automaticScanner) {
         onDispose { automaticScanner.close() }
+    }
+
+    if (state.gate == AppGate.AUTH && !preAuthOnboardingCompleted) {
+        ParityOnboardingScreen(
+            onCompleted = {
+                uiPrefs.edit().putBoolean(PreAuthOnboardingParity.GLOBAL_KEY, true).apply()
+                preAuthOnboardingCompleted = true
+            },
+        )
+        return
     }
 
     when (state.gate) {
