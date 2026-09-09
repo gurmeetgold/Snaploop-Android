@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModelProvider
+import com.snaploop.app.core.DeepLinkParser
 import com.snaploop.app.core.InvitationResumeStore
 import com.snaploop.app.ui.AppCoordinator
 import com.snaploop.app.ui.SnapLoopDeepLinkEffect
@@ -29,11 +30,39 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         InvitationResumeStore.initialize(applicationContext)
         coordinator = ViewModelProvider(this)[AppCoordinator::class.java]
-        capturePendingDeepLink(intent?.data)
-        if (pendingDeepLink.value == null) {
-            invitePrefs.getString(KEY_PENDING_URL, null)
-                ?.let { raw -> runCatching { Uri.parse(raw) }.getOrNull() }
-                ?.let { pendingDeepLink.value = it }
+
+        val launchUri = intent?.data
+        val restored = InvitationResumeStore.state.value
+        val launchRoute = launchUri?.let { DeepLinkParser.parse(it) }
+        val launchMatchesRestored = restored != null && launchRoute != null &&
+            launchRoute.token == restored.token &&
+            launchRoute.code == restored.code &&
+            launchRoute.action == restored.action
+
+        when {
+            InvitationResumeStore.hasRestoredForResolution() &&
+                (launchUri == null || launchMatchesRestored) -> {
+                // The durable resume context is authoritative after process
+                // recreation. Drop a duplicate raw URL so Root resolves it once.
+                invitePrefs.edit().remove(KEY_PENDING_URL).apply()
+                pendingDeepLink.value = null
+            }
+
+            InvitationResumeStore.hasRestoredForResolution() && launchUri != null -> {
+                // A genuinely new explicit link wins over an older interrupted
+                // invitation rather than inheriting stale action provenance.
+                InvitationResumeStore.clear()
+                capturePendingDeepLink(launchUri)
+            }
+
+            else -> {
+                capturePendingDeepLink(launchUri)
+                if (pendingDeepLink.value == null) {
+                    invitePrefs.getString(KEY_PENDING_URL, null)
+                        ?.let { raw -> runCatching { Uri.parse(raw) }.getOrNull() }
+                        ?.let { pendingDeepLink.value = it }
+                }
+            }
         }
 
         setContent {
@@ -55,7 +84,10 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        capturePendingDeepLink(intent.data)
+        intent.data?.let {
+            InvitationResumeStore.clear()
+            capturePendingDeepLink(it)
+        }
     }
 
     private fun capturePendingDeepLink(uri: Uri?) {
