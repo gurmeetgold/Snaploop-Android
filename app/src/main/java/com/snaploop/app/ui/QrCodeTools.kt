@@ -38,6 +38,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,7 +64,7 @@ internal fun QrCodeImage(value: String, modifier: Modifier = Modifier) {
     val bitmap = remember(value) { generateQrBitmap(value, 768) }
     Image(
         bitmap = bitmap.asImageBitmap(),
-        contentDescription = "QR code",
+        contentDescription = "Event QR code",
         modifier = modifier,
     )
 }
@@ -102,8 +107,6 @@ internal fun QrCodeScannerScreen(
         if (!granted) error = "Camera access is required to scan an Event QR code."
     }
 
-    // Keep the executor alive when the permission state flips from denied to granted.
-    // It is owned by this scanner screen and shut down only when the screen leaves composition.
     DisposableEffect(Unit) {
         onDispose { cameraExecutor.shutdownNow() }
     }
@@ -170,10 +173,17 @@ internal fun QrCodeScannerScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Scan QR Code", fontSize = 28.sp, fontWeight = FontWeight.Black)
+            Text(
+                "Scan QR Code",
+                modifier = Modifier.semantics { heading() },
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Black,
+            )
             Text(
                 error ?: "Allow camera access to scan a SnapLoop Event QR code.",
-                modifier = Modifier.padding(top = 12.dp),
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .semantics { if (error != null) liveRegion = LiveRegionMode.Assertive },
             )
             Button(
                 onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
@@ -185,20 +195,28 @@ internal fun QrCodeScannerScreen(
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+        AndroidView(
+            factory = { previewView },
+            modifier = Modifier
+                .fillMaxSize()
+                .semantics { contentDescription = "Camera preview for scanning Event QR code" },
+        )
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.16f)))
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onCancel) { Text("✕", color = Color.White, fontSize = 24.sp) }
+            TextButton(
+                onClick = onCancel,
+                modifier = Modifier.semantics { contentDescription = "Close QR scanner" },
+            ) { Text("✕", color = Color.White, fontSize = 24.sp) }
             Text(
                 "Scan QR Code",
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).semantics { heading() },
             )
         }
 
@@ -216,7 +234,9 @@ internal fun QrCodeScannerScreen(
             Card(shape = RoundedCornerShape(20.dp)) {
                 Text(
                     error ?: "Point the camera at a SnapLoop Event QR code.",
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .semantics { if (error != null) liveRegion = LiveRegionMode.Assertive },
                 )
             }
         }
