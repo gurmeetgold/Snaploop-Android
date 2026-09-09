@@ -48,8 +48,13 @@ class BrandVisualParitySpecTest {
     }
 
     @Test
-    fun `home and event geometry mirrors pinned iOS`() {
+    fun `home geometry mirrors pinned iOS HomeView`() {
+        assertEquals(16, BrandVisualParitySpec.HOME_HORIZONTAL_PADDING_DP)
         assertEquals(150, BrandVisualParitySpec.HOME_ACTION_CARD_MIN_HEIGHT_DP)
+    }
+
+    @Test
+    fun `event geometry mirrors pinned iOS EventDashboardView`() {
         assertEquals(230, BrandVisualParitySpec.EVENT_HERO_HEIGHT_DP)
         assertEquals(30, BrandVisualParitySpec.EVENT_HERO_RADIUS_DP)
         assertEquals(18, BrandVisualParitySpec.EVENT_HERO_SHADOW_DP)
