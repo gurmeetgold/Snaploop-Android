@@ -22,7 +22,8 @@ class YouAccessibilityParityTest {
     @Test
     fun `clickable You rows merge decorative descendants for TalkBack`() {
         val source = source()
-        val mergeCount = "semantics(mergeDescendants = true) { }".toRegex().findAll(source).count()
+        val marker = "semantics(mergeDescendants = true) { }"
+        val mergeCount = source.windowed(marker.length, 1).count { it == marker }
         assertTrue("Expected account rows and menu cards to merge accessibility descendants", mergeCount >= 4)
     }
 }
