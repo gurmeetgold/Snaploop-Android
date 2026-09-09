@@ -2,7 +2,7 @@
 
 Source-of-truth baseline: iOS `chatgpt/release-canada-gallery-name-limits-2026-09-03` at `2627881fce5f9b736f0a717e808f0ea2e811ac98`. README history is non-authoritative.
 
-Android implementation checkpoint: `b0b03f8c3b500c28b047662f287f11b1e7303a06`, verified by Android CI run 337 (`test`, `lint`, `assembleDebug`, `assembleDebugAndroidTest`). The guarded Home Join routing rewrite landed in ancestor `1f381896d26a25b3742fb08fd1135b0e72e2bd2f`.
+Android implementation checkpoint: `c71b64e10ef51cddc306563330ad645cfcf8fc20`, verified by Android CI run 347 / workflow run `34409879463` (`test`, `lint`, `assembleDebug`, minified `assembleRelease`, `assembleDebugAndroidTest`). The guarded Home Join routing rewrite landed in ancestor `1f381896d26a25b3742fb08fd1135b0e72e2bd2f`.
 
 Status legend:
 - ✅ implementation/contract complete for the audited scope and covered by current branch CI/unit/static verification.
@@ -38,4 +38,4 @@ Status legend:
 | Account deletion | pinned server cleanup | Privacy surface + account deletion coordinator/server flow | equivalent erasure; no local biometric remnants | emulator/server cleanup verification | ✅ impl · 🟡 acceptance |
 | Analytics/Crash/Perf | separately validated analytics branch | Firebase observability dependencies; product analytics remains separately reviewed | no photos/embeddings/PII/session replay | merge only after privacy allowlist review/tests | 🟡 |
 | Backup security | iOS protected local state | backup disabled/excluded; face model/reference/scan state kept in app-private/no-backup or encrypted storage | no biometric/tokens/URIs in backup | manifest/static inspection | ✅ |
-| Accessibility | SwiftUI semantics | partial Compose content descriptions/touch targets exist; critical shell controls have labels, but no complete audited accessibility pass | no product redesign | TalkBack, font scaling, contrast, focus-order instrumentation/device pass | ⬜ impl audit · 🟡 acceptance |
+| Accessibility | SwiftUI semantics | Compose headings, merged actionable-row semantics, Join validation live-region semantics, QR camera/error/close descriptions, and Join Compose accessibility instrumentation smoke coverage | no product redesign | physical TalkBack, large-font/font-scaling, contrast and focus-order acceptance across representative screens | ✅ impl · 🟡 acceptance |
