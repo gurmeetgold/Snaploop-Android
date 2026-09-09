@@ -12,10 +12,11 @@ class OwnMatchReplayPolicyTest {
     private val now = Instant.parse("2026-09-08T18:00:00Z")
 
     @Test
-    fun `enabling own matches while sharing during Event window replays`() {
+    fun `authoritative false to true opt in while sharing during Event window replays`() {
         assertTrue(
             OwnMatchReplayPolicy.shouldReplay(
-                enabled = true,
+                previousEnabled = false,
+                savedEnabled = true,
                 sharingEnabled = true,
                 event = event(),
                 now = now,
@@ -25,10 +26,24 @@ class OwnMatchReplayPolicyTest {
     }
 
     @Test
-    fun `disabled preference or sharing never replays`() {
+    fun `idempotent true save does not replay`() {
         assertFalse(
             OwnMatchReplayPolicy.shouldReplay(
-                enabled = false,
+                previousEnabled = true,
+                savedEnabled = true,
+                sharingEnabled = true,
+                event = event(),
+                now = now,
+            ),
+        )
+    }
+
+    @Test
+    fun `disabled saved preference or sharing never replays`() {
+        assertFalse(
+            OwnMatchReplayPolicy.shouldReplay(
+                previousEnabled = false,
+                savedEnabled = false,
                 sharingEnabled = true,
                 event = event(),
                 now = now,
@@ -36,7 +51,8 @@ class OwnMatchReplayPolicyTest {
         )
         assertFalse(
             OwnMatchReplayPolicy.shouldReplay(
-                enabled = true,
+                previousEnabled = false,
+                savedEnabled = true,
                 sharingEnabled = false,
                 event = event(),
                 now = now,
@@ -52,7 +68,8 @@ class OwnMatchReplayPolicyTest {
         )
         assertTrue(
             OwnMatchReplayPolicy.shouldReplay(
-                enabled = true,
+                previousEnabled = false,
+                savedEnabled = true,
                 sharingEnabled = true,
                 event = recentlyEnded,
                 now = now,
@@ -61,7 +78,8 @@ class OwnMatchReplayPolicyTest {
         )
         assertFalse(
             OwnMatchReplayPolicy.shouldReplay(
-                enabled = true,
+                previousEnabled = false,
+                savedEnabled = true,
                 sharingEnabled = true,
                 event = recentlyEnded,
                 now = now,
@@ -74,7 +92,8 @@ class OwnMatchReplayPolicyTest {
     fun `organizer-ended Event never replays`() {
         assertFalse(
             OwnMatchReplayPolicy.shouldReplay(
-                enabled = true,
+                previousEnabled = false,
+                savedEnabled = true,
                 sharingEnabled = true,
                 event = event(status = EventStatus.endedByOrganizer),
                 now = now,
