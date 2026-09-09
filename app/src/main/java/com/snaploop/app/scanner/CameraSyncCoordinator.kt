@@ -6,6 +6,7 @@ import com.snaploop.app.core.FaceMatcher
 import com.snaploop.app.core.MatchConfig
 import com.snaploop.app.core.RemoteConfigValues
 import com.snaploop.app.data.EventFaceProfileClient
+import com.snaploop.app.data.EventFaceProfileManifest
 import com.snaploop.app.data.FirebaseMatchRepository
 import com.snaploop.app.domain.PhotoMatch
 import com.snaploop.app.domain.RecipientContext
@@ -50,6 +51,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         includeOwnMatches: Boolean = false,
         ownMatchesRevision: String? = null,
         config: RemoteConfigValues,
+        manifestOverride: EventFaceProfileManifest? = null,
         onProgress: (Progress) -> Unit = {},
     ): Result {
         val cancellationToken = ScanCancellationRegistry.start(eventId)
@@ -57,7 +59,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         ScanCancellationRegistry.ensureActive(cancellationToken)
 
         val uid = auth.currentUser?.uid ?: error("Authentication is required")
-        val manifest = rosterClient.manifest(eventId)
+        val manifest = manifestOverride ?: rosterClient.manifest(eventId)
         ScanCancellationRegistry.ensureActive(cancellationToken)
 
         val sourceMembershipId =

@@ -1,5 +1,8 @@
 package com.snaploop.app.scanner
 
+import com.snaploop.app.domain.EventParticipant
+import com.snaploop.app.domain.FaceTemplatePose
+import com.snaploop.app.domain.FaceTemplateRecord
 import com.snaploop.app.media.PhotoAccessLevel
 import com.snaploop.app.model.EventCategory
 import com.snaploop.app.model.EventStatus
@@ -8,6 +11,7 @@ import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -195,6 +199,110 @@ class AutomaticScanPolicyTest {
         assertNotEquals(before, after)
         assertEquals(before, AutomaticScanPolicy.triggerFingerprint(event, "share=id:a;own=id:off"))
     }
+
+    @Test
+    fun `roster aware fingerprint is stable regardless of participant order`() {
+        val first = participant("user-a", "member-a", "face-a", "template-a")
+        val second = participant("user-b", "member-b", "face-b", "template-b")
+        val before = AutomaticScanPolicy.triggerFingerprint(
+            event(),
+            listOf(first, second),
+            "source-membership",
+            "share=on;own=off",
+        )
+        val reordered = AutomaticScanPolicy.triggerFingerprint(
+            event(),
+            listOf(second, first),
+            "source-membership",
+            "share=on;own=off",
+        )
+        assertEquals(before, reordered)
+    }
+
+    @Test
+    fun `roster membership face and template generations bypass cooldown fingerprint`() {
+        val baseline = AutomaticScanPolicy.triggerFingerprint(
+            event(),
+            listOf(participant("user-a", "member-a", "face-a", "template-a")),
+            "source-membership-a",
+            "share=on;own=off",
+        )
+        val rejoined = AutomaticScanPolicy.triggerFingerprint(
+            event(),
+            listOf(participant("user-a", "member-b", "face-a", "template-a")),
+            "source-membership-a",
+            "share=on;own=off",
+        )
+        val replacedIdentity = AutomaticScanPolicy.triggerFingerprint(
+            event(),
+            listOf(participant("user-a", "member-a", "face-b", "template-a")),
+            "source-membership-a",
+            "share=on;own=off",
+        )
+        val refreshedTemplate = AutomaticScanPolicy.triggerFingerprint(
+            event(),
+            listOf(participant("user-a", "member-a", "face-a", "template-b")),
+            "source-membership-a",
+            "share=on;own=off",
+        )
+        val sourceRejoined = AutomaticScanPolicy.triggerFingerprint(
+            event(),
+            listOf(participant("user-a", "member-a", "face-a", "template-a")),
+            "source-membership-b",
+            "share=on;own=off",
+        )
+
+        assertNotEquals(baseline, rejoined)
+        assertNotEquals(baseline, replacedIdentity)
+        assertNotEquals(baseline, refreshedTemplate)
+        assertNotEquals(baseline, sourceRejoined)
+    }
+
+    @Test
+    fun `automatic sync persistence keys are account isolated without storing uid`() {
+        val first = AutomaticSyncIdentityScope.storageKey("last.", "installation-a", "event-1")
+        val second = AutomaticSyncIdentityScope.storageKey("last.", "installation-b", "event-1")
+
+        assertEquals("last.installation-a.event-1", first)
+        assertNotEquals(first, second)
+        assertNull(AutomaticSyncIdentityScope.storageKey("last.", "   ", "event-1"))
+    }
+
+    @Test
+    fun `legacy participant epoch changes on leave and rejoin`() {
+        val first = participant("user-a", null, "face-a", "template-a", joinedAtMillis = 1_000L)
+        val rejoined = participant("user-a", null, "face-a", "template-a", joinedAtMillis = 2_000L)
+
+        assertNotEquals(
+            AutomaticSyncIdentityScope.participantEpoch(first),
+            AutomaticSyncIdentityScope.participantEpoch(rejoined),
+        )
+    }
+
+    private fun participant(
+        userId: String,
+        membershipId: String?,
+        faceIdentityId: String,
+        templateId: String,
+        joinedAtMillis: Long = 1_000L,
+    ) = EventParticipant(
+        userId = userId,
+        membershipId = membershipId,
+        displayName = null,
+        faceIdentityId = faceIdentityId,
+        faceEmbedding = floatArrayOf(1f),
+        faceTemplates = listOf(
+            FaceTemplateRecord(
+                id = templateId,
+                embedding = floatArrayOf(1f),
+                pose = FaceTemplatePose.CENTER,
+                quality = 1.0,
+                createdAtMillis = joinedAtMillis,
+            ),
+        ),
+        faceProfileVersion = 5,
+        joinedAtMillis = joinedAtMillis,
+    )
 
     private fun event(
         start: Instant = now.minusSeconds(60),

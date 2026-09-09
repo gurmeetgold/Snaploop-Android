@@ -2,12 +2,15 @@ package com.snaploop.app.scanner
 
 import android.content.Context
 import android.os.PowerManager
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.snaploop.app.core.RemoteConfigValues
 import com.snaploop.app.core.SnapLoopRemoteConfig
+import com.snaploop.app.data.EventFaceProfileClient
 import com.snaploop.app.data.MemberPhotoPreferencesClient
 import com.snaploop.app.media.PhotoAccessState
 import com.snaploop.app.model.SnapEvent
+import com.snaploop.app.security.AccountInstallationIdentityStore
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -19,14 +22,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Opportunistic foreground Event scanning, mirroring the current iOS lifecycle.
+ * Opportunistic foreground Event scanning, mirroring the pinned iOS lifecycle.
  *
  * The UI asks this controller to run when the authenticated app becomes active
  * and whenever the authenticated Event/preference snapshot changes. The
  * controller enforces Event+grace eligibility, sharing, photo access, battery
- * saver avoidance, a one-hour per-Event cooldown, and one bounded scanner batch.
- * Event or sharing/own-match generation changes bypass the cooldown so newly
- * eligible recipient work is replayed immediately from the protected corpus.
+ * saver avoidance, a persistent one-hour per-Event cooldown, and one bounded
+ * scanner batch. Event, trusted roster, membership, or sharing/own-match
+ * generation changes bypass the cooldown so newly eligible recipient work is
+ * replayed immediately from the protected corpus.
+ *
+ * Cooldown/fingerprint persistence is scoped by the pseudonymous account +
+ * installation identity. One account on a shared device therefore cannot
+ * suppress another account's automatic Event scan.
  *
  * It deliberately does not run a service or WorkManager job: Android must not
  * inspect the photo library continuously in the background.
@@ -35,6 +43,9 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
     private val appContext = context.applicationContext
     private val preferences = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val memberPreferences = MemberPhotoPreferencesClient()
+    private val rosterClient = EventFaceProfileClient()
+    private val auth = FirebaseAuth.getInstance()
+    private val installationIdentity = AccountInstallationIdentityStore(appContext)
     private val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -91,23 +102,43 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
         val photoAccess = PhotoAccessState.current(appContext)
         if (!photoAccess.canRead) return
 
+        val userId = auth.currentUser?.uid ?: return
+        val sourceInstallationId = installationIdentity.idFor(userId)
+        if (sourceInstallationId.isBlank()) return
+
         val now = Instant.now()
         val config = remoteConfig()
         CameraSyncCoordinator(appContext).use { scanner ->
             for (event in events.sortedBy { it.startsAt }) {
+                if (!AutomaticScanPolicy.isWithinSyncWindow(event, now, config.eventGracePeriodDays)) continue
+
                 val preference = runCatching { memberPreferences.load(event.id) }.getOrNull() ?: continue
+                if (!preference.sharingEnabled) continue
+
+                // Pinned iOS loads the trusted biometric manifest before applying
+                // cooldown. A recipient template/identity change or source
+                // leave+rejoin must therefore bypass an otherwise fresh cooldown.
+                val manifest = runCatching { rosterClient.manifest(event.id) }.getOrNull() ?: continue
+                val fingerprint = AutomaticScanPolicy.triggerFingerprint(
+                    event = event,
+                    participants = manifest.participants,
+                    sourceMembershipId = manifest.sourceMembershipId,
+                    preferenceRevision = preference.revisionToken,
+                )
                 val lastRun = preferences
-                    .getLong(lastRunKey(event.id), NO_TIMESTAMP)
+                    .getLong(lastRunKey(sourceInstallationId, event.id), NO_TIMESTAMP)
                     .takeUnless { it == NO_TIMESTAMP }
-                val fingerprint = AutomaticScanPolicy.triggerFingerprint(event, preference.revisionToken)
-                val triggerChanged = preferences.getString(fingerprintKey(event.id), null) != fingerprint
+                val triggerChanged = preferences.getString(
+                    fingerprintKey(sourceInstallationId, event.id),
+                    null,
+                ) != fingerprint
 
                 if (
                     !AutomaticScanPolicy.shouldRun(
                         event = event,
                         now = now,
                         lastAutomaticScanAtMillis = lastRun,
-                        sharingEnabled = preference.sharingEnabled,
+                        sharingEnabled = true,
                         photoAccess = photoAccess,
                         powerSaveMode = powerManager.isPowerSaveMode,
                         gracePeriodDays = config.eventGracePeriodDays,
@@ -123,16 +154,17 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
                     includeOwnMatches = preference.includeOwnMatches,
                     ownMatchesRevision = preference.revisionToken,
                     config = config,
+                    manifestOverride = manifest,
                 )
 
-                // Match pinned iOS recovery semantics: a pass that left an attempted asset
-                // retryable must not record the generation as synchronized. Keeping the old
-                // timestamp/fingerprint lets the next foreground opportunity retry immediately
-                // rather than hiding the failure behind the normal one-hour cooldown.
+                // Match the already-established Android recovery rule: a pass
+                // that leaves an attempted asset retryable must not be hidden
+                // behind the normal automatic cooldown. This preserves the green
+                // retry behavior verified before this parity pass.
                 if (ScanPassPolicy.shouldCheckpointAutomaticPass(result.failed)) {
                     preferences.edit()
-                        .putLong(lastRunKey(event.id), System.currentTimeMillis())
-                        .putString(fingerprintKey(event.id), fingerprint)
+                        .putLong(lastRunKey(sourceInstallationId, event.id), System.currentTimeMillis())
+                        .putString(fingerprintKey(sourceInstallationId, event.id), fingerprint)
                         .apply()
                 }
             }
@@ -155,11 +187,28 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
         scope.cancel()
     }
 
-    private fun lastRunKey(eventId: String) = "last_auto_scan.$eventId.v1"
-    private fun fingerprintKey(eventId: String) = "fingerprint.$eventId.v2"
+    private fun lastRunKey(sourceInstallationId: String, eventId: String): String =
+        requireNotNull(
+            AutomaticSyncIdentityScope.storageKey(
+                prefix = LAST_RUN_PREFIX,
+                sourceInstallationId = sourceInstallationId,
+                eventId = eventId,
+            ),
+        )
+
+    private fun fingerprintKey(sourceInstallationId: String, eventId: String): String =
+        requireNotNull(
+            AutomaticSyncIdentityScope.storageKey(
+                prefix = FINGERPRINT_PREFIX,
+                sourceInstallationId = sourceInstallationId,
+                eventId = eventId,
+            ),
+        )
 
     private companion object {
         const val PREFS = "snaploop.auto.scan"
+        const val LAST_RUN_PREFIX = "last_auto_scan.account.v2."
+        const val FINGERPRINT_PREFIX = "fingerprint.account.v3."
         const val NO_TIMESTAMP = Long.MIN_VALUE
     }
 }
