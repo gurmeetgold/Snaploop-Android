@@ -349,7 +349,7 @@ private fun ShellHome(state: AppUiState, coordinator: AppCoordinator) {
     }
 
     if (joinOpen) {
-        ShellJoinDialog(
+        ParityJoinEventDialog(
             onDismiss = { joinOpen = false },
             onResolve = {
                 joinOpen = false

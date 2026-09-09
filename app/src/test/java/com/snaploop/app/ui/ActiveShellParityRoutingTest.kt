@@ -1,6 +1,7 @@
 package com.snaploop.app.ui
 
 import java.io.File
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -28,5 +29,12 @@ class ActiveShellParityRoutingTest {
         val source = shellSource()
         assertTrue(source.contains("ShellEventPage.INVITE -> ParityShareEventDialog("))
         assertTrue(source.contains("canManageInvites = shellCurrentRole(event, state.members, state.user?.id)"))
+    }
+
+    @Test
+    fun `home manual join uses the dedicated pinned parity entry surface`() {
+        val source = shellSource()
+        assertTrue(source.contains("if (joinOpen) {\n        ParityJoinEventDialog("))
+        assertFalse(source.contains("if (joinOpen) {\n        ShellJoinDialog("))
     }
 }
