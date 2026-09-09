@@ -13,6 +13,10 @@ data class EventNotification(
     val title: String,
     val body: String,
     val createdAt: Instant,
+    val type: String? = null,
+    val eventName: String? = null,
+    val inviteToken: String? = null,
+    val read: Boolean = false,
 )
 
 /** Pure mapping/list policy mirrored from pinned iOS EventNotificationClient + HomeModel. */
@@ -23,6 +27,10 @@ object EventNotificationPolicy {
         title: String?,
         body: String?,
         createdAt: Instant?,
+        type: String? = null,
+        eventName: String? = null,
+        inviteToken: String? = null,
+        read: Boolean? = null,
     ): EventNotification? {
         if (documentId.isBlank()) return null
         val cleanEventId = eventId?.trim()?.takeIf { it.isNotEmpty() } ?: return null
@@ -34,6 +42,10 @@ object EventNotificationPolicy {
             title = cleanTitle,
             body = cleanBody,
             createdAt = createdAt ?: Instant.MIN,
+            type = type?.trim()?.takeIf { it.isNotEmpty() },
+            eventName = eventName?.trim()?.takeIf { it.isNotEmpty() },
+            inviteToken = inviteToken?.trim()?.takeIf { it.isNotEmpty() },
+            read = read ?: false,
         )
     }
 
@@ -72,6 +84,10 @@ class EventNotificationClient(
                 title = document.getString("title"),
                 body = document.getString("body"),
                 createdAt = document.getTimestamp("createdAt")?.toDate()?.toInstant(),
+                type = document.getString("type"),
+                eventName = document.getString("eventName"),
+                inviteToken = document.getString("inviteToken"),
+                read = document.getBoolean("read"),
             )
         }
         return EventNotificationPolicy.newestFirst(notifications)
