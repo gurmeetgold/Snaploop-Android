@@ -38,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,6 +79,7 @@ internal fun ParityYouScreen(
     ) {
         Text(
             "You",
+            modifier = Modifier.semantics { heading() },
             fontSize = 34.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -159,7 +162,9 @@ internal fun ParityYouScreen(
         ParityPhotoAccessCard()
 
         ParityPremiumCard(
-            modifier = Modifier.clickable { privacy = true },
+            modifier = Modifier
+                .semantics(mergeDescendants = true) { }
+                .clickable { privacy = true },
         ) {
             YouMenuRow(
                 title = "Privacy & Data",
@@ -171,7 +176,9 @@ internal fun ParityYouScreen(
         }
 
         ParityPremiumCard(
-            modifier = Modifier.clickable { replayConfirm = true },
+            modifier = Modifier
+                .semantics(mergeDescendants = true) { }
+                .clickable { replayConfirm = true },
         ) {
             YouMenuRow(
                 title = "Replay Onboarding",
@@ -183,7 +190,9 @@ internal fun ParityYouScreen(
         }
 
         ParityPremiumCard(
-            modifier = Modifier.clickable { signOutConfirm = true },
+            modifier = Modifier
+                .semantics(mergeDescendants = true) { }
+                .clickable { signOutConfirm = true },
         ) {
             YouMenuRow(
                 title = "Sign Out",
@@ -258,6 +267,7 @@ private fun YouAccountRow(
     Row(
         Modifier
             .fillMaxWidth()
+            .semantics(mergeDescendants = true) { }
             .clickable(onClick = onClick)
             .padding(vertical = YouScreenParitySpec.ACCOUNT_ROW_VERTICAL_PADDING_DP.dp),
         verticalAlignment = Alignment.CenterVertically,
