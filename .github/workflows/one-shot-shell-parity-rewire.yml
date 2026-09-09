@@ -7,9 +7,22 @@ on:
     paths:
       - '.github/workflows/one-shot-shell-parity-rewire.yml'
 
+permissions:
+  contents: write
+
 jobs:
-  validate:
+  rewire:
     runs-on: ubuntu-latest
     steps:
-      - name: Validate workflow startup
-        run: echo "one-shot workflow is valid"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Route active shell to parity surfaces
+        run: python3 scripts/one_shot_rewire_shell_parity.py
+      - name: Commit routing change
+        run: |
+          git config user.name "gurmeetgold"
+          git config user.email "50425243+gurmeetgold@users.noreply.github.com"
+          git add app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt app/src/test/java/com/snaploop/app/ui/ActiveShellParityRoutingTest.kt
+          git commit -m "Route active shell through invitation parity surfaces"
+          git push origin HEAD:feature/android-production-parity-v1
