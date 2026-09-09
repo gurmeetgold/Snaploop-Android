@@ -4,9 +4,13 @@ import com.snaploop.app.model.EventCategory
 import com.snaploop.app.model.SnapEvent
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 /** Pure edit semantics mirrored from pinned iOS EventFactory.applyEdit/EditEventView. */
 internal object EventEditParityPolicy {
+    const val MVP_MAXIMUM_DURATION_DAYS = 15
+    const val SUGGESTED_END_OFFSET_DAYS = 3
+
     data class Plan(
         val event: SnapEvent,
         val datesChanged: Boolean,
@@ -57,6 +61,23 @@ internal object EventEditParityPolicy {
             datesChanged = datesChanged,
             hasChanges = detailsChanged || datesChanged,
         )
+    }
+
+    /**
+     * Mirrors pinned EditEventView: opening Edit never clamps historical dates. Only when the
+     * organizer deliberately changes Starts do we repair an end date that is now before Starts or
+     * beyond the maximum duration, preferring Start + 3 days and capping it to the configured max.
+     */
+    fun repairEndAfterStartChange(
+        newStart: LocalDate,
+        currentEnd: LocalDate,
+        configuredMaximumDurationDays: Int = MVP_MAXIMUM_DURATION_DAYS,
+    ): LocalDate {
+        val maxDays = minOf(MVP_MAXIMUM_DURATION_DAYS, configuredMaximumDurationDays.coerceAtLeast(1))
+        val dayDistance = ChronoUnit.DAYS.between(newStart, currentEnd)
+        if (dayDistance in 0..maxDays.toLong()) return currentEnd
+        val maxEnd = newStart.plusDays(maxDays.toLong())
+        return minOf(maxEnd, newStart.plusDays(SUGGESTED_END_OFFSET_DAYS.toLong()))
     }
 
     fun eventZone(event: SnapEvent): ZoneId = runCatching {
