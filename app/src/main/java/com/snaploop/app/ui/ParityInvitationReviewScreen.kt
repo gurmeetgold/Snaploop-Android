@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,6 +56,8 @@ import com.snaploop.app.data.FirebaseEventRepository
 import com.snaploop.app.invite.EventInviteClient
 import com.snaploop.app.model.EventCategory
 import com.snaploop.app.model.SnapEvent
+import com.snaploop.app.notifications.EventNotificationInvalidationStore
+import com.snaploop.app.notifications.SnapLoopNotifications
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -71,6 +74,7 @@ internal fun ParityInvitationReviewScreen(
     val action = resumeContext?.action ?: InviteAction.REVIEW
     val hasFaceSetup = state.user?.hasFaceProfile == true
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current.applicationContext
 
     var participantCount by remember(event.id) { mutableIntStateOf(0) }
     var inviterLabel by remember(event.id) { mutableStateOf<String?>(null) }
@@ -297,6 +301,8 @@ internal fun ParityInvitationReviewScreen(
                         scope.launch {
                             runCatching { EventInviteClient().decline(event.id) }
                                 .onSuccess {
+                                    SnapLoopNotifications.removeInviteNotifications(context, event.id)
+                                    EventNotificationInvalidationStore.invalidate(event.id)
                                     isDeclining = false
                                     declined = true
                                 }
