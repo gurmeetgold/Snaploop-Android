@@ -3,34 +3,35 @@ from pathlib import Path
 shell_path = Path("app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt")
 text = shell_path.read_text()
 
-old_pending = "state.pendingInvite != null -> ShellInvitationReview(state.pendingInvite, coordinator)"
-new_pending = "state.pendingInvite != null -> ParityInvitationReviewScreen(state, coordinator)"
-if old_pending not in text:
-    raise SystemExit("pending-invite route no longer matches expected source")
-text = text.replace(old_pending, new_pending, 1)
-
-old_share = """        ShellEventPage.INVITE -> ShellInvite(
-            state = state,
-            onBack = { page = ShellEventPage.DASHBOARD },
-            onPhoneInvite = { page = ShellEventPage.PHONE_INVITE },
-        )"""
-new_share = """        ShellEventPage.INVITE -> ParityShareEventDialog(
-            event = event,
-            inviterName = state.user?.displayName,
-            canManageInvites = shellCurrentRole(event, state.members, state.user?.id).let {
-                it == EventMember.Role.organizer || it == EventMember.Role.admin
+old_join = """    if (joinOpen) {
+        ShellJoinDialog(
+            onDismiss = { joinOpen = false },
+            onResolve = {
+                joinOpen = false
+                coordinator.resolveJoinInput(it)
             },
-            onDismiss = { page = ShellEventPage.DASHBOARD },
-        )"""
-if old_share not in text:
-    raise SystemExit("share-event route no longer matches expected source")
-text = text.replace(old_share, new_share, 1)
+        )
+    }"""
+new_join = """    if (joinOpen) {
+        ParityJoinEventDialog(
+            onDismiss = { joinOpen = false },
+            onResolve = {
+                joinOpen = false
+                coordinator.resolveJoinInput(it)
+            },
+        )
+    }"""
+
+if text.count(old_join) != 1:
+    raise SystemExit("manual Join Event route no longer matches the expected legacy source exactly once")
+text = text.replace(old_join, new_join, 1)
 shell_path.write_text(text)
 
 test_path = Path("app/src/test/java/com/snaploop/app/ui/ActiveShellParityRoutingTest.kt")
 test_path.write_text("""package com.snaploop.app.ui
 
 import java.io.File
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -58,6 +59,13 @@ class ActiveShellParityRoutingTest {
         val source = shellSource()
         assertTrue(source.contains("ShellEventPage.INVITE -> ParityShareEventDialog("))
         assertTrue(source.contains("canManageInvites = shellCurrentRole(event, state.members, state.user?.id)"))
+    }
+
+    @Test
+    fun `home manual join uses the dedicated pinned parity entry surface`() {
+        val source = shellSource()
+        assertTrue(source.contains("if (joinOpen) {\\n        ParityJoinEventDialog("))
+        assertFalse(source.contains("if (joinOpen) {\\n        ShellJoinDialog("))
     }
 }
 """)
