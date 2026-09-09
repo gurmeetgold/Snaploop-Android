@@ -2,6 +2,7 @@ package com.snaploop.app.notifications
 
 import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -34,6 +35,47 @@ class EventNotificationPolicyTest {
 
         assertEquals("event-1", notification?.eventId)
         assertEquals(Instant.MIN, notification?.createdAt)
+        assertFalse(notification?.read ?: true)
+    }
+
+    @Test
+    fun invitationRecordPreservesBackendNavigationMetadata() {
+        val notification = EventNotificationPolicy.fromRecord(
+            documentId = "invite_event-1_123",
+            eventId = " event-1 ",
+            title = "Event invitation",
+            body = "You were invited to Summer Trip.",
+            createdAt = Instant.parse("2026-09-09T08:00:00Z"),
+            type = " event_invite ",
+            eventName = " Summer Trip ",
+            inviteToken = " invite-token-123 ",
+            read = false,
+        )
+
+        assertEquals("event_invite", notification?.type)
+        assertEquals("Summer Trip", notification?.eventName)
+        assertEquals("invite-token-123", notification?.inviteToken)
+        assertFalse(notification?.read ?: true)
+    }
+
+    @Test
+    fun optionalBackendMetadataIsBackwardCompatible() {
+        val notification = EventNotificationPolicy.fromRecord(
+            documentId = "n1",
+            eventId = "event-1",
+            title = "Title",
+            body = "Body",
+            createdAt = Instant.EPOCH,
+            type = "   ",
+            eventName = "",
+            inviteToken = null,
+            read = null,
+        )
+
+        assertNull(notification?.type)
+        assertNull(notification?.eventName)
+        assertNull(notification?.inviteToken)
+        assertFalse(notification?.read ?: true)
     }
 
     @Test
