@@ -83,8 +83,9 @@ internal fun ParityInvitationReviewScreen(
     var declined by remember(event.id) { mutableStateOf(false) }
 
     LaunchedEffect(event.id, resumeContext?.token, resumeContext?.code) {
-        participantCount = runCatching { FirebaseEventRepository().members(event.id).size }.getOrDefault(0)
-        inviterLabel = runCatching {
+        val members = runCatching { FirebaseEventRepository().members(event.id) }.getOrDefault(emptyList())
+        participantCount = members.size
+        val previewName = runCatching {
             val client = EventInviteClient()
             when {
                 !resumeContext?.token.isNullOrBlank() -> client.previewToken(resumeContext!!.token!!).inviterName
@@ -92,6 +93,11 @@ internal fun ParityInvitationReviewScreen(
                 else -> client.previewCode(event.joinCode).inviterName
             }
         }.getOrNull()
+        inviterLabel = InvitationReviewParityPolicy.inviterLabel(
+            previewName = previewName,
+            members = members,
+            organizerUserId = event.creatorUserId,
+        )
     }
 
     ParityBrandBackground {
@@ -274,7 +280,7 @@ internal fun ParityInvitationReviewScreen(
                     ) {
                         CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         Text(
-                            if (action == InviteAction.ACCEPT) "  Joining Event…" else "  Opening invitation…",
+                            "  ${InvitationReviewParityPolicy.automaticProgressCopy(action)}",
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                             fontWeight = FontWeight.SemiBold,
                         )
