@@ -1,6 +1,7 @@
 package com.snaploop.app.ui
 
 import android.app.DatePickerDialog
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -20,6 +22,8 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.UnfoldMore
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -27,8 +31,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -84,45 +89,53 @@ internal fun ParityCreateEventDialog(
                 Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(20.dp),
+                    .padding(CreateEventVisualParitySpec.PAGE_PADDING_DP.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(18.dp),
+                verticalArrangement = Arrangement.spacedBy(CreateEventVisualParitySpec.CONTENT_SPACING_DP.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel") }
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        enabled = !busy,
+                        shape = RoundedCornerShape(CreateEventVisualParitySpec.CANCEL_RADIUS_DP.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            Color.White.copy(alpha = CreateEventVisualParitySpec.CANCEL_BORDER_ALPHA),
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = SnapColors.Coral),
+                    ) {
+                        Text("Cancel", fontWeight = FontWeight.SemiBold)
+                    }
                     Text(
                         "New Event",
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center,
-                        fontSize = 20.sp,
+                        fontSize = CreateEventVisualParitySpec.HEADER_TITLE_SP.sp,
                         fontWeight = FontWeight.Bold,
                     )
-                    Spacer(Modifier.size(64.dp))
+                    Spacer(Modifier.size(84.dp))
                 }
 
-                ParityBrandMark(58)
+                ParityBrandMark(CreateEventVisualParitySpec.HERO_MARK_DP)
                 Text(
                     "Create an Event",
-                    fontSize = 28.sp,
+                    fontSize = CreateEventVisualParitySpec.HERO_TITLE_SP.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     "Trip, party, family celebration, wedding — bring everyone's photos together.",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
-                    fontSize = 14.sp,
+                    fontSize = CreateEventVisualParitySpec.BODY_SP.sp,
                     textAlign = TextAlign.Center,
                 )
 
                 ParityPremiumCard {
                     CreateFieldLabel("Event name", Icons.Filled.TextFields)
-                    OutlinedTextField(
+                    CreateFilledTextField(
                         value = name,
                         onValueChange = { name = CreateEventParityPolicy.limitName(it) },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("e.g. Banff Weekend") },
-                        supportingText = { Text("${name.length}/${CreateEventParityPolicy.MAX_NAME_CHARACTERS}") },
-                        singleLine = true,
+                        placeholder = "e.g. Banff Weekend",
                         enabled = !busy,
                     )
 
@@ -133,8 +146,23 @@ internal fun ParityCreateEventDialog(
                             onClick = { categoryMenu = true },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !busy,
+                            border = null,
+                            shape = RoundedCornerShape(CreateEventVisualParitySpec.CATEGORY_RADIUS_DP.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = SnapColors.Coral),
                         ) {
-                            Text(createCategoryName(category))
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Start,
+                            ) {
+                                Text(
+                                    createCategoryName(category),
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = TextAlign.Start,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Icon(Icons.Filled.UnfoldMore, contentDescription = null)
+                            }
                         }
                         DropdownMenu(
                             expanded = categoryMenu,
@@ -154,12 +182,10 @@ internal fun ParityCreateEventDialog(
 
                     HorizontalDivider()
                     CreateFieldLabel("Location", Icons.Filled.LocationOn)
-                    OutlinedTextField(
+                    CreateFilledTextField(
                         value = location,
                         onValueChange = { location = it.take(80) },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Optional") },
-                        singleLine = true,
+                        placeholder = "Optional",
                         enabled = !busy,
                     )
                 }
@@ -192,13 +218,13 @@ internal fun ParityCreateEventDialog(
                     Text(
                         "SnapLoop only considers photos taken within this Event's selected date range. Dates must stay within 15 days before or after today, and an Event can span at most 15 calendar days.",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
-                        fontSize = 12.sp,
+                        fontSize = CreateEventVisualParitySpec.DATE_COPY_SP.sp,
                     )
                     if (!dateValid) {
                         Text(
                             "Choose a valid Event date range.",
                             color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
+                            fontSize = CreateEventVisualParitySpec.DATE_COPY_SP.sp,
                             fontWeight = FontWeight.Bold,
                         )
                     }
@@ -215,7 +241,7 @@ internal fun ParityCreateEventDialog(
                             Text(
                                 "  Complete Face Setup before creating an Event so SnapLoop can find your photos.",
                                 modifier = Modifier.weight(1f),
-                                fontSize = 14.sp,
+                                fontSize = CreateEventVisualParitySpec.BODY_SP.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 textAlign = TextAlign.Center,
                             )
@@ -255,10 +281,46 @@ internal fun ParityCreateEventDialog(
 }
 
 @Composable
+private fun CreateFilledTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    enabled: Boolean,
+) {
+    val fill = MaterialTheme.colorScheme.onSurface.copy(alpha = CreateEventVisualParitySpec.INPUT_FILL_ALPHA)
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        placeholder = { Text(placeholder) },
+        singleLine = true,
+        enabled = enabled,
+        shape = RoundedCornerShape(CreateEventVisualParitySpec.INPUT_RADIUS_DP.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent,
+            disabledBorderColor = Color.Transparent,
+            focusedContainerColor = fill,
+            unfocusedContainerColor = fill,
+            disabledContainerColor = fill.copy(alpha = 0.65f),
+        ),
+    )
+}
+
+@Composable
 private fun CreateFieldLabel(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = SnapColors.Coral, modifier = Modifier.size(18.dp))
-        Text("  $text", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(CreateEventVisualParitySpec.FIELD_ICON_DP.dp),
+        )
+        Text(
+            "  $text",
+            fontWeight = FontWeight.SemiBold,
+            fontSize = CreateEventVisualParitySpec.FIELD_LABEL_SP.sp,
+        )
     }
 }
 
@@ -277,6 +339,12 @@ private fun CreateDateField(
         Text(label, modifier = Modifier.weight(1f))
         OutlinedButton(
             enabled = !busy,
+            border = null,
+            shape = RoundedCornerShape(CreateEventVisualParitySpec.DATE_CAPSULE_RADIUS_DP.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.085f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
             onClick = {
                 DatePickerDialog(
                     context,
@@ -293,7 +361,10 @@ private fun CreateDateField(
                 }.show()
             },
         ) {
-            Text(value.format(DateTimeFormatter.ofPattern("MMM d, yyyy")))
+            Text(
+                value.format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
