@@ -35,6 +35,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -66,11 +70,11 @@ internal fun ParityJoinEventDialog(
 
     if (qrOpen) {
         QrCodeScannerScreen(
-            onResult = { raw: String ->
+            onCancel = { qrOpen = false },
+            onResult = { raw ->
                 qrOpen = false
                 resolve(raw)
             },
-            onCancel = { qrOpen = false },
         )
     } else {
         Dialog(
@@ -108,6 +112,7 @@ internal fun ParityJoinEventDialog(
                     Spacer(Modifier.height(18.dp))
                     Text(
                         "Join an Event",
+                        modifier = Modifier.semantics { heading() },
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -143,7 +148,10 @@ internal fun ParityJoinEventDialog(
                     error?.let { message ->
                         Text(
                             message,
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                                .semantics { liveRegion = LiveRegionMode.Assertive },
                             color = MaterialTheme.colorScheme.error,
                             fontSize = 12.sp,
                             textAlign = TextAlign.Start,
