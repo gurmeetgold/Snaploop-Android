@@ -1,6 +1,7 @@
 package com.snaploop.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -54,6 +56,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -390,14 +394,43 @@ private fun ParityEventHero(
     role: EventMember.Role?,
     lifecycle: EventDashboardParityPolicy.Lifecycle,
 ) {
+    val heroShape = RoundedCornerShape(BrandVisualParitySpec.EVENT_HERO_RADIUS_DP.dp)
+    val heroGradient = Brush.linearGradient(
+        listOf(SnapColors.Coral, SnapColors.HotPink, SnapColors.Lilac),
+    )
+
     Box(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp)
-            .height(230.dp)
-            .background(SnapGradients.Brand, RoundedCornerShape(30.dp))
+            .shadow(
+                BrandVisualParitySpec.EVENT_HERO_SHADOW_DP.dp,
+                heroShape,
+                ambientColor = SnapColors.Coral.copy(alpha = BrandVisualParitySpec.EVENT_HERO_SHADOW_ALPHA),
+                spotColor = SnapColors.Coral.copy(alpha = BrandVisualParitySpec.EVENT_HERO_SHADOW_ALPHA),
+            )
+            .height(BrandVisualParitySpec.EVENT_HERO_HEIGHT_DP.dp)
+            .clip(heroShape)
+            .background(heroGradient)
             .padding(20.dp),
     ) {
+        Box(
+            Modifier
+                .size(180.dp)
+                .align(Alignment.TopEnd)
+                .offset(x = 70.dp, y = (-70).dp)
+                .background(Color.White.copy(alpha = 0.11f), CircleShape),
+        )
+        Icon(
+            parityCategoryIcon(event.category),
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.13f),
+            modifier = Modifier
+                .size(92.dp)
+                .align(Alignment.TopEnd)
+                .offset(x = 28.dp, y = (-18).dp),
+        )
+
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
@@ -542,7 +575,13 @@ private fun ParityEventFeatureTile(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
-        Box(Modifier.fillMaxWidth().height(154.dp).background(gradient).padding(16.dp)) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(BrandVisualParitySpec.EVENT_FEATURE_TILE_HEIGHT_DP.dp)
+                .background(gradient)
+                .padding(16.dp),
+        ) {
             Box(
                 Modifier.size(44.dp).background(Color.White.copy(alpha = 0.20f), RoundedCornerShape(13.dp)),
                 contentAlignment = Alignment.Center,
@@ -590,8 +629,13 @@ private fun ParityEventMembersRow(
                     }.uppercase()
                     Box(
                         Modifier
-                            .size(42.dp)
-                            .background(parityMemberGradient(member.role), CircleShape),
+                            .size(BrandVisualParitySpec.EVENT_MEMBER_AVATAR_DP.dp)
+                            .background(parityMemberGradient(member.role), CircleShape)
+                            .border(
+                                BrandVisualParitySpec.EVENT_MEMBER_AVATAR_BORDER_DP.dp,
+                                Color.White,
+                                CircleShape,
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(initial, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
