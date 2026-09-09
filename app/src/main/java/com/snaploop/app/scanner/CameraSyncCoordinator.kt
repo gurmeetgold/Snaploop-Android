@@ -11,8 +11,8 @@ import com.snaploop.app.domain.PhotoMatch
 import com.snaploop.app.domain.RecipientContext
 import com.snaploop.app.face.AndroidFacePipeline
 import com.snaploop.app.media.MediaStorePhotoLibrary
-import com.snaploop.app.media.PhotoUnavailableException
 import com.snaploop.app.security.AccountInstallationIdentityStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ensureActive
 import kotlin.coroutines.coroutineContext
 
@@ -24,7 +24,14 @@ import kotlin.coroutines.coroutineContext
  */
 class CameraSyncCoordinator(context: Context) : AutoCloseable {
     data class Progress(val checked: Int, val total: Int, val published: Int)
-    data class Result(val checked: Int, val published: Int, val remaining: Int)
+    data class Result(
+        val checked: Int,
+        val published: Int,
+        val remaining: Int,
+        val failed: Int = 0,
+    ) {
+        val hasRetryableFailures: Boolean get() = failed > 0
+    }
 
     private val appContext = context.applicationContext
     private val auth = FirebaseAuth.getInstance()
@@ -129,118 +136,133 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
         }
         val batch = pendingAssets.take(config.maxAssetsPerSyncBatch.coerceAtLeast(0))
         var published = 0
+        var completed = 0
+        var failed = 0
 
-        for ((index, asset) in batch.withIndex()) {
+        for (asset in batch) {
             coroutineContext.ensureActive()
             ScanCancellationRegistry.ensureActive(cancellationToken)
 
-            // Keep the normalized bytes for this iteration so a newly-processed photo is not read
-            // from MediaStore a second time just to publish its thumbnail.
-            var sourceJpeg: ByteArray? = null
-            var corpus = state.photoCorpus[asset.id]
-            if (corpus == null) {
-                sourceJpeg = try {
-                    library.normalizedJpeg(
+            try {
+                // Keep the normalized bytes for this iteration so a newly-processed photo is not
+                // read from MediaStore a second time just to publish its thumbnail.
+                var sourceJpeg: ByteArray? = null
+                var corpus = state.photoCorpus[asset.id]
+                if (corpus == null) {
+                    sourceJpeg = library.normalizedJpeg(
                         asset,
                         config.thumbnailMaxPixelSize,
                         (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
                     )
-                } catch (_: PhotoUnavailableException) {
-                    // MediaStore can return a row and revoke/remove it before the stream is opened
-                    // (common with Android selected-photo access and OEM gallery providers). A
-                    // single stale row must never terminate the whole Event scan.
-                    onProgress(Progress(index + 1, batch.size, published))
-                    continue
-                }
 
-                ScanCancellationRegistry.ensureActive(cancellationToken)
-                val detected = faces.detectFaces(sourceJpeg)
-                corpus = PhotoCorpusRecord(
-                    asset.id,
-                    asset.creationDateMillis,
-                    detected.map { CachedPhotoFace(it.embedding, it.sizeFraction) },
-                    System.currentTimeMillis(),
-                )
-                state.photoCorpus[asset.id] = corpus
-            }
-
-            val pendingIds = state.pendingRecipientUserIds(asset.id, matchableIds)
-            if (pendingIds.isEmpty()) {
-                onProgress(Progress(index + 1, batch.size, published))
-                continue
-            }
-
-            val appearances = matcher.appearances(
-                corpus.faces.map(CachedPhotoFace::detected),
-                matcherParticipants,
-            )
-            val appearancesByUser = appearances.associateBy { it.participantUserId }
-            val publishAppearances = appearances.filter { it.participantUserId in pendingIds }
-            val removals = mutableListOf<RecipientContext>()
-            for (participant in participants.filter { it.userId in pendingIds }) {
-                val cursor = state.recipientCursors[participant.userId] ?: continue
-                val wasMatched = cursor.wasMatched(asset.id)
-                val nowMatched = appearancesByUser.containsKey(participant.userId)
-                if (wasMatched && !nowMatched) {
-                    removals += RecipientContext(
-                        participant.userId,
-                        participant.membershipId,
-                        participant.stableFaceIdentityId,
-                        participant.faceProfileRevision,
-                    )
-                }
-            }
-
-            ScanCancellationRegistry.ensureActive(cancellationToken)
-            if (sharingEnabled && (publishAppearances.isNotEmpty() || removals.isNotEmpty())) {
-                val thumbnail = if (publishAppearances.isNotEmpty()) {
-                    sourceJpeg ?: try {
-                        library.normalizedJpeg(
-                            asset,
-                            config.thumbnailMaxPixelSize,
-                            (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
-                        )
-                    } catch (_: PhotoUnavailableException) {
-                        // The corpus can be cached even after the underlying photo is removed. Do
-                        // not mark a positive as delivered when its preview could not be published.
-                        onProgress(Progress(index + 1, batch.size, published))
-                        continue
-                    }
-                } else {
-                    byteArrayOf()
-                }
-
-                ScanCancellationRegistry.ensureActive(cancellationToken)
-                matches.upload(
-                    PhotoMatch.fromMatcher(
-                        eventId,
-                        uid,
-                        sourceInstallationId,
-                        sourceMembershipId,
+                    ScanCancellationRegistry.ensureActive(cancellationToken)
+                    val detected = faces.detectFaces(sourceJpeg)
+                    corpus = PhotoCorpusRecord(
                         asset.id,
-                        publishAppearances,
-                        removals,
                         asset.creationDateMillis,
+                        detected.map { CachedPhotoFace(it.embedding, it.sizeFraction) },
                         System.currentTimeMillis(),
-                    ),
-                    thumbnail,
-                )
-                published++
+                    )
+                    state.photoCorpus[asset.id] = corpus
+
+                    // Persist expensive on-device extraction before any network publication.
+                    // A transient upload failure can then retry from cached faces instead of
+                    // decoding and embedding the same source photo again.
+                    states.save(state)
+                }
+
+                val pendingIds = state.pendingRecipientUserIds(asset.id, matchableIds)
+                if (pendingIds.isNotEmpty()) {
+                    val appearances = matcher.appearances(
+                        corpus.faces.map(CachedPhotoFace::detected),
+                        matcherParticipants,
+                    )
+                    val appearancesByUser = appearances.associateBy { it.participantUserId }
+                    val publishAppearances = appearances.filter { it.participantUserId in pendingIds }
+                    val removals = mutableListOf<RecipientContext>()
+                    for (participant in participants.filter { it.userId in pendingIds }) {
+                        val cursor = state.recipientCursors[participant.userId] ?: continue
+                        val wasMatched = cursor.wasMatched(asset.id)
+                        val nowMatched = appearancesByUser.containsKey(participant.userId)
+                        if (wasMatched && !nowMatched) {
+                            removals += RecipientContext(
+                                participant.userId,
+                                participant.membershipId,
+                                participant.stableFaceIdentityId,
+                                participant.faceProfileRevision,
+                            )
+                        }
+                    }
+
+                    ScanCancellationRegistry.ensureActive(cancellationToken)
+                    if (sharingEnabled && (publishAppearances.isNotEmpty() || removals.isNotEmpty())) {
+                        val thumbnail = if (publishAppearances.isNotEmpty()) {
+                            sourceJpeg ?: library.normalizedJpeg(
+                                asset,
+                                config.thumbnailMaxPixelSize,
+                                (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
+                            )
+                        } else {
+                            byteArrayOf()
+                        }
+
+                        ScanCancellationRegistry.ensureActive(cancellationToken)
+                        matches.upload(
+                            PhotoMatch.fromMatcher(
+                                eventId,
+                                uid,
+                                sourceInstallationId,
+                                sourceMembershipId,
+                                asset.id,
+                                publishAppearances,
+                                removals,
+                                asset.creationDateMillis,
+                                System.currentTimeMillis(),
+                            ),
+                            thumbnail,
+                        )
+                        published++
+                    }
+
+                    // Advance recipient outcomes only after any required publication/removal
+                    // succeeds. A failed asset therefore remains pending with its previous
+                    // positive bit intact and can be retried safely.
+                    for (participant in participants.filter { it.userId in pendingIds }) {
+                        state.markRecipientEvaluation(
+                            participant.userId,
+                            asset.id,
+                            appearancesByUser.containsKey(participant.userId),
+                        )
+                    }
+                }
+
+                completed++
+                state.lastSyncedAtMillis = System.currentTimeMillis()
+                states.save(state)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // One stale MediaStore row or transient backend failure must not terminate the
+                // entire Event pass. The cursor was not advanced, so this asset remains retryable.
+                failed++
             }
 
-            ScanCancellationRegistry.ensureActive(cancellationToken)
-            for (participant in participants.filter { it.userId in pendingIds }) {
-                state.markRecipientEvaluation(
-                    participant.userId,
-                    asset.id,
-                    appearancesByUser.containsKey(participant.userId),
-                )
-            }
-            state.lastSyncedAtMillis = System.currentTimeMillis()
-            states.save(state)
-            onProgress(Progress(index + 1, batch.size, published))
+            onProgress(Progress(completed, batch.size, published))
         }
-        return Result(batch.size, published, pendingAssets.size - batch.size)
+
+        state.lastSyncedAtMillis = System.currentTimeMillis()
+        states.save(state)
+        val remaining = ScanPassPolicy.remainingAfterPass(
+            pendingBeforePass = pendingAssets.size,
+            attemptedThisPass = batch.size,
+            failedThisPass = failed,
+        )
+        return Result(
+            checked = completed,
+            published = published,
+            remaining = remaining,
+            failed = failed,
+        )
     }
 
     override fun close() {
