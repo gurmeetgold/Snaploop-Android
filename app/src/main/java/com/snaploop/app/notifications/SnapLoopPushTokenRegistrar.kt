@@ -14,7 +14,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 
 /**
- * Mirrors the pinned iOS `registerPushToken` callable contract.
+ * Mirrors the pinned cross-platform `registerPushToken` callable contract.
  *
  * FCM tokens are never logged or persisted by this client. Registration is
  * de-duplicated only for the lifetime of the process and is keyed by user ID so
@@ -42,10 +42,9 @@ object SnapLoopPushTokenRegistrar {
             if (lastRegistrationKey == registrationKey) return
             FirebaseCallableClient().call(
                 name = "registerPushToken",
-                data = mapOf(
-                    "token" to cleanToken,
-                    "platform" to "android",
-                    "appBundleId" to context.applicationContext.packageName,
+                data = SnapLoopPushRegistrationContract.payload(
+                    token = cleanToken,
+                    appBundleId = context.applicationContext.packageName,
                 ),
             )
             lastRegistrationKey = registrationKey

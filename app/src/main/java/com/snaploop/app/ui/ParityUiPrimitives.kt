@@ -2,6 +2,7 @@ package com.snaploop.app.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -30,16 +31,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.snaploop.app.R
 import kotlin.math.max
 
 /** Shared visual primitives backed only by the canonical SnapLoop theme tokens. */
@@ -109,18 +114,21 @@ internal fun ParityBrandBackground(
 }
 
 /**
- * In-app mark container.
+ * Shared in-app SnapLoop mark.
  *
- * The pinned iOS app uses the canonical SnapLoopBrandMark.png raster here. Android
- * keeps the exact iOS geometry/shadow contract in this primitive; the temporary
- * center glyph is intentionally isolated to this one function until that >1 MiB
- * canonical raster is copied into Android resources without recompression.
+ * The product-owner supplied artwork now replaces the temporary generated "S"
+ * glyph everywhere through this one primitive. Keep the in-app resource name
+ * distinct from the launcher resource so either raster can be swapped later
+ * without touching individual screens.
  */
 @Composable
 internal fun ParityBrandMark(size: Int) {
     val shape = RoundedCornerShape((size * BrandVisualParitySpec.MARK_CORNER_RATIO).dp)
-    Box(
-        Modifier
+    Image(
+        painter = painterResource(R.drawable.snaploop_brand_mark),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
             .size(size.dp)
             .shadow(
                 (size * BrandVisualParitySpec.MARK_SHADOW_RATIO).dp,
@@ -128,16 +136,8 @@ internal fun ParityBrandMark(size: Int) {
                 ambientColor = SnapColors.HotPink.copy(alpha = BrandVisualParitySpec.MARK_SHADOW_ALPHA),
                 spotColor = SnapColors.HotPink.copy(alpha = BrandVisualParitySpec.MARK_SHADOW_ALPHA),
             )
-            .background(SnapGradients.Brand, shape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            "S",
-            color = Color.White,
-            fontSize = (size * 0.52f).sp,
-            fontWeight = FontWeight.Bold,
-        )
-    }
+            .clip(shape),
+    )
 }
 
 @Composable
