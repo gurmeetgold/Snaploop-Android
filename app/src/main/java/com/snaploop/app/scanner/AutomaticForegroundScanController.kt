@@ -115,7 +115,7 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
                     )
                 ) continue
 
-                scanner.scan(
+                val result = scanner.scan(
                     eventId = event.id,
                     startMillis = event.startsAt.toEpochMilli(),
                     endMillis = event.endsAt.toEpochMilli(),
@@ -125,10 +125,16 @@ class AutomaticForegroundScanController(context: Context) : AutoCloseable {
                     config = config,
                 )
 
-                preferences.edit()
-                    .putLong(lastRunKey(event.id), System.currentTimeMillis())
-                    .putString(fingerprintKey(event.id), fingerprint)
-                    .apply()
+                // Match pinned iOS recovery semantics: a pass that left an attempted asset
+                // retryable must not record the generation as synchronized. Keeping the old
+                // timestamp/fingerprint lets the next foreground opportunity retry immediately
+                // rather than hiding the failure behind the normal one-hour cooldown.
+                if (ScanPassPolicy.shouldCheckpointAutomaticPass(result.failed)) {
+                    preferences.edit()
+                        .putLong(lastRunKey(event.id), System.currentTimeMillis())
+                        .putString(fingerprintKey(event.id), fingerprint)
+                        .apply()
+                }
             }
         }
     }
