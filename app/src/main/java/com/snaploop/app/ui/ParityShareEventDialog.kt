@@ -4,7 +4,11 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,13 +18,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +44,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -97,161 +108,236 @@ private fun ParityShareEventContent(
     }
     val formattedCode = remember(event.joinCode) { DeepLinkParser.formatCode(event.joinCode) }
     val cleanInviterName = inviterName?.trim()?.takeIf { it.isNotEmpty() }
+    var copiedAction by remember { mutableStateOf<ShareEventParitySpec.CopyAction?>(null) }
     var feedback by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(feedback) {
-        if (feedback != null) {
-            delay(1_500L)
+    LaunchedEffect(copiedAction) {
+        if (copiedAction != null) {
+            delay(ShareEventParitySpec.COPY_FEEDBACK_DURATION_MS)
+            copiedAction = null
             feedback = null
         }
     }
 
-    ParityBrandBackground {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ChevronLeft, contentDescription = "Back")
+    Box(Modifier.fillMaxSize()) {
+        ParityBrandBackground {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(ShareEventParitySpec.CONTENT_SPACING_DP.dp),
+            ) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ChevronLeft, contentDescription = "Back")
+                    }
+                    Text(
+                        "Invite",
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.Black,
+                    )
+                    Spacer(Modifier.size(48.dp))
                 }
+
+                ParityBrandMark(ShareEventParitySpec.BRAND_MARK_DP)
                 Text(
-                    "Invite",
-                    modifier = Modifier.weight(1f),
+                    "Invite people to ${event.name}",
                     textAlign = TextAlign.Center,
-                    fontSize = 21.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Black,
                 )
-                Spacer(Modifier.size(48.dp))
-            }
+                Text(
+                    if (cleanInviterName != null) {
+                        "Your invite will show that it was sent by $cleanInviterName. Anyone with the invite can open the Event, sign in, and choose whether to join."
+                    } else {
+                        "Anyone with the invite can open the Event, sign in, and choose whether to join."
+                    },
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
 
-            ParityBrandMark(62)
-            Text(
-                "Invite people to ${event.name}",
-                textAlign = TextAlign.Center,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Black,
-            )
-            Text(
-                if (cleanInviterName != null) {
-                    "Your invite will show that it was sent by $cleanInviterName. Anyone with the invite can open the Event, sign in, and choose whether to join."
-                } else {
-                    "Anyone with the invite can open the Event, sign in, and choose whether to join."
-                },
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
-                modifier = Modifier.padding(horizontal = 12.dp),
-            )
+                ParityPrimaryButton(
+                    text = "Share Invite",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareCopy)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Share SnapLoop invite"))
+                    },
+                    leadingContent = {
+                        Icon(Icons.Filled.Share, contentDescription = null, tint = Color.White)
+                    },
+                )
 
-            ParityPrimaryButton(
-                text = "Share Invite",
-                onClick = {
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, shareCopy)
-                    }
-                    context.startActivity(Intent.createChooser(intent, "Share SnapLoop invite"))
-                },
-            )
-
-            ParityPremiumCard {
                 Row(
                     Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    OutlinedButton(
-                        onClick = {
-                            copyToClipboard(context, "SnapLoop Event code", event.joinCode)
-                            feedback = "Event code copied"
-                        },
+                    ShareSecondaryAction(
+                        action = ShareEventParitySpec.CopyAction.CODE,
+                        confirmed = copiedAction == ShareEventParitySpec.CopyAction.CODE,
+                        defaultIcon = Icons.Filled.ContentCopy,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Icon(Icons.Filled.ContentCopy, contentDescription = null)
-                        Text("  Copy Code")
+                        copyToClipboard(context, "SnapLoop Event code", formattedCode)
+                        copiedAction = ShareEventParitySpec.CopyAction.CODE
+                        feedback = "Event code copied"
                     }
-                    OutlinedButton(
-                        onClick = {
-                            copyToClipboard(context, "SnapLoop invite link", inviteUrl)
-                            feedback = "Invite link copied"
-                        },
+                    ShareSecondaryAction(
+                        action = ShareEventParitySpec.CopyAction.LINK,
+                        confirmed = copiedAction == ShareEventParitySpec.CopyAction.LINK,
+                        defaultIcon = Icons.Filled.Link,
                         modifier = Modifier.weight(1f),
                     ) {
-                        Icon(Icons.Filled.Link, contentDescription = null)
-                        Text("  Copy Link")
+                        copyToClipboard(context, "SnapLoop invite link", inviteUrl)
+                        copiedAction = ShareEventParitySpec.CopyAction.LINK
+                        feedback = "Invite link copied"
                     }
                 }
-                feedback?.let {
-                    Text(
-                        it,
-                        color = SnapColors.Coral,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
 
-            if (canManageInvites) {
-                ParityPremiumCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.PersonAdd, contentDescription = null, tint = SnapColors.Lilac)
-                        Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                            Text("Invite by Phone or Contacts", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(
-                                "Existing users get an in-app invite; others can receive the link.",
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
-                                fontSize = 12.sp,
+                if (canManageInvites) {
+                    ParityPremiumCard(
+                        modifier = Modifier.clickable(onClick = onPhoneInvite),
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(ShareEventParitySpec.PHONE_ICON_WELL_DP.dp)
+                                    .background(
+                                        SnapColors.Mint.copy(alpha = 0.14f),
+                                        RoundedCornerShape(12.dp),
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Filled.PersonAdd,
+                                    contentDescription = null,
+                                    tint = SnapColors.Mint,
+                                )
+                            }
+                            Column(
+                                Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Text(
+                                    ShareEventParitySpec.PHONE_INVITE_TITLE,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 17.sp,
+                                )
+                                Text(
+                                    ShareEventParitySpec.PHONE_INVITE_SUBTITLE,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                                    fontSize = 12.sp,
+                                )
+                            }
+                            Icon(
+                                Icons.Filled.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f),
                             )
                         }
                     }
-                    OutlinedButton(
-                        onClick = onPhoneInvite,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                }
+
+                ParityPremiumCard {
+                    Text("Scan to join", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .size(ShareEventParitySpec.QR_SIZE_DP.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color.White,
                     ) {
-                        Icon(Icons.Filled.PersonAdd, contentDescription = null)
-                        Text("  Phone / Contacts")
+                        QrCodeImage(
+                            value = inviteUrl,
+                            modifier = Modifier.fillMaxSize().padding(10.dp),
+                        )
                     }
+                    Text(
+                        formattedCode,
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 3.sp,
+                    )
+                    Text(
+                        "Event code",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        fontSize = 12.sp,
+                    )
+                }
+
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+
+        feedback?.let { message ->
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 8.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                shadowElevation = 8.dp,
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF2EAD63),
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(message, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
-
-            ParityPremiumCard {
-                Text("Scan to join", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                QrCodeImage(
-                    value = inviteUrl,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).size(220.dp),
-                )
-                Text(
-                    formattedCode,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 3.sp,
-                )
-                Text(
-                    "Event code",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
-                    fontSize = 12.sp,
-                )
-            }
-
-            OutlinedButton(
-                onClick = {
-                    copyToClipboard(context, "SnapLoop invite", shareCopy)
-                    feedback = "Invite copied"
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-            ) {
-                Icon(Icons.Filled.Share, contentDescription = null)
-                Text("  Copy Full Invite")
-            }
-
-            Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun ShareSecondaryAction(
+    action: ShareEventParitySpec.CopyAction,
+    confirmed: Boolean,
+    defaultIcon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val tint = if (confirmed) Color(0xFF2EAD63) else SnapColors.Coral
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.height(ShareEventParitySpec.SECONDARY_ACTION_HEIGHT_DP.dp),
+        shape = RoundedCornerShape(ShareEventParitySpec.SECONDARY_ACTION_RADIUS_DP.dp),
+        border = BorderStroke(1.dp, tint.copy(alpha = 0.22f)),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = tint,
+            containerColor = if (confirmed) tint.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        ),
+    ) {
+        Icon(
+            if (confirmed) Icons.Filled.CheckCircle else defaultIcon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            "  ${ShareEventParitySpec.actionTitle(action, confirmed)}",
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
