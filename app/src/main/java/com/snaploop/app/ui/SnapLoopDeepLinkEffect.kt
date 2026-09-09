@@ -33,10 +33,16 @@ fun SnapLoopDeepLinkEffect(
     var retryNonce by remember { mutableIntStateOf(0) }
     var actionError by remember { mutableStateOf<String?>(null) }
     var declinedEventName by remember { mutableStateOf<String?>(null) }
+    var resolutionRequested by remember(uri) { mutableStateOf(false) }
 
-    LaunchedEffect(uri, state.gate, retryNonce) {
+    LaunchedEffect(uri, state.gate, state.message, retryNonce) {
         val deepLink = uri ?: return@LaunchedEffect
-        if (state.gate != AppGate.MAIN || actionError != null || declinedEventName != null) {
+        if (
+            state.gate != AppGate.MAIN ||
+            actionError != null ||
+            declinedEventName != null ||
+            state.message != null
+        ) {
             return@LaunchedEffect
         }
 
@@ -48,16 +54,19 @@ fun SnapLoopDeepLinkEffect(
 
         when (InvitationActionPolicy.dispatch(joinIntent.action)) {
             InvitationActionPolicy.Dispatch.REVIEW -> {
+                if (resolutionRequested) return@LaunchedEffect
+                resolutionRequested = true
                 InvitationResumeStore.capture(joinIntent)
                 coordinator.resolveInvitation(
                     code = joinIntent.code,
                     token = joinIntent.token,
                     autoJoin = false,
                 )
-                onConsumed()
             }
 
             InvitationActionPolicy.Dispatch.ACCEPT -> {
+                if (resolutionRequested) return@LaunchedEffect
+                resolutionRequested = true
                 if (state.user?.hasFaceProfile == true) {
                     InvitationResumeStore.clear()
                     coordinator.resolveInvitation(
@@ -76,7 +85,6 @@ fun SnapLoopDeepLinkEffect(
                         autoJoin = false,
                     )
                 }
-                onConsumed()
             }
 
             InvitationActionPolicy.Dispatch.DECLINE -> {
@@ -113,6 +121,30 @@ fun SnapLoopDeepLinkEffect(
                     actionError = t.message?.trim()?.takeIf { it.isNotEmpty() }
                         ?: "The invitation could not be declined. Please try again."
                 }
+            }
+        }
+    }
+
+    // REVIEW/ACCEPT resolution is asynchronous inside AppCoordinator. Retain the
+    // persisted incoming URL until the coordinator has actually produced the
+    // invitation card or opened the Event. On failure, keep the URL and allow a
+    // retry after the user dismisses the coordinator error instead of losing it.
+    LaunchedEffect(
+        uri,
+        resolutionRequested,
+        state.busy,
+        state.pendingInvite?.id,
+        state.selectedEvent?.id,
+        state.message,
+    ) {
+        if (uri == null || !resolutionRequested || state.busy) return@LaunchedEffect
+        when {
+            state.pendingInvite != null || state.selectedEvent != null -> {
+                resolutionRequested = false
+                onConsumed()
+            }
+            state.message != null -> {
+                resolutionRequested = false
             }
         }
     }
