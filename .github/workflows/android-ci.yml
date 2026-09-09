@@ -15,7 +15,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '9.6.0' }
       - name: Verify Android build
-        run: gradle test lint assembleDebug assembleDebugAndroidTest
+        run: gradle test lint assembleDebug assembleRelease assembleDebugAndroidTest
       - name: Print lint report on failure
         if: failure()
         run: |
