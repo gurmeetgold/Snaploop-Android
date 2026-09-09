@@ -19,14 +19,13 @@ import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -74,6 +73,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import com.google.firebase.auth.FirebaseAuth
 import com.snaploop.app.data.FirebaseEventRepository
 import com.snaploop.app.domain.PhotoMatch
 import java.time.Instant
@@ -86,6 +86,48 @@ private data class PhotoViewerMetadata(
     val ownerLabel: String = "Event member",
     val eventLabel: String = "Event",
 )
+
+private data class PhotoViewerEventMetadata(
+    val eventLabel: String,
+    val ownerLabels: Map<String, String>,
+)
+
+/** Ephemeral per-viewer metadata cache. No photo, URI or biometric data is retained here. */
+private class PhotoViewerMetadataResolver(
+    private val repository: FirebaseEventRepository = FirebaseEventRepository(),
+) {
+    private val cache = mutableMapOf<String, PhotoViewerEventMetadata>()
+
+    suspend fun resolve(match: PhotoMatch): PhotoViewerMetadata {
+        val eventMetadata = cache[match.eventId] ?: run {
+            val event = runCatching { repository.fetchEvent(match.eventId) }.getOrNull()
+            val members = runCatching { repository.members(match.eventId) }.getOrNull().orEmpty()
+            PhotoViewerEventMetadata(
+                eventLabel = event?.name ?: "Event",
+                ownerLabels = buildMap {
+                    members.forEach { member ->
+                        member.displayName
+                            ?.trim()
+                            ?.takeIf(String::isNotEmpty)
+                            ?.let { put(member.userId, it) }
+                    }
+                },
+            ).also { cache[match.eventId] = it }
+        }
+        val ownUserId = runCatching { FirebaseAuth.getInstance().currentUser?.uid }.getOrNull()
+        return PhotoViewerMetadata(
+            ownerLabel = eventMetadata.ownerLabels[match.ownerUserId]
+                ?: if (match.ownerUserId == ownUserId) "You" else "Event member",
+            eventLabel = eventMetadata.eventLabel,
+        )
+    }
+}
+
+private sealed interface ViewerPhotoLoadState {
+    data object Loading : ViewerPhotoLoadState
+    data class Ready(val bitmap: Bitmap) : ViewerPhotoLoadState
+    data object Failed : ViewerPhotoLoadState
+}
 
 /**
  * Full-screen photo viewer mirrored from pinned iOS PhotoDetailView / ZoomablePhotoView.
@@ -108,6 +150,7 @@ internal fun ParityFullScreenPhotoViewer(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val bulkActions = remember(context) { AndroidPhotoBulkActions(context) }
+    val metadataResolver = remember { PhotoViewerMetadataResolver() }
     val initialIndex = remember(matches, initialMatchId) {
         matches.indexOfFirst { it.id == initialMatchId }.takeIf { it >= 0 } ?: 0
     }
@@ -123,7 +166,13 @@ internal fun ParityFullScreenPhotoViewer(
 
     val currentMatch = matches.getOrNull(pagerState.currentPage) ?: matches.first()
     val currentFavorite = favoriteOverrides[currentMatch.id] ?: isFavorite(currentMatch)
-    val metadata by rememberPhotoViewerMetadata(currentMatch)
+    val metadata by produceState(
+        initialValue = PhotoViewerMetadata(),
+        key1 = currentMatch.eventId,
+        key2 = currentMatch.ownerUserId,
+    ) {
+        value = metadataResolver.resolve(currentMatch)
+    }
 
     fun save(match: PhotoMatch) {
         if (actionBusy) return
@@ -217,18 +266,19 @@ internal fun ParityFullScreenPhotoViewer(
                 .background(Color.Black)
                 .pointerInput(currentPageZoomed) {
                     if (!currentPageZoomed) {
-                        detectDragGestures(
+                        val dismissThreshold = 105.dp.toPx()
+                        detectVerticalDragGestures(
+                            onVerticalDrag = { change, dragAmount ->
+                                if (dragAmount > 0f || verticalDismissOffset > 0f) {
+                                    change.consume()
+                                    verticalDismissOffset = (verticalDismissOffset + dragAmount).coerceAtLeast(0f)
+                                }
+                            },
                             onDragEnd = {
-                                if (verticalDismissOffset > 105f) onDismiss()
+                                if (verticalDismissOffset > dismissThreshold) onDismiss()
                                 verticalDismissOffset = 0f
                             },
                             onDragCancel = { verticalDismissOffset = 0f },
-                            onDrag = { change, dragAmount ->
-                                if (dragAmount.y > 0f && kotlin.math.abs(dragAmount.y) > kotlin.math.abs(dragAmount.x)) {
-                                    change.consume()
-                                    verticalDismissOffset += dragAmount.y
-                                }
-                            },
                         )
                     }
                 },
@@ -269,7 +319,7 @@ internal fun ParityFullScreenPhotoViewer(
                         TextButton(onClick = onDismiss) {
                             Text("‹", color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Light)
                         }
-                        Spacer(Modifier.weight(1f))
+                        androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
                         Surface(
                             color = Color.Black.copy(alpha = 0.42f),
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
@@ -371,27 +421,6 @@ private fun ViewerAction(
     }
 }
 
-@Composable
-private fun rememberPhotoViewerMetadata(match: PhotoMatch): androidx.compose.runtime.State<PhotoViewerMetadata> {
-    val repository = remember { FirebaseEventRepository() }
-    return produceState(
-        initialValue = PhotoViewerMetadata(),
-        key1 = match.eventId,
-        key2 = match.ownerUserId,
-    ) {
-        val event = runCatching { repository.fetchEvent(match.eventId) }.getOrNull()
-        val owner = runCatching { repository.members(match.eventId) }.getOrNull()
-            ?.firstOrNull { it.userId == match.ownerUserId }
-            ?.displayName
-            ?.trim()
-            ?.takeIf(String::isNotEmpty)
-        value = PhotoViewerMetadata(
-            ownerLabel = owner ?: "Event member",
-            eventLabel = event?.name ?: "Event",
-        )
-    }
-}
-
 private fun viewerMetadataLine(metadata: PhotoViewerMetadata, capturedAtMillis: Long): String {
     val date = runCatching {
         DateTimeFormatter.ofPattern("dd/MMM/yy", Locale.US)
@@ -413,9 +442,18 @@ private fun ZoomableMatchedPhoto(
 ) {
     val context = LocalContext.current
     val loader = remember(context) { MatchedThumbnailLoader(context) }
-    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = match.thumbnailPath) {
-        value = runCatching { loader.load(match.thumbnailPath, 2048) }.getOrNull()
+    val loadState by produceState<ViewerPhotoLoadState>(
+        initialValue = ViewerPhotoLoadState.Loading,
+        key1 = match.thumbnailPath,
+    ) {
+        value = ViewerPhotoLoadState.Loading
+        value = runCatching { loader.load(match.thumbnailPath, 2048) }
+            .fold(
+                onSuccess = { ViewerPhotoLoadState.Ready(it) },
+                onFailure = { ViewerPhotoLoadState.Failed },
+            )
     }
+    val bitmap = (loadState as? ViewerPhotoLoadState.Ready)?.bitmap
     var scale by remember(match.id) { mutableFloatStateOf(1f) }
     var translation by remember(match.id) { mutableStateOf(Offset.Zero) }
 
@@ -488,11 +526,19 @@ private fun ZoomableMatchedPhoto(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (bitmap == null) {
-            CircularProgressIndicator(color = Color.White)
-        } else {
-            Image(
-                bitmap = bitmap!!.asImageBitmap(),
+        when (val state = loadState) {
+            ViewerPhotoLoadState.Loading -> CircularProgressIndicator(color = Color.White)
+            ViewerPhotoLoadState.Failed -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Photo unavailable", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(
+                    "Try the photo again.",
+                    modifier = Modifier.padding(top = 6.dp),
+                    color = Color.White.copy(alpha = 0.72f),
+                    fontSize = 12.sp,
+                )
+            }
+            is ViewerPhotoLoadState.Ready -> Image(
+                bitmap = state.bitmap.asImageBitmap(),
                 contentDescription = "Matched Event photo",
                 modifier = Modifier.fillMaxSize().graphicsLayer {
                     scaleX = scale
