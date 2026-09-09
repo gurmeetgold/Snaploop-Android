@@ -6,7 +6,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -31,24 +33,67 @@ fun SnapLoopRoot(
     val lifecycleOwner = LocalLifecycleOwner.current
     val automaticScanner = remember(context) { AutomaticForegroundScanController(context) }
     val scanTriggerGeneration = "${state.selectedEvent?.id.orEmpty()}:own=${state.includeOwnMatches}"
+    var resumeResolutionInFlight by remember { mutableStateOf(false) }
 
-    // Successful Face Setup rebuilds authenticated UI state. Replay only the
-    // non-sensitive invitation routing intent after the profile is confirmed,
-    // preserving REVIEW versus direct ACCEPT semantics without creating
-    // membership before Face Setup.
-    LaunchedEffect(state.gate, state.user?.hasFaceProfile, invitationResume) {
-        val resume = invitationResume ?: return@LaunchedEffect
+    // Rebuild an interrupted invitation after Android process recreation, or
+    // continue the current-process route after successful Face Setup. Restored
+    // context is one-shot so it cannot contaminate a later unrelated invite.
+    LaunchedEffect(
+        state.gate,
+        state.busy,
+        state.message,
+        state.user?.hasFaceProfile,
+        state.pendingInvite?.id,
+        state.selectedEvent?.id,
+        invitationResume,
+    ) {
         if (
-            resume.awaitingFaceSetup &&
-            state.gate == AppGate.MAIN &&
-            state.user?.hasFaceProfile == true
+            state.gate != AppGate.MAIN ||
+            state.busy ||
+            state.message != null ||
+            state.pendingInvite != null ||
+            state.selectedEvent != null ||
+            resumeResolutionInFlight
         ) {
+            return@LaunchedEffect
+        }
+
+        val restored = InvitationResumeStore.takeRestoredForResolution()
+        val faceSetupResume = invitationResume?.takeIf {
+            restored == null && it.awaitingFaceSetup && state.user?.hasFaceProfile == true
+        }
+        val resume = restored ?: faceSetupResume ?: return@LaunchedEffect
+
+        if (resume.awaitingFaceSetup && state.user?.hasFaceProfile == true) {
             InvitationResumeStore.markFaceSetupResumed()
-            coordinator.resolveInvitation(
-                code = resume.code,
-                token = resume.token,
-                autoJoin = resume.action == InviteAction.ACCEPT,
-            )
+        }
+        resumeResolutionInFlight = true
+        coordinator.resolveInvitation(
+            code = resume.code,
+            token = resume.token,
+            autoJoin = resume.action == InviteAction.ACCEPT && state.user?.hasFaceProfile == true,
+        )
+    }
+
+    // Coordinator invitation work is asynchronous. On success the Event/review
+    // state becomes visible. On failure keep the durable context and re-arm it;
+    // dismissing the error then performs the same safe resolution again.
+    LaunchedEffect(
+        state.busy,
+        state.message,
+        state.pendingInvite?.id,
+        state.selectedEvent?.id,
+        resumeResolutionInFlight,
+    ) {
+        if (!resumeResolutionInFlight || state.busy) return@LaunchedEffect
+        when {
+            state.pendingInvite != null || state.selectedEvent != null -> {
+                resumeResolutionInFlight = false
+            }
+            state.message != null -> {
+                InvitationResumeStore.rearmRestoredForResolution()
+                resumeResolutionInFlight = false
+            }
         }
     }
 
