@@ -36,7 +36,8 @@ internal object BrandVisualParitySpec {
     const val MAIN_TAB_ITEM_HEIGHT_DP = 64
     const val MAIN_TAB_SURFACE_ALPHA = 0.97f
 
-    // Pinned iOS HomeView action cards use a 150pt minimum height.
+    // Pinned iOS HomeView uses standard 16pt horizontal padding and 150pt action cards.
+    const val HOME_HORIZONTAL_PADDING_DP = 16
     const val HOME_ACTION_CARD_MIN_HEIGHT_DP = 150
 
     // Pinned iOS SettingsView icon badges and Photo Access actions.
