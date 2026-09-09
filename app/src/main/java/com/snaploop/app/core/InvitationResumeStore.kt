@@ -36,16 +36,35 @@ object InvitationResumeStore {
 
     @Volatile
     private var preferences: SharedPreferences? = null
+    @Volatile
+    private var restoredNeedsResolution: Boolean = false
 
     /** Call once from the application host before invitation routing begins. */
     @Synchronized
     fun initialize(context: Context) {
         if (preferences != null) return
         preferences = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        _state.value = readPersisted(preferences!!)
+        val restored = readPersisted(preferences!!)
+        _state.value = restored
+        restoredNeedsResolution = restored != null
     }
 
+    /**
+     * Returns a process-restored route exactly once. Fresh captures are already
+     * driven by their caller and therefore never appear here.
+     */
+    @Synchronized
+    fun takeRestoredForResolution(): InvitationResumeContext? {
+        if (!restoredNeedsResolution) return null
+        restoredNeedsResolution = false
+        return _state.value
+    }
+
+    @Synchronized
+    fun hasRestoredForResolution(): Boolean = restoredNeedsResolution && _state.value != null
+
     fun capture(intent: JoinIntent) {
+        restoredNeedsResolution = false
         set(
             InvitationResumeContext(
                 token = intent.token,
@@ -61,6 +80,7 @@ object InvitationResumeStore {
         fallbackToken: String,
         action: InviteAction = _state.value?.action ?: InviteAction.REVIEW,
     ) {
+        restoredNeedsResolution = false
         val current = _state.value
         set(
             InvitationResumeContext(
@@ -77,7 +97,9 @@ object InvitationResumeStore {
         _state.value?.copy(awaitingFaceSetup = false)?.let(::set)
     }
 
+    @Synchronized
     fun clear() {
+        restoredNeedsResolution = false
         _state.value = null
         preferences?.edit()?.clear()?.apply()
     }
