@@ -15,10 +15,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.PhoneIphone
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material3.AlertDialog
@@ -97,19 +99,41 @@ internal fun ParityYouScreen(
                         fontWeight = FontWeight.SemiBold,
                     )
                     state.user?.phoneNumber?.takeIf { it.isNotBlank() }?.let { phone ->
-                        Text(
-                            phone,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
-                            fontSize = 12.sp,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(YouScreenParitySpec.PROFILE_METADATA_SPACING_DP.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.PhoneIphone,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                                modifier = Modifier.size(YouScreenParitySpec.PROFILE_METADATA_ICON_DP.dp),
+                            )
+                            Text(
+                                phone,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                                fontSize = 12.sp,
+                            )
+                        }
                     }
                     if (state.user?.hasFaceProfile == true) {
-                        Text(
-                            "✓ Face Setup Active",
-                            color = Color(0xFF1B8F55),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(YouScreenParitySpec.PROFILE_METADATA_SPACING_DP.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF1B8F55),
+                                modifier = Modifier.size(YouScreenParitySpec.PROFILE_STATUS_ICON_DP.dp),
+                            )
+                            Text(
+                                "Face Setup Active",
+                                color = Color(0xFF1B8F55),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
                 }
                 ParityBrandMark(YouScreenParitySpec.PROFILE_MARK_DP)
