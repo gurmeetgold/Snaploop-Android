@@ -63,6 +63,12 @@ object InvitationResumeStore {
     @Synchronized
     fun hasRestoredForResolution(): Boolean = restoredNeedsResolution && _state.value != null
 
+    /** Re-arm only after a restored route failed before reaching its Event. */
+    @Synchronized
+    fun rearmRestoredForResolution() {
+        if (_state.value != null) restoredNeedsResolution = true
+    }
+
     fun capture(intent: JoinIntent) {
         restoredNeedsResolution = false
         set(
