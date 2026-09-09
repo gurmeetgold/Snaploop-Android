@@ -3,6 +3,7 @@ package com.snaploop.app.data
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.snaploop.app.core.FirebaseErrorMapper
+import com.snaploop.app.core.ProfileNamePolicy
 import com.snaploop.app.core.SnapLoopException
 import com.snaploop.app.core.awaitResult
 import com.snaploop.app.domain.SnapUser
@@ -25,7 +26,13 @@ class FirebaseUserDirectory(
       catch (t: Throwable) { throw FirebaseErrorMapper.firestore(t) }
 
     suspend fun syncMyProfile(userId: String, displayName: String?) {
-        callable.call("syncMyUserProfile", mapOf("userId" to userId, "displayName" to displayName?.trim()?.takeIf { it.isNotBlank() }))
+        val normalizedName = ProfileNamePolicy.normalizeOptionalForSave(displayName)
+        if (normalizedName != null) {
+            require(ProfileNamePolicy.isValid(normalizedName)) {
+                ProfileNamePolicy.validationMessage(normalizedName) ?: "Enter your name."
+            }
+        }
+        callable.call("syncMyUserProfile", mapOf("userId" to userId, "displayName" to normalizedName))
     }
 
     suspend fun deleteMyAccount(userId: String) { callable.call("deleteMyAccount", mapOf("userId" to userId)) }

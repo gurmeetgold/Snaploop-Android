@@ -25,7 +25,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +50,18 @@ internal fun ParityYouScreen(
     var privacy by remember { mutableStateOf(false) }
     var signOutConfirm by remember { mutableStateOf(false) }
     var replayConfirm by remember { mutableStateOf(false) }
+
+    if (editName) {
+        ParityNameSetupScreen(
+            initialName = state.user?.displayName.orEmpty(),
+            onSave = { value ->
+                editName = false
+                coordinator.saveDisplayName(value)
+            },
+            onBack = { editName = false },
+        )
+        return
+    }
 
     Column(
         Modifier
@@ -161,31 +172,6 @@ internal fun ParityYouScreen(
         }
 
         Spacer(Modifier.size(2.dp))
-    }
-
-    if (editName) {
-        var name by remember(state.user?.displayName) { mutableStateOf(state.user?.displayName.orEmpty()) }
-        AlertDialog(
-            onDismissRequest = { editName = false },
-            title = { Text(if (state.user?.displayName == null) "Add Your Name" else "Edit Your Name") },
-            text = {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it.take(60) },
-                    label = { Text("Name") },
-                    singleLine = true,
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    editName = false
-                    coordinator.saveDisplayName(name)
-                }) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = { editName = false }) { Text("Cancel") }
-            },
-        )
     }
 
     if (privacy) {
