@@ -39,6 +39,12 @@ internal object BrandVisualParitySpec {
     // Pinned iOS HomeView action cards use a 150pt minimum height.
     const val HOME_ACTION_CARD_MIN_HEIGHT_DP = 150
 
+    // Pinned iOS SettingsView icon badges and Photo Access actions.
+    const val SETTINGS_ICON_BADGE_DP = 36
+    const val SETTINGS_ICON_BADGE_RADIUS_DP = 11
+    const val SETTINGS_PHOTO_ACTION_HEIGHT_DP = 48
+    const val SETTINGS_PHOTO_ACTION_RADIUS_DP = 16
+
     // Pinned iOS EventDashboardView hero geometry.
     const val EVENT_HERO_HEIGHT_DP = 230
     const val EVENT_HERO_RADIUS_DP = 30
