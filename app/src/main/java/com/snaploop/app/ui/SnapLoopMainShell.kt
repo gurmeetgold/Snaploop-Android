@@ -14,6 +14,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,7 +52,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shield
@@ -78,8 +78,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -90,6 +92,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -132,7 +135,11 @@ internal fun SnapLoopMainShell(
     Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {
-            NavigationBar(containerColor = Color.White.copy(alpha = 0.98f)) {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface.copy(
+                    alpha = BrandVisualParitySpec.MAIN_TAB_SURFACE_ALPHA,
+                ),
+            ) {
                 ShellTabItem(
                     selected = tab == 0,
                     icon = Icons.Filled.Home,
@@ -211,97 +218,112 @@ private fun ShellHome(state: AppUiState, coordinator: AppCoordinator) {
     var joinOpen by rememberSaveable { mutableStateOf(false) }
     val uid = state.user?.id
     val roles by shellEventRoles(uid, state.events)
+    val gracePeriodDays by coordinator.eventGracePeriodDays.collectAsState()
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+    PullToRefreshBox(
+        isRefreshing = state.busy && !createOpen && !joinOpen,
+        onRefresh = coordinator::refreshEvents,
+        modifier = Modifier.fillMaxSize(),
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 18.dp),
-            verticalAlignment = Alignment.Top,
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    "Hi, ${state.user?.displayName ?: "there"} 👋",
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Black,
-                    color = ShellColors.Ink,
-                )
-                Text(
-                    "Photos your friends took of you on their phones, brought to your phone automatically.",
-                    color = ShellColors.Secondary,
-                    modifier = Modifier.padding(top = 5.dp),
-                )
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Hi, ${state.user?.displayName ?: "there"} 👋",
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        "Photos your friends took of you on their phones, brought to your phone automatically.",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(top = 5.dp),
+                    )
+                }
+                ParityBrandMark(BrandVisualParitySpec.HOME_MARK_DP)
             }
-            IconButton(onClick = coordinator::refreshEvents) {
-                Icon(Icons.Filled.Refresh, contentDescription = "Refresh Events", tint = ShellColors.Coral)
+
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ShellActionCard(
+                    icon = Icons.Filled.Add,
+                    title = "Create Event",
+                    subtitle = "Trip, party, family & more",
+                    modifier = Modifier.weight(1f),
+                    gradient = SnapGradients.Brand,
+                ) { createOpen = true }
+                ShellActionCard(
+                    icon = Icons.Filled.Groups,
+                    title = "Join Event",
+                    subtitle = "Code, link or QR",
+                    modifier = Modifier.weight(1f),
+                    gradient = SnapGradients.Social,
+                ) { joinOpen = true }
             }
-        }
 
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            ShellActionCard(
-                icon = Icons.Filled.Add,
-                title = "Create Event",
-                subtitle = "Trip, party, family & more",
-                modifier = Modifier.weight(1f),
-            ) { createOpen = true }
-            ShellActionCard(
-                icon = Icons.Filled.Groups,
-                title = "Join Event",
-                subtitle = "Code, link or QR",
-                modifier = Modifier.weight(1f),
-            ) { joinOpen = true }
-        }
+            ParityHomeUpdates(userId = uid)
 
-        ParityHomeUpdates(userId = uid)
-
-        ShellSectionTitle("Your Events")
-        val visible = state.events.filter { it.status != EventStatus.deletedByOrganizer }
-        if (visible.isEmpty()) {
-            ShellCard(Modifier.padding(horizontal = 18.dp)) {
-                Icon(
-                    Icons.Filled.PhotoLibrary,
-                    contentDescription = null,
-                    tint = ShellColors.Lilac,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).size(46.dp),
-                )
-                Text(
-                    "No Events yet",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 19.sp,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                )
-                Text(
-                    "Create an Event, or join one with a code, link or QR.",
-                    textAlign = TextAlign.Center,
-                    color = ShellColors.Secondary,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                )
-            }
-        } else {
-            visible.forEach { event ->
-                ShellEventCard(
-                    event = event,
-                    role = roles[event.id] ?: if (event.creatorUserId == uid) EventMember.Role.organizer else null,
-                    modifier = Modifier.padding(horizontal = 18.dp),
-                ) { coordinator.openEvent(event) }
-            }
-        }
-
-        val deleted = state.events.filter { it.status == EventStatus.deletedByOrganizer }
-        if (deleted.isNotEmpty()) {
-            ShellSectionTitle("Deleted")
-            deleted.forEach { event ->
-                ShellEventCard(event, roles[event.id], Modifier.padding(horizontal = 18.dp)) {
-                    coordinator.openEvent(event)
+            ShellSectionTitle("Your Events")
+            val visible = state.events.filter { it.status != EventStatus.deletedByOrganizer }
+            if (visible.isEmpty()) {
+                ShellCard(Modifier.padding(horizontal = 16.dp)) {
+                    Icon(
+                        Icons.Filled.PhotoLibrary,
+                        contentDescription = null,
+                        tint = SnapColors.Lilac,
+                        modifier = Modifier.align(Alignment.CenterHorizontally).size(46.dp),
+                    )
+                    Text(
+                        "No Events yet",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    )
+                    Text(
+                        "Create an Event, or join one with a code, link or QR.",
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                        fontSize = 14.sp,
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    )
+                }
+            } else {
+                visible.forEach { event ->
+                    ShellEventCard(
+                        event = event,
+                        role = roles[event.id] ?: if (event.creatorUserId == uid) EventMember.Role.organizer else null,
+                        gracePeriodDays = gracePeriodDays,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    ) { coordinator.openEvent(event) }
                 }
             }
-        }
 
-        Spacer(Modifier.height(12.dp))
+            val deleted = state.events.filter { it.status == EventStatus.deletedByOrganizer }
+            if (deleted.isNotEmpty()) {
+                ShellSectionTitle("Deleted")
+                deleted.forEach { event ->
+                    ShellEventCard(
+                        event = event,
+                        role = roles[event.id],
+                        gracePeriodDays = gracePeriodDays,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    ) {
+                        coordinator.openEvent(event)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+        }
     }
 
     if (createOpen) {
@@ -369,43 +391,88 @@ private fun shellEventRoles(uid: String?, events: List<SnapEvent>) = produceStat
 private fun ShellEventCard(
     event: SnapEvent,
     role: EventMember.Role?,
+    gracePeriodDays: Int,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val shape = RoundedCornerShape(24.dp)
+    val presentation = HomeEventCardParityPolicy.presentation(event, Instant.now(), gracePeriodDays)
+    val statusTint = when (presentation.tint) {
+        HomeEventCardParityPolicy.Tint.BLUE -> SnapColors.Blue
+        HomeEventCardParityPolicy.Tint.MINT -> SnapColors.Mint
+        HomeEventCardParityPolicy.Tint.AMBER -> SnapColors.Amber
+        HomeEventCardParityPolicy.Tint.SECONDARY -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+    }
+
     Card(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.98f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                14.dp,
+                shape,
+                ambientColor = Color.Black.copy(alpha = 0.09f),
+                spotColor = Color.Black.copy(alpha = 0.09f),
+            )
+            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f), shape),
+        shape = shape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(72.dp).background(shellGradient(), RoundedCornerShape(18.dp)),
+                Modifier.size(72.dp).background(SnapGradients.Violet, RoundedCornerShape(18.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(shellCategoryIcon(event.category), null, tint = Color.White, modifier = Modifier.size(31.dp))
+                Icon(shellCategoryIcon(event.category), null, tint = Color.White, modifier = Modifier.size(28.dp))
             }
-            Column(Modifier.weight(1f).padding(start = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(event.name, fontSize = 19.sp, fontWeight = FontWeight.Black, color = ShellColors.Ink)
+            Column(Modifier.weight(1f).padding(start = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    event.name,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                )
                 ShellRoleLine(role)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.CalendarMonth, null, tint = ShellColors.Secondary, modifier = Modifier.size(15.dp))
+                    Icon(
+                        Icons.Filled.CalendarMonth,
+                        null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        modifier = Modifier.size(15.dp),
+                    )
                     Text(
                         "  ${shellEventRange(event)}",
-                        color = ShellColors.Secondary,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
                         fontSize = 12.sp,
+                        maxLines = 1,
                     )
                 }
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    shellEventStatus(event),
-                    color = ShellColors.Coral,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Black,
+            Column(
+                modifier = Modifier.height(72.dp),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Surface(
+                    color = statusTint.copy(alpha = 0.13f),
+                    shape = CircleShape,
+                ) {
+                    Text(
+                        presentation.text,
+                        color = statusTint,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                    )
+                }
+                Icon(
+                    Icons.Filled.ChevronRight,
+                    "Open Event",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.30f),
+                    modifier = Modifier.size(16.dp),
                 )
-                Icon(Icons.Filled.ChevronRight, "Open Event", tint = Color.Gray, modifier = Modifier.padding(top = 10.dp))
             }
         }
     }
@@ -416,8 +483,18 @@ private fun ShellRoleLine(role: EventMember.Role?) {
     val label = shellRoleLabel(role)
     val icon = shellRoleIcon(role)
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = ShellColors.Secondary, modifier = Modifier.size(15.dp))
-        Text("  $label", color = ShellColors.Secondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Icon(
+            icon,
+            null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+            modifier = Modifier.size(15.dp),
+        )
+        Text(
+            "  $label",
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
@@ -1146,20 +1223,42 @@ private fun ShellSubpageHeader(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun ShellActionCard(icon: ImageVector, title: String, subtitle: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun ShellActionCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    gradient: Brush = SnapGradients.Brand,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(24.dp)
     Card(
         onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
+        modifier = modifier.shadow(
+            16.dp,
+            shape,
+            ambientColor = Color.Black.copy(alpha = 0.14f),
+            spotColor = Color.Black.copy(alpha = 0.14f),
+        ),
+        shape = shape,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
-        Box(Modifier.fillMaxWidth().height(154.dp).background(shellGradient()).padding(16.dp)) {
-            Box(Modifier.size(44.dp).background(Color.White.copy(alpha = 0.20f), RoundedCornerShape(13.dp)), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = Color.White)
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(BrandVisualParitySpec.HOME_ACTION_CARD_MIN_HEIGHT_DP.dp)
+                .background(gradient)
+                .padding(16.dp),
+        ) {
+            Box(
+                Modifier.size(44.dp).background(Color.White.copy(alpha = 0.20f), RoundedCornerShape(13.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
             }
             Column(Modifier.align(Alignment.BottomStart)) {
-                Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                Text(subtitle, color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp)
+                Text(title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(subtitle, color = Color.White.copy(alpha = 0.90f), fontSize = 12.sp)
             }
         }
     }
@@ -1173,41 +1272,25 @@ private fun ShellPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    Button(
+    ParityPrimaryButton(
+        text = text,
         onClick = onClick,
+        modifier = modifier,
         enabled = enabled,
-        modifier = modifier.fillMaxWidth().height(54.dp),
-        shape = RoundedCornerShape(18.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, disabledContainerColor = Color.Transparent),
-        contentPadding = PaddingValues(0.dp),
-    ) {
-        Box(
-            Modifier.fillMaxSize().background(if (enabled) shellGradient() else Brush.linearGradient(listOf(Color.LightGray, Color.Gray))),
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, tint = Color.White)
-                Text("  $text", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
-            }
-        }
-    }
+        leadingContent = {
+            Icon(icon, contentDescription = null, tint = Color.White)
+        },
+    )
 }
 
 @Composable
 private fun ShellCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.98f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
-    }
+    ParityPremiumCard(modifier = modifier, content = content)
 }
 
 @Composable
 private fun ShellInsightBanner(value: String, label: String, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().background(shellGradient(), RoundedCornerShape(24.dp)).padding(18.dp)) {
+    Box(modifier.fillMaxWidth().background(SnapGradients.Gallery, RoundedCornerShape(24.dp)).padding(18.dp)) {
         Column {
             Text(value, color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Black)
             Text(label, color = Color.White.copy(alpha = 0.95f), fontWeight = FontWeight.Bold)
@@ -1217,29 +1300,23 @@ private fun ShellInsightBanner(value: String, label: String, modifier: Modifier 
 
 @Composable
 private fun ShellSectionTitle(title: String) {
-    Text(title, fontSize = 22.sp, fontWeight = FontWeight.Black, color = ShellColors.Ink, modifier = Modifier.padding(horizontal = 18.dp))
+    Text(
+        title,
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(horizontal = 16.dp),
+    )
 }
 
 @Composable
 private fun ShellBrandMark(size: Int) {
-    Box(
-        Modifier.size(size.dp).background(shellGradient(), RoundedCornerShape((size * 0.22f).dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text("S", color = Color.White, fontSize = (size * 0.52f).sp, fontWeight = FontWeight.Black)
-    }
+    ParityBrandMark(size)
 }
 
 @Composable
 private fun ShellBackground(modifier: Modifier = Modifier, content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit) {
-    Box(
-        modifier.fillMaxSize().background(
-            Brush.linearGradient(
-                listOf(Color.White, Color(0xFFFFF8FB), Color(0xFFFBF7FF), Color.White),
-            ),
-        ),
-        content = content,
-    )
+    ParityBrandBackground(modifier = modifier, content = content)
 }
 
 @Composable
@@ -1250,19 +1327,17 @@ private fun ShellFullDialog(onDismiss: () -> Unit, content: @Composable () -> Un
 }
 
 private object ShellColors {
-    val Ink = Color(0xFF201C24)
-    val Secondary = Color(0xFF6B6570)
-    val Coral = Color(0xFFFF4F67)
-    val HotPink = Color(0xFFFF2B90)
-    val Lilac = Color(0xFF8E63F6)
-    val Blue = Color(0xFF345CFF)
-    val Orange = Color(0xFFFF7438)
+    val Ink = SnapColors.Ink
+    val Secondary = SnapColors.Secondary
+    val Coral = SnapColors.Coral
+    val HotPink = SnapColors.HotPink
+    val Lilac = SnapColors.Lilac
+    val Blue = SnapColors.Blue
+    val Orange = SnapColors.Peach
 }
 
-private fun shellGradient() = Brush.linearGradient(
-    listOf(ShellColors.Orange, ShellColors.Coral, ShellColors.HotPink, ShellColors.Lilac, ShellColors.Blue),
-)
-private fun shellSoftGradient() = Brush.linearGradient(listOf(Color(0xFFFFE4DC), Color(0xFFF4DEFF), Color(0xFFDDE6FF)))
+private fun shellGradient() = SnapGradients.Brand
+private fun shellSoftGradient() = SnapGradients.SoftWash
 
 private fun shellCurrentRole(event: SnapEvent, members: List<EventMember>, uid: String?): EventMember.Role? {
     if (uid == null) return null
