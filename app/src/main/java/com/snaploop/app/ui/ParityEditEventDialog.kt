@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -19,6 +21,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -26,8 +29,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,8 +41,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -110,24 +117,27 @@ internal fun ParityEditEventDialog(
 
                 ParityPremiumCard {
                     EditFieldLabel("Event name", Icons.Filled.TextFields)
-                    OutlinedTextField(
+                    EditFilledTextField(
                         value = name,
                         onValueChange = { name = it.take(20) },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Event name") },
-                        singleLine = true,
+                        placeholder = "Event name",
                         enabled = !busy,
                     )
 
                     HorizontalDivider()
                     EditFieldLabel("Type", Icons.Filled.Category)
                     Box(Modifier.fillMaxWidth()) {
-                        OutlinedButton(
+                        TextButton(
                             onClick = { categoryMenu = true },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !busy,
                         ) {
-                            Text(editCategoryName(category))
+                            Text(
+                                editCategoryName(category),
+                                color = SnapColors.Coral,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Start,
+                            )
                         }
                         DropdownMenu(
                             expanded = categoryMenu,
@@ -147,12 +157,10 @@ internal fun ParityEditEventDialog(
 
                     HorizontalDivider()
                     EditFieldLabel("Location", Icons.Filled.LocationOn)
-                    OutlinedTextField(
+                    EditFilledTextField(
                         value = location,
                         onValueChange = { location = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Optional") },
-                        singleLine = true,
+                        placeholder = "Optional",
                         enabled = !busy,
                     )
                 }
@@ -181,13 +189,21 @@ internal fun ParityEditEventDialog(
                 }
 
                 ParityPrimaryButton(
-                    text = if (busy) "Saving…" else "Save Event",
+                    text = "Save Event",
                     enabled = cleanName.isNotEmpty() && !busy,
                     onClick = {
                         onSubmit(cleanName, category, cleanLocation, startsOn, endsOn)
                     },
                     leadingContent = {
-                        Icon(Icons.Filled.CheckCircle, contentDescription = null)
+                        if (busy) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White,
+                            )
+                        } else {
+                            Icon(Icons.Filled.CheckCircle, contentDescription = null)
+                        }
                     },
                 )
                 Spacer(Modifier.size(24.dp))
@@ -202,6 +218,34 @@ private fun EditFieldLabel(text: String, icon: androidx.compose.ui.graphics.vect
         Icon(icon, contentDescription = null, tint = SnapColors.Coral, modifier = Modifier.size(18.dp))
         Text("  $text", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
     }
+}
+
+@Composable
+private fun EditFilledTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    enabled: Boolean,
+) {
+    val container = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f)
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        placeholder = { Text(placeholder) },
+        singleLine = true,
+        enabled = enabled,
+        shape = RoundedCornerShape(14.dp),
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = container,
+            unfocusedContainerColor = container,
+            disabledContainerColor = container,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+        ),
+    )
 }
 
 @Composable
