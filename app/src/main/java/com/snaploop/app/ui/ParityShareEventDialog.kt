@@ -96,6 +96,7 @@ private fun ParityShareEventContent(
         DeepLinkParser.shareText(event.name, inviterName, event.inviteToken)
     }
     val formattedCode = remember(event.joinCode) { DeepLinkParser.formatCode(event.joinCode) }
+    val cleanInviterName = inviterName?.trim()?.takeIf { it.isNotEmpty() }
     var feedback by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(feedback) {
@@ -119,7 +120,7 @@ private fun ParityShareEventContent(
                     Icon(Icons.Filled.ChevronLeft, contentDescription = "Back")
                 }
                 Text(
-                    "Invite People",
+                    "Invite",
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     fontSize = 21.sp,
@@ -129,13 +130,21 @@ private fun ParityShareEventContent(
             }
 
             ParityBrandMark(62)
-            Text("Share Event", fontSize = 28.sp, fontWeight = FontWeight.Black)
             Text(
-                inviterName?.trim()?.takeIf { it.isNotEmpty() }?.let {
-                    "$it is inviting people to join ${event.name}."
-                } ?: "Invite people to join ${event.name} on SnapLoop.",
+                "Invite people to ${event.name}",
+                textAlign = TextAlign.Center,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Black,
+            )
+            Text(
+                if (cleanInviterName != null) {
+                    "Your invite will show that it was sent by $cleanInviterName. Anyone with the invite can open the Event, sign in, and choose whether to join."
+                } else {
+                    "Anyone with the invite can open the Event, sign in, and choose whether to join."
+                },
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                modifier = Modifier.padding(horizontal = 12.dp),
             )
 
             ParityPrimaryButton(
@@ -150,7 +159,6 @@ private fun ParityShareEventContent(
             )
 
             ParityPremiumCard {
-                Text("Invite link & code", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -191,9 +199,9 @@ private fun ParityShareEventContent(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.PersonAdd, contentDescription = null, tint = SnapColors.Lilac)
                         Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                            Text("Invite by phone", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text("Invite by Phone or Contacts", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                             Text(
-                                "Choose a contact or enter a mobile number.",
+                                "Existing users get an in-app invite; others can receive the link.",
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
                                 fontSize = 12.sp,
                             )
@@ -223,7 +231,7 @@ private fun ParityShareEventContent(
                     letterSpacing = 3.sp,
                 )
                 Text(
-                    "Scan this QR code or enter the Event code in SnapLoop.",
+                    "Event code",
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
