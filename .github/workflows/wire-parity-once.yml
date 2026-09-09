@@ -1,0 +1,157 @@
+name: Wire parity surfaces once
+
+on:
+  push:
+    branches:
+      - feature/android-production-parity-v1
+    paths:
+      - .github/workflows/wire-parity-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/android-production-parity-v1
+          fetch-depth: 0
+      - name: Wire current pinned parity surfaces
+        shell: python
+        run: |
+          from pathlib import Path
+
+          shell_path = Path("app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt")
+          coordinator_path = Path("app/src/main/java/com/snaploop/app/ui/AppCoordinator.kt")
+          shell = shell_path.read_text()
+          coordinator = coordinator_path.read_text()
+
+          old_you = '''                else -> ShellYou(state, coordinator)'''
+          new_you = '''                else -> ParityYouScreen(state, coordinator)'''
+          assert shell.count(old_you) == 1, "Expected exactly one active ShellYou route"
+          shell = shell.replace(old_you, new_you)
+
+          old_create = '''    if (createOpen) {
+        ShellEventFormDialog(
+            title = "Create an Event",
+            initialName = "",
+            initialCategory = EventCategory.trip,
+            initialLocation = "",
+            initialStart = LocalDate.now(),
+            initialEnd = LocalDate.now().plusDays(3),
+            submitLabel = "Create Event",
+            onDismiss = { createOpen = false },
+            onSubmit = { name, category, location, start, end ->
+                if (state.user?.hasFaceProfile == true) {
+                    createOpen = false
+                    coordinator.createEvent(name, category, location, start, end)
+                } else {
+                    createOpen = false
+                    coordinator.openFaceSetupFromMain()
+                }
+            },
+        )
+    }'''
+          new_create = '''    if (createOpen) {
+        ParityCreateEventDialog(
+            hasFaceProfile = state.user?.hasFaceProfile == true,
+            busy = state.busy,
+            onDismiss = { createOpen = false },
+            onCompleteFaceSetup = {
+                createOpen = false
+                coordinator.openFaceSetupFromMain()
+            },
+            onSubmit = { name, category, location, start, end ->
+                coordinator.createEvent(
+                    name = name,
+                    category = category,
+                    locationName = location,
+                    startsOn = start,
+                    endsOn = end,
+                    onSuccess = { createOpen = false },
+                )
+            },
+        )
+    }'''
+          assert shell.count(old_create) == 1, "Expected exactly one legacy Create Event form block"
+          shell = shell.replace(old_create, new_create)
+
+          old_edit = '''        ShellEventPage.EDIT -> ShellEventFormDialog(
+            title = "Edit Event",
+            initialName = event.name,
+            initialCategory = event.category,
+            initialLocation = event.locationName.orEmpty(),
+            initialStart = event.startsAt.atZone(shellEventZone(event)).toLocalDate(),
+            initialEnd = event.endsAt.atZone(shellEventZone(event)).toLocalDate(),
+            submitLabel = "Save Changes",
+            onDismiss = { page = ShellEventPage.DASHBOARD },
+            onSubmit = { name, category, location, start, end ->
+                coordinator.editSelectedEvent(name, category, location, start, end)
+                page = ShellEventPage.DASHBOARD
+            },
+        )'''
+          new_edit = '''        ShellEventPage.EDIT -> ParityEditEventDialog(
+            event = event,
+            busy = state.busy,
+            onDismiss = { page = ShellEventPage.DASHBOARD },
+            onSubmit = { name, category, location, start, end ->
+                coordinator.editSelectedEvent(
+                    name = name,
+                    category = category,
+                    locationName = location,
+                    startsOn = start,
+                    endsOn = end,
+                    onSuccess = { page = ShellEventPage.DASHBOARD },
+                )
+            },
+        )'''
+          assert shell.count(old_edit) == 1, "Expected exactly one legacy Edit Event form block"
+          shell = shell.replace(old_edit, new_edit)
+
+          old_signature = '''    fun createEvent(
+        name: String,
+        category: EventCategory,
+        locationName: String?,
+        startsOn: LocalDate,
+        endsOn: LocalDate,
+    ) = launchBusy {'''
+          new_signature = '''    fun createEvent(
+        name: String,
+        category: EventCategory,
+        locationName: String?,
+        startsOn: LocalDate,
+        endsOn: LocalDate,
+        onSuccess: () -> Unit = {},
+    ) = launchBusy {'''
+          assert coordinator.count(old_signature) == 1, "Expected exactly one createEvent signature"
+          coordinator = coordinator.replace(old_signature, new_signature)
+
+          old_success = '''        update { copy(events = merged, selectedEvent = null, pendingInvite = null) }
+        refreshAllPhotosInternal(uid, merged)
+    }
+
+    fun editSelectedEvent('''
+          new_success = '''        update { copy(events = merged, selectedEvent = null, pendingInvite = null) }
+        refreshAllPhotosInternal(uid, merged)
+        onSuccess()
+    }
+
+    fun editSelectedEvent('''
+          assert coordinator.count(old_success) == 1, "Expected exactly one createEvent success tail"
+          coordinator = coordinator.replace(old_success, new_success)
+
+          shell_path.write_text(shell)
+          coordinator_path.write_text(coordinator)
+      - name: Commit wired surfaces and remove one-shot workflow
+        shell: bash
+        run: |
+          rm .github/workflows/wire-parity-once.yml
+          git config user.name "SnapLoop parity automation"
+          git config user.email "50425243+gurmeetgold@users.noreply.github.com"
+          git add app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt \
+                  app/src/main/java/com/snaploop/app/ui/AppCoordinator.kt \
+                  .github/workflows/wire-parity-once.yml
+          git commit -m "Wire pinned Create Edit and You parity surfaces"
+          git push origin HEAD:feature/android-production-parity-v1
