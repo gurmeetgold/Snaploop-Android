@@ -2,7 +2,7 @@
 
 Source-of-truth baseline: iOS `chatgpt/release-canada-gallery-name-limits-2026-09-03` at `2627881fce5f9b736f0a717e808f0ea2e811ac98`. README history is non-authoritative.
 
-Android implementation checkpoint: `76a6715c1c4a051d103bb872d361f5d139a6e703`. Android CI run 319 verified the preceding Edit Event checkpoint; the invitation-review batch at this checkpoint requires its own exact CI result before being called green.
+Android implementation checkpoint: pending final Join Event shell rewire CI validation.
 
 Status legend:
 - ✅ implementation/contract complete for the audited scope and covered by current branch CI/unit/static verification.
@@ -13,9 +13,10 @@ Status legend:
 | Capability | iOS source/contract | Android implementation | Backend/privacy constraint | Remaining verification | Status |
 |---|---|---|---|---|---|
 | App shell Home/Gallery/You | current SwiftUI RootView/screens | Compose main shell with parity Home/Event/Gallery/You surfaces and Android back semantics | no backend change | visual/device walkthrough against pinned screenshots | ✅ impl · 🟡 acceptance |
+| First-run onboarding | device-level pre-auth `@AppStorage("snaploop.onboarding.completed")` gate | device-level pre-auth onboarding with migration from legacy per-user Android completion keys | no auth/session data required to show onboarding | device fresh-install/upgrade walkthrough | ✅ impl · 🟡 acceptance |
 | Phone OTP auth | Firebase Auth | Firebase Auth Android, country-code/verification/session restoration flow | same project; no OTP logging | real-device Firebase phone auth | ✅ impl · 🟡 acceptance |
-| Event create/edit | Event + FirebaseEventRepository + functions | civil-date Create/Edit UI, exact managed payloads/status lifecycle, pinned iOS filled-field/menu styling | stable event ID/token; server authority | emulator/real backend cross-client event mutation | ✅ impl · 🟡 acceptance |
-| Join code/link/QR | pinned Events invitation flow | App Link/custom URI parser, manual code/token, camera QR, invitation review/decline provenance, inviter fallback and automatic-action copy parity | reject untrusted/expired inputs | exact CI for current invitation batch; iOS↔Android device link/QR matrix | 🟡 CI · 🟡 acceptance |
+| Event create/edit | Event + FirebaseEventRepository + functions | civil-date Create/Edit UI, exact managed payloads/status lifecycle, pinned iOS filled-field/menu styling, stale-revision overwrite guard before save | stable event ID/token; server authority; stale revisions never silently overwrite | emulator/real backend cross-client concurrent event mutation | ✅ impl · 🟡 acceptance |
+| Join code/link/QR | pinned Home `EnterCodeView`, QR scanner and invitation review flow | App Link/custom URI parser, manual code/link entry, camera QR, invitation review/decline provenance, inviter fallback and automatic-action copy parity; dedicated pinned entry surface pending shell rewire validation | reject untrusted/expired inputs | exact CI for final shell rewire; iOS↔Android device link/QR matrix | 🟡 CI · 🟡 acceptance |
 | Membership generation | EventMember/functions | server-issued membership IDs carried through face roster/match context | stale generations must never receive matches | leave/rejoin emulator + cross-client test | ✅ impl · 🟡 acceptance |
 | Event civil dates | eventDateSemantics.js | `LocalDate` + explicit Event timezone/day-number contract | no midnight timezone drift | deterministic DST/unit coverage | ✅ |
 | Remote Config | RemoteConfigValues.swift | Firebase Remote Config with fail-safe defaults and observable Event grace | no permissive biometric fallback | unit/static integration | ✅ |
@@ -37,4 +38,4 @@ Status legend:
 | Account deletion | pinned server cleanup | Privacy surface + account deletion coordinator/server flow | equivalent erasure; no local biometric remnants | emulator/server cleanup verification | ✅ impl · 🟡 acceptance |
 | Analytics/Crash/Perf | separately validated analytics branch | Firebase observability dependencies; product analytics remains separately reviewed | no photos/embeddings/PII/session replay | merge only after privacy allowlist review/tests | 🟡 |
 | Backup security | iOS protected local state | backup disabled/excluded; face model/reference/scan state kept in app-private/no-backup or encrypted storage | no biometric/tokens/URIs in backup | manifest/static inspection | ✅ |
-| Accessibility | SwiftUI semantics | partial Compose content descriptions/touch targets exist, but no complete audited accessibility pass | no product redesign | TalkBack, font scaling, contrast, focus-order instrumentation/device pass | ⬜ |
+| Accessibility | SwiftUI semantics | partial Compose content descriptions/touch targets exist; critical shell controls have labels, but no complete audited accessibility pass | no product redesign | TalkBack, font scaling, contrast, focus-order instrumentation/device pass | ⬜ impl audit · 🟡 acceptance |
