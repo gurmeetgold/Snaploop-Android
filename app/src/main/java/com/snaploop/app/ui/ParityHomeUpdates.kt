@@ -95,13 +95,13 @@ internal fun ParityHomeUpdates(userId: String?) {
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+            Modifier.fillMaxWidth().padding(horizontal = BrandVisualParitySpec.HOME_HORIZONTAL_PADDING_DP.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 "Updates",
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Black,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.weight(1f))
@@ -127,7 +127,7 @@ internal fun ParityHomeUpdates(userId: String?) {
 
         EventNotificationCard(
             notification = notifications.first(),
-            modifier = Modifier.padding(horizontal = 18.dp),
+            modifier = Modifier.padding(horizontal = BrandVisualParitySpec.HOME_HORIZONTAL_PADDING_DP.dp),
             onDismiss = { notification ->
                 notifications = notifications.filterNot { it.id == notification.id }
                 scope.launch { runCatching { client.markRead(uid, notification.id) } }
@@ -145,7 +145,7 @@ internal fun ParityHomeUpdates(userId: String?) {
                     "Updates",
                     modifier = Modifier.weight(1f),
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
+                    fontWeight = FontWeight.Bold,
                 )
                 TextButton(onClick = { showAll = false }) {
                     Text("Done", fontWeight = FontWeight.Bold)
@@ -156,7 +156,7 @@ internal fun ParityHomeUpdates(userId: String?) {
                 Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = BrandVisualParitySpec.HOME_HORIZONTAL_PADDING_DP.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 notifications.forEach { notification ->
