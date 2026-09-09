@@ -33,10 +33,11 @@ class EditEventVisualParityTest {
     }
 
     @Test
-    fun `saving keeps Save Event copy and swaps checkmark for spinner`() {
+    fun `saving keeps Save Event copy and swaps checkmark for spinner while controls are busy`() {
         val source = source()
         assertTrue(source.contains("text = \"Save Event\""))
-        assertTrue(source.contains("if (busy)"))
+        assertTrue(source.contains("val controlsBusy = busy || checkingRevision"))
+        assertTrue(source.contains("if (controlsBusy)"))
         assertTrue(source.contains("CircularProgressIndicator("))
         assertFalse(source.contains("if (busy) \"Saving…\" else \"Save Event\""))
     }
