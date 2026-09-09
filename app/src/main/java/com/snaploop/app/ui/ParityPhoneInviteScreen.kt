@@ -6,7 +6,9 @@ import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,7 +18,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -28,11 +32,13 @@ import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,11 +48,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -151,7 +157,10 @@ internal fun ParityPhoneInviteScreen(
 
     ParityBrandBackground {
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
@@ -170,18 +179,18 @@ internal fun ParityPhoneInviteScreen(
             }
 
             ParityBrandMark(56)
-            Text("Invite by Phone", fontSize = 27.sp, fontWeight = FontWeight.Black)
+            Text("Invite by Phone", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = SnapColors.Ink)
             Text(
                 "Invite someone directly, or choose a number from your contacts.",
                 textAlign = TextAlign.Center,
-                color = Color(0xFF6B6670),
+                color = SnapColors.Secondary,
                 fontSize = 14.sp,
             )
 
             ParityPremiumCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.PersonAdd, contentDescription = null, tint = SnapColors.Coral)
-                    Text("  Add a person", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text("  Add a person", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = SnapColors.Ink)
                 }
 
                 Row(
@@ -189,10 +198,27 @@ internal fun ParityPhoneInviteScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column {
-                        OutlinedButton(onClick = { countryMenuOpen = true }) {
-                            Text("${country.regionCode}  ${country.callingCode}", fontWeight = FontWeight.Bold)
-                            Icon(Icons.Filled.ExpandMore, contentDescription = null)
+                    Box {
+                        Row(
+                            Modifier
+                                .height(PhoneInviteVisualParitySpec.COUNTRY_SELECTOR_HEIGHT_DP.dp)
+                                .background(
+                                    SnapColors.Peach.copy(alpha = PhoneInviteVisualParitySpec.COUNTRY_FILL_ALPHA),
+                                    RoundedCornerShape(PhoneInviteVisualParitySpec.CONTROL_RADIUS_DP.dp),
+                                )
+                                .clickable { countryMenuOpen = true }
+                                .padding(horizontal = PhoneInviteVisualParitySpec.COUNTRY_HORIZONTAL_PADDING_DP.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(country.regionCode, color = SnapColors.Coral, fontWeight = FontWeight.Bold)
+                            Text(country.callingCode, color = SnapColors.Coral, fontWeight = FontWeight.Bold)
+                            Icon(
+                                Icons.Filled.ExpandMore,
+                                contentDescription = "Choose country",
+                                tint = SnapColors.Coral,
+                                modifier = Modifier.size(18.dp),
+                            )
                         }
                         DropdownMenu(
                             expanded = countryMenuOpen,
@@ -210,32 +236,58 @@ internal fun ParityPhoneInviteScreen(
                             }
                         }
                     }
-                    OutlinedTextField(
+
+                    TextField(
                         value = phone,
                         onValueChange = { raw -> phone = PhoneNumberNormalizer.localDisplayNumber(raw, country) },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(PhoneInviteVisualParitySpec.PHONE_FIELD_HEIGHT_DP.dp),
                         singleLine = true,
-                        label = { Text("Phone number") },
+                        placeholder = { Text("Phone number") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        shape = RoundedCornerShape(PhoneInviteVisualParitySpec.CONTROL_RADIUS_DP.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            cursorColor = SnapColors.Coral,
+                        ),
                     )
                 }
 
-                OutlinedButton(
-                    onClick = {
-                        contactPicker.launch(Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI))
-                    },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(15.dp),
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(PhoneInviteVisualParitySpec.CONTACT_BUTTON_HEIGHT_DP.dp)
+                        .background(
+                            SnapColors.Mint.copy(alpha = PhoneInviteVisualParitySpec.CONTACT_FILL_ALPHA),
+                            RoundedCornerShape(PhoneInviteVisualParitySpec.CONTROL_RADIUS_DP.dp),
+                        )
+                        .clickable {
+                            contactPicker.launch(
+                                Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI),
+                            )
+                        },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                 ) {
-                    Icon(Icons.Filled.Contacts, contentDescription = null)
-                    Text("  Choose from Contacts", fontWeight = FontWeight.Bold)
+                    Icon(Icons.Filled.Contacts, contentDescription = null, tint = SnapColors.Mint)
+                    Text("  Choose from Contacts", color = SnapColors.Mint, fontWeight = FontWeight.Bold)
                 }
             }
 
+            val phoneBlank = phone.trim().isEmpty()
             ParityPrimaryButton(
                 text = if (isSending) "Sending…" else "Send Invite",
                 onClick = ::sendInvite,
-                enabled = !isSending && phone.trim().isNotEmpty(),
+                modifier = Modifier.alpha(
+                    if (phoneBlank) PhoneInviteVisualParitySpec.SEND_DISABLED_ALPHA else 1f,
+                ),
+                enabled = !isSending && !phoneBlank,
             )
 
             message?.let {
@@ -253,22 +305,36 @@ internal fun ParityPhoneInviteScreen(
 
             if (statuses.isNotEmpty()) {
                 ParityPremiumCard {
-                    Text("Invitations", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                    statuses.forEach { row ->
+                    Text("Invitations", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = SnapColors.Ink)
+                    statuses.forEachIndexed { index, row ->
                         Row(
                             Modifier.fillMaxWidth().padding(vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Icon(
-                                Icons.Filled.Message,
-                                contentDescription = null,
-                                tint = if (row.delivery == "in_app") SnapColors.Mint else SnapColors.Coral,
-                            )
-                            Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                                Text(row.phoneNumber, fontWeight = FontWeight.SemiBold)
+                            val inApp = row.delivery == "in_app"
+                            val tint = if (inApp) SnapColors.Mint else SnapColors.Coral
+                            Box(
+                                Modifier
+                                    .size(PhoneInviteVisualParitySpec.STATUS_ICON_SIZE_DP.dp)
+                                    .background(
+                                        tint.copy(alpha = PhoneInviteVisualParitySpec.STATUS_ICON_FILL_ALPHA),
+                                        CircleShape,
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    if (inApp) Icons.Filled.CheckCircle else Icons.Filled.Message,
+                                    contentDescription = null,
+                                    tint = tint,
+                                    modifier = Modifier.size(17.dp),
+                                )
+                            }
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(row.phoneNumber, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                 Text(
-                                    if (row.delivery == "in_app") "In-app invitation" else "SMS invitation",
-                                    color = Color(0xFF6B6670),
+                                    if (inApp) "In-app invitation" else "SMS invitation",
+                                    color = SnapColors.Secondary,
                                     fontSize = 12.sp,
                                 )
                             }
@@ -276,22 +342,36 @@ internal fun ParityPhoneInviteScreen(
                                 row.status.replace('_', ' ').replaceFirstChar { it.uppercase() },
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .background(
+                                        SnapColors.Peach.copy(
+                                            alpha = PhoneInviteVisualParitySpec.STATUS_CAPSULE_FILL_ALPHA,
+                                        ),
+                                        CircleShape,
+                                    )
+                                    .padding(
+                                        horizontal = PhoneInviteVisualParitySpec.STATUS_CAPSULE_HORIZONTAL_PADDING_DP.dp,
+                                        vertical = PhoneInviteVisualParitySpec.STATUS_CAPSULE_VERTICAL_PADDING_DP.dp,
+                                    ),
                             )
+                        }
+                        if (index != statuses.lastIndex) {
+                            HorizontalDivider()
                         }
                     }
                 }
             }
 
             ParityPremiumCard {
-                Text("How it works", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Text("How it works", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = SnapColors.Ink)
                 Text(
                     "Enter a phone number or choose a contact. Existing SnapLoop users receive the invitation directly in the app. If they are not on SnapLoop yet, you can send them an SMS invite link.",
-                    color = Color(0xFF6B6670),
+                    color = SnapColors.Secondary,
                     fontSize = 13.sp,
                 )
                 Text(
                     "They join only after accepting the invitation.",
-                    color = Color(0xFF6B6670),
+                    color = SnapColors.Secondary,
                     fontSize = 13.sp,
                 )
             }
