@@ -1,13 +1,14 @@
 package com.snaploop.app.ui
 
 /**
- * Stable geometry/interaction contract mirrored from the pinned iOS BrandVisuals.swift
- * and MyPicsTubeBrand.swift implementation. Keeping these values out of composables
- * makes visual parity reviewable and protects them with ordinary JVM tests.
+ * Stable geometry/interaction contract mirrored from the pinned iOS production UI.
+ * Keeping these values out of composables makes visual parity reviewable and protects
+ * them with ordinary JVM tests instead of allowing screen-local magic numbers to drift.
  */
 internal object BrandVisualParitySpec {
     const val COMPACT_MARK_DP = 30
     const val REGULAR_MARK_DP = 48
+    const val HOME_MARK_DP = 46
     const val MARK_CORNER_RATIO = 0.22f
     const val MARK_SHADOW_RATIO = 0.10f
     const val MARK_SHADOW_ALPHA = 0.24f
@@ -29,6 +30,23 @@ internal object BrandVisualParitySpec {
     const val PRIMARY_BUTTON_SHADOW_PRESSED_ALPHA = 0.10f
     const val PRIMARY_BUTTON_PRESSED_SCALE = 0.985f
     const val PRIMARY_BUTTON_PRESS_ANIMATION_MS = 160
+
+    // Pinned iOS MainTabView uses the standard TabView bar with a 0.97 surface.
+    const val MAIN_TAB_COUNT = 3
+    const val MAIN_TAB_ITEM_HEIGHT_DP = 64
+    const val MAIN_TAB_SURFACE_ALPHA = 0.97f
+
+    // Pinned iOS HomeView action cards use a 150pt minimum height.
+    const val HOME_ACTION_CARD_MIN_HEIGHT_DP = 150
+
+    // Pinned iOS EventDashboardView / Theme.GradientTile geometry.
+    const val EVENT_HERO_HEIGHT_DP = 230
+    const val EVENT_HERO_RADIUS_DP = 30
+    const val EVENT_HERO_SHADOW_DP = 18
+    const val EVENT_HERO_SHADOW_ALPHA = 0.18f
+    const val EVENT_FEATURE_TILE_HEIGHT_DP = 118
+    const val EVENT_MEMBER_AVATAR_DP = 42
+    const val EVENT_MEMBER_AVATAR_BORDER_DP = 2
 
     const val DARK_LILAC_GLOW_ALPHA = 0.16f
     const val DARK_HOT_PINK_GLOW_ALPHA = 0.12f
