@@ -168,11 +168,7 @@ internal fun ParityFaceSetupScreen(
         AlertDialog(
             onDismissRequest = { deleteConfirmationOpen = false },
             title = { Text("Delete Face Setup?") },
-            text = {
-                Text(
-                    "This removes your saved face template and encrypted local face reference and stops Face Match until you consent and set it up again.",
-                )
-            },
+            text = { Text(FaceSetupDeletionCopy.CONFIRMATION_BODY) },
             confirmButton = {
                 TextButton(
                     onClick = {
