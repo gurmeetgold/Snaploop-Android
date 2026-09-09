@@ -11,20 +11,24 @@ class SnapLoopNotificationContractTest {
 
     @Test
     fun validInviteHasPrecedenceOverEvent() {
-        val route = SnapLoopNotificationContract.route(
+        val payload = SnapLoopNotificationContract.parse(
             mapOf("inviteToken" to token, "eventId" to "event-123"),
         )
 
-        assertEquals(SnapLoopNotificationContract.Route.Invite(token), route)
+        assertEquals(SnapLoopNotificationKind.INVITE, payload.kind)
+        assertEquals(token, payload.inviteToken)
+        assertEquals("event-123", payload.eventId)
     }
 
     @Test
     fun invalidInviteFallsThroughToValidEvent() {
-        val route = SnapLoopNotificationContract.route(
+        val payload = SnapLoopNotificationContract.parse(
             mapOf("inviteToken" to "invalid", "eventId" to " event-123 "),
         )
 
-        assertEquals(SnapLoopNotificationContract.Route.EventPhotos("event-123"), route)
+        assertEquals(SnapLoopNotificationKind.EVENT_PHOTOS, payload.kind)
+        assertNull(payload.inviteToken)
+        assertEquals("event-123", payload.eventId)
     }
 
     @Test
@@ -37,32 +41,24 @@ class SnapLoopNotificationContractTest {
     }
 
     @Test
-    fun visibleCopyUsesPrivacySafeFallbacksAndBoundsRemoteText() {
-        assertEquals(
-            SnapLoopNotificationContract.VisibleCopy(
-                title = "SnapLoop invitation",
-                body = "You have a new Event invitation.",
-            ),
-            SnapLoopNotificationContract.visibleCopy(
-                route = SnapLoopNotificationContract.Route.Invite(token),
-                remoteTitle = null,
-                remoteBody = null,
-            ),
-        )
+    fun copyUsesPrivacySafeFallbacksAndBoundsRemoteText() {
+        val fallback = SnapLoopNotificationContract.parse(mapOf("inviteToken" to token))
+        assertEquals("SnapLoop", fallback.title)
+        assertEquals("You have a new SnapLoop Event invitation.", fallback.body)
 
-        val bounded = SnapLoopNotificationContract.visibleCopy(
-            route = null,
-            remoteTitle = "  Hello  ",
-            remoteBody = "x".repeat(250),
+        val bounded = SnapLoopNotificationContract.parse(
+            data = mapOf("eventId" to "event-123"),
+            notificationTitle = "  Hello  ",
+            notificationBody = "x".repeat(300),
         )
         assertEquals("Hello", bounded.title)
-        assertEquals(180, bounded.body.length)
+        assertEquals(240, bounded.body.length)
     }
 
     @Test
-    fun notificationIdsAreStableAndRouteScoped() {
-        val invite = SnapLoopNotificationContract.Route.Invite(token)
-        val event = SnapLoopNotificationContract.Route.EventPhotos("event-123")
+    fun notificationIdsAreStableAndKindScoped() {
+        val invite = SnapLoopNotificationContract.parse(mapOf("inviteToken" to token))
+        val event = SnapLoopNotificationContract.parse(mapOf("eventId" to "event-123"))
 
         assertEquals(
             SnapLoopNotificationContract.notificationId(invite),
