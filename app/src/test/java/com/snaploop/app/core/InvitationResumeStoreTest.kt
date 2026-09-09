@@ -29,6 +29,27 @@ class InvitationResumeStoreTest {
     }
 
     @Test
+    fun `fresh capture is not mistaken for process restored work`() {
+        InvitationResumeStore.capture(
+            JoinIntent(token = "AbCdEfGhJkLmNpQrStUvWx", action = InviteAction.REVIEW),
+        )
+
+        assertNull(InvitationResumeStore.takeRestoredForResolution())
+    }
+
+    @Test
+    fun `retry arm is consumed exactly once`() {
+        val token = "AbCdEfGhJkLmNpQrStUvWx"
+        InvitationResumeStore.capture(
+            JoinIntent(token = token, action = InviteAction.ACCEPT),
+        )
+        InvitationResumeStore.rearmRestoredForResolution()
+
+        assertEquals(token, InvitationResumeStore.takeRestoredForResolution()?.token)
+        assertNull(InvitationResumeStore.takeRestoredForResolution())
+    }
+
+    @Test
     fun `accept token survives face setup without becoming review`() {
         val token = "AbCdEfGhJkLmNpQrStUvWx"
 
