@@ -32,6 +32,7 @@ import com.snaploop.app.model.EventMember
 import com.snaploop.app.model.EventStatus
 import com.snaploop.app.model.SnapEvent
 import com.snaploop.app.scanner.CameraSyncCoordinator
+import com.snaploop.app.scanner.OwnMatchReplayPolicy
 import com.snaploop.app.security.EncryptedFaceReferenceStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -517,10 +518,45 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         val me = state.value.members.firstOrNull { it.userId == uid }
             ?: error("Your Event membership could not be loaded.")
         require(me.sharingEnabled) { "Turn on photo sharing for this Event first." }
+        val previous = memberPreferences.load(event.id)
+        require(previous.sharingEnabled) { "Turn on photo sharing for this Event first." }
         if (enabled) {
             require(faceProfiles.load(uid) != null) { "Set up your face to see your own photo matches." }
         }
+
         memberPreferences.setIncludeOwnMatches(event.id, enabled)
+        val saved = memberPreferences.load(event.id)
+
+        if (
+            OwnMatchReplayPolicy.shouldReplay(
+                previousEnabled = previous.includeOwnMatches,
+                savedEnabled = saved.includeOwnMatches,
+                sharingEnabled = saved.sharingEnabled,
+                event = event,
+                now = Instant.now(),
+                gracePeriodDays = remoteConfig.eventGracePeriodDays,
+            )
+        ) {
+            // The preference save is authoritative. Replaying the bounded Event corpus is an
+            // opportunistic UX optimization; a permission/device/scanner failure must not turn a
+            // successful preference update into an error or roll the saved preference back.
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    CameraSyncCoordinator(getApplication()).use { coordinator ->
+                        coordinator.scan(
+                            eventId = event.id,
+                            startMillis = event.startsAt.toEpochMilli(),
+                            endMillis = event.endsAt.toEpochMilli(),
+                            sharingEnabled = saved.sharingEnabled,
+                            includeOwnMatches = saved.includeOwnMatches,
+                            ownMatchesRevision = saved.revisionToken,
+                            config = remoteConfig,
+                        )
+                    }
+                }
+            }
+        }
+
         loadEvent(eventRepository.fetchEvent(event.id))
         refreshAllPhotosInternal(uid, state.value.events)
     }
