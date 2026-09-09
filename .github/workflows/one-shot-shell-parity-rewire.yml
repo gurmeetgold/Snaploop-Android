@@ -1,0 +1,93 @@
+name: One-shot shell parity rewire
+
+on:
+  push:
+    branches: [feature/android-production-parity-v1]
+    paths:
+      - .github/workflows/one-shot-shell-parity-rewire.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rewire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Route active shell to parity surfaces
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          shell_path = Path('app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt')
+          text = shell_path.read_text()
+
+          old_pending = 'state.pendingInvite != null -> ShellInvitationReview(state.pendingInvite, coordinator)'
+          new_pending = 'state.pendingInvite != null -> ParityInvitationReviewScreen(state, coordinator)'
+          if old_pending not in text:
+              raise SystemExit('pending-invite route no longer matches expected source')
+          text = text.replace(old_pending, new_pending, 1)
+
+          old_share = '''        ShellEventPage.INVITE -> ShellInvite(
+            state = state,
+            onBack = { page = ShellEventPage.DASHBOARD },
+            onPhoneInvite = { page = ShellEventPage.PHONE_INVITE },
+        )'''
+          new_share = '''        ShellEventPage.INVITE -> ParityShareEventDialog(
+            event = event,
+            inviterName = state.user?.displayName,
+            canManageInvites = shellCurrentRole(event, state.members, state.user?.id).let {
+                it == EventMember.Role.organizer || it == EventMember.Role.admin
+            },
+            onDismiss = { page = ShellEventPage.DASHBOARD },
+        )'''
+          if old_share not in text:
+              raise SystemExit('share-event route no longer matches expected source')
+          text = text.replace(old_share, new_share, 1)
+          shell_path.write_text(text)
+
+          test_path = Path('app/src/test/java/com/snaploop/app/ui/ActiveShellParityRoutingTest.kt')
+          test_path.write_text('''package com.snaploop.app.ui
+
+import java.io.File
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class ActiveShellParityRoutingTest {
+    private fun shellSource(): String {
+        val candidates = listOf(
+            File("src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt"),
+            File("app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt"),
+        )
+        return candidates.firstOrNull { it.isFile }?.readText()
+            ?: error("SnapLoopMainShell.kt was not found from the unit-test working directory")
+    }
+
+    @Test
+    fun `pending invitations render the dedicated parity review surface`() {
+        assertTrue(
+            shellSource().contains(
+                "state.pendingInvite != null -> ParityInvitationReviewScreen(state, coordinator)",
+            ),
+        )
+    }
+
+    @Test
+    fun `event invite page renders the dedicated parity share surface`() {
+        val source = shellSource()
+        assertTrue(source.contains("ShellEventPage.INVITE -> ParityShareEventDialog("))
+        assertTrue(source.contains("canManageInvites = shellCurrentRole(event, state.members, state.user?.id)"))
+    }
+}
+''')
+          PY
+
+          git config user.name "gurmeetgold"
+          git config user.email "50425243+gurmeetgold@users.noreply.github.com"
+          git add app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt \
+                  app/src/test/java/com/snaploop/app/ui/ActiveShellParityRoutingTest.kt
+          git commit -m "Route active shell through invitation parity surfaces"
+          git push origin HEAD:feature/android-production-parity-v1
