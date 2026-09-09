@@ -44,7 +44,10 @@ class AutomaticScanPolicyTest {
 
     @Test
     fun `active event remains eligible during configured grace window`() {
-        val recentlyEnded = event(end = now.minusSeconds(60L * 60L))
+        val recentlyEnded = event(
+            start = now.minusSeconds(3L * 24L * 60L * 60L),
+            end = now.minusSeconds(60L * 60L),
+        )
         assertTrue(
             AutomaticScanPolicy.shouldRun(
                 event = recentlyEnded,
@@ -73,7 +76,10 @@ class AutomaticScanPolicyTest {
     fun `active event is rejected after configured grace window`() {
         assertFalse(
             AutomaticScanPolicy.shouldRun(
-                event = event(end = now.minusSeconds(3L * 24L * 60L * 60L)),
+                event = event(
+                    start = now.minusSeconds(5L * 24L * 60L * 60L),
+                    end = now.minusSeconds(3L * 24L * 60L * 60L),
+                ),
                 now = now,
                 lastAutomaticScanAtMillis = null,
                 sharingEnabled = true,
