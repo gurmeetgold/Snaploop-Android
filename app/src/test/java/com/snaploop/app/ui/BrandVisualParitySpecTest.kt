@@ -54,9 +54,22 @@ class BrandVisualParitySpecTest {
         assertEquals(30, BrandVisualParitySpec.EVENT_HERO_RADIUS_DP)
         assertEquals(18, BrandVisualParitySpec.EVENT_HERO_SHADOW_DP)
         assertEquals(0.18f, BrandVisualParitySpec.EVENT_HERO_SHADOW_ALPHA)
-        assertEquals(118, BrandVisualParitySpec.EVENT_FEATURE_TILE_HEIGHT_DP)
         assertEquals(42, BrandVisualParitySpec.EVENT_MEMBER_AVATAR_DP)
         assertEquals(2, BrandVisualParitySpec.EVENT_MEMBER_AVATAR_BORDER_DP)
+    }
+
+    @Test
+    fun `gradient tile contract mirrors pinned iOS Theme defaults`() {
+        assertEquals(118, BrandVisualParitySpec.EVENT_FEATURE_TILE_HEIGHT_DP)
+        assertEquals(22, BrandVisualParitySpec.EVENT_FEATURE_TILE_RADIUS_DP)
+        assertEquals(40, BrandVisualParitySpec.EVENT_FEATURE_TILE_ICON_DP)
+        assertEquals(12, BrandVisualParitySpec.EVENT_FEATURE_TILE_ICON_RADIUS_DP)
+        assertEquals(100, BrandVisualParitySpec.EVENT_FEATURE_TILE_DECORATION_DP)
+        assertEquals(78, BrandVisualParitySpec.EVENT_FEATURE_TILE_DECORATION_OFFSET_X_DP)
+        assertEquals(-38, BrandVisualParitySpec.EVENT_FEATURE_TILE_DECORATION_OFFSET_Y_DP)
+        assertEquals(14, BrandVisualParitySpec.EVENT_FEATURE_TILE_SHADOW_DP)
+        assertEquals(8, BrandVisualParitySpec.EVENT_FEATURE_TILE_SHADOW_Y_DP)
+        assertEquals(0.18f, BrandVisualParitySpec.EVENT_FEATURE_TILE_SHADOW_ALPHA)
     }
 
     @Test
