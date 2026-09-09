@@ -1,5 +1,6 @@
 package com.snaploop.app.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,9 +24,9 @@ import androidx.compose.ui.unit.dp
  * composable, so this package-local compatibility item keeps the same call shape without leaking
  * RowScope through the shell API.
  *
- * The pinned iOS MainTabView is a standard three-item TabView with Theme.coral as its selected tint.
- * Each Android product tab therefore receives exactly one third of the window width, the selected
- * item uses the canonical coral, and inactive content uses the platform surface secondary tone.
+ * The pinned iOS MainTabView is a standard three-item TabView with Theme.coral as its selected tint
+ * and Theme.surface at 0.97 opacity. Each Android product tab therefore receives exactly one third
+ * of the window width, paints that adaptive surface, and uses the canonical coral selection tint.
  */
 @Composable
 internal fun NavigationBarItem(
@@ -48,6 +49,11 @@ internal fun NavigationBarItem(
         modifier = Modifier
             .width(itemWidth)
             .height(BrandVisualParitySpec.MAIN_TAB_ITEM_HEIGHT_DP.dp)
+            .background(
+                MaterialTheme.colorScheme.surface.copy(
+                    alpha = BrandVisualParitySpec.MAIN_TAB_SURFACE_ALPHA,
+                ),
+            )
             .semantics { this.selected = selected }
             .clickable(role = Role.Tab, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
