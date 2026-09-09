@@ -152,7 +152,7 @@ internal fun ParityInvitationReviewScreen(
             }
 
             Box(
-                Modifier.size(76.dp).background(SnapColors.Sky.copy(alpha = 0.14f), CircleShape),
+                Modifier.size(76.dp).background(SnapColors.BlueSoft.copy(alpha = 0.14f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
