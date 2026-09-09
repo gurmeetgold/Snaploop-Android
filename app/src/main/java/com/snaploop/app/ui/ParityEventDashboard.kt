@@ -2,6 +2,7 @@ package com.snaploop.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -289,16 +290,12 @@ internal fun ParityEventDashboard(
             )
 
             if (event.status == EventStatus.active && canManageMembers) {
-                Card(
-                    onClick = onInvite,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ParityPremiumCard(
+                    Modifier
+                        .padding(horizontal = 18.dp)
+                        .clickable(onClick = onInvite),
                 ) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             Modifier.size(42.dp).background(SnapColors.Coral.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center,
@@ -568,29 +565,54 @@ private fun ParityEventFeatureTile(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
+    val tileShape = RoundedCornerShape(BrandVisualParitySpec.EVENT_FEATURE_TILE_RADIUS_DP.dp)
     Card(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.alpha(if (enabled) 1f else 0.52f),
-        shape = RoundedCornerShape(24.dp),
+        modifier = modifier
+            .shadow(
+                BrandVisualParitySpec.EVENT_FEATURE_TILE_SHADOW_DP.dp,
+                tileShape,
+                ambientColor = SnapColors.HotPink.copy(alpha = BrandVisualParitySpec.EVENT_FEATURE_TILE_SHADOW_ALPHA),
+                spotColor = SnapColors.HotPink.copy(alpha = BrandVisualParitySpec.EVENT_FEATURE_TILE_SHADOW_ALPHA),
+            )
+            .alpha(if (enabled) 1f else 0.52f),
+        shape = tileShape,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(BrandVisualParitySpec.EVENT_FEATURE_TILE_HEIGHT_DP.dp)
-                .background(gradient)
-                .padding(16.dp),
+                .background(gradient),
         ) {
             Box(
-                Modifier.size(44.dp).background(Color.White.copy(alpha = 0.20f), RoundedCornerShape(13.dp)),
-                contentAlignment = Alignment.Center,
+                Modifier
+                    .size(BrandVisualParitySpec.EVENT_FEATURE_TILE_DECORATION_DP.dp)
+                    .offset(
+                        x = BrandVisualParitySpec.EVENT_FEATURE_TILE_DECORATION_OFFSET_X_DP.dp,
+                        y = BrandVisualParitySpec.EVENT_FEATURE_TILE_DECORATION_OFFSET_Y_DP.dp,
+                    )
+                    .background(Color.White.copy(alpha = 0.12f), CircleShape),
+            )
+            Column(
+                Modifier.fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
-                Icon(icon, contentDescription = null, tint = Color.White)
-            }
-            Column(Modifier.align(Alignment.BottomStart)) {
-                Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                Text(subtitle, color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp)
+                Box(
+                    Modifier
+                        .size(BrandVisualParitySpec.EVENT_FEATURE_TILE_ICON_DP.dp)
+                        .background(
+                            Color.White.copy(alpha = 0.20f),
+                            RoundedCornerShape(BrandVisualParitySpec.EVENT_FEATURE_TILE_ICON_RADIUS_DP.dp),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.weight(1f))
+                Text(title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(subtitle, color = Color.White.copy(alpha = 0.90f), fontSize = 12.sp)
             }
         }
     }
@@ -603,43 +625,40 @@ private fun ParityEventMembersRow(
     currentUserName: String?,
     onClick: () -> Unit,
 ) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ParityPremiumCard(
+        Modifier
+            .padding(horizontal = 18.dp)
+            .clickable(onClick = onClick),
     ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Groups, contentDescription = null, tint = SnapColors.Lilac)
-                Text(
-                    "Event Members",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    modifier = Modifier.weight(1f).padding(start = 8.dp),
-                )
-                Text("View all", color = SnapColors.Coral, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
-                members.take(6).forEach { member ->
-                    val initial = when {
-                        member.userId == currentUserId && !currentUserName.isNullOrBlank() -> currentUserName.trim().take(1)
-                        !member.displayName.isNullOrBlank() -> member.displayName.trim().take(1)
-                        else -> "•"
-                    }.uppercase()
-                    Box(
-                        Modifier
-                            .size(BrandVisualParitySpec.EVENT_MEMBER_AVATAR_DP.dp)
-                            .background(parityMemberGradient(member.role), CircleShape)
-                            .border(
-                                BrandVisualParitySpec.EVENT_MEMBER_AVATAR_BORDER_DP.dp,
-                                Color.White,
-                                CircleShape,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(initial, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                    }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Groups, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+            Text(
+                "Event Members",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.weight(1f).padding(start = 8.dp),
+            )
+            Text("View all", color = SnapColors.Coral, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
+            members.take(6).forEach { member ->
+                val initial = when {
+                    member.userId == currentUserId && !currentUserName.isNullOrBlank() -> currentUserName.trim().take(1)
+                    !member.displayName.isNullOrBlank() -> member.displayName.trim().take(1)
+                    else -> "•"
+                }.uppercase()
+                Box(
+                    Modifier
+                        .size(BrandVisualParitySpec.EVENT_MEMBER_AVATAR_DP.dp)
+                        .background(parityMemberGradient(member.role), CircleShape)
+                        .border(
+                            BrandVisualParitySpec.EVENT_MEMBER_AVATAR_BORDER_DP.dp,
+                            Color.White,
+                            CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(initial, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
