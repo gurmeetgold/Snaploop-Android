@@ -19,8 +19,9 @@ jobs:
           ref: feature/android-production-parity-v1
           fetch-depth: 0
       - name: Wire current pinned parity surfaces
-        shell: python
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           shell_path = Path("app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt")
@@ -144,6 +145,7 @@ jobs:
 
           shell_path.write_text(shell)
           coordinator_path.write_text(coordinator)
+          PY
       - name: Commit wired surfaces and remove one-shot workflow
         shell: bash
         run: |
