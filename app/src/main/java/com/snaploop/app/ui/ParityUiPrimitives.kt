@@ -202,6 +202,7 @@ internal fun ParityPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    leadingContent: (@Composable () -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -256,12 +257,18 @@ internal fun ParityPrimaryButton(
                 .padding(horizontal = BrandVisualParitySpec.PRIMARY_BUTTON_HORIZONTAL_CONTENT_PADDING_DP.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(9.dp),
+            ) {
+                leadingContent?.invoke()
+                Text(
+                    text,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                )
+            }
         }
     }
 }

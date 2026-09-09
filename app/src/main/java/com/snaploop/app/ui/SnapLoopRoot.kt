@@ -165,6 +165,11 @@ fun SnapLoopRoot(
     }
 
     when (state.gate) {
+        AppGate.AUTH -> ParityAuthScreen(
+            activity = activity,
+            state = state,
+            coordinator = coordinator,
+        )
         AppGate.MAIN -> {
             if (state.pendingInvite != null) {
                 ParityInvitationReviewScreen(state = state, coordinator = coordinator)
