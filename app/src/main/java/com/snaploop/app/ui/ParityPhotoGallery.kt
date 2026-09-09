@@ -1,6 +1,13 @@
 package com.snaploop.app.ui
 
+import android.Manifest
+import android.content.ClipData
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,10 +26,12 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -51,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.snaploop.app.data.FirebaseMatchRepository
 import com.snaploop.app.domain.PhotoMatch
 import com.snaploop.app.domain.PhotoMatchDeduplication
@@ -74,7 +84,7 @@ private class AndroidPhotoFavoritesStore(context: Context) {
 /**
  * Shared Event/My Photos gallery surface matching the iOS interaction model:
  * branded result banner, Favorites filter, compact 2/3/4/6 density menu,
- * selection mode, photo detail, Favorite and Not Me correction.
+ * selection mode, bulk Save/Share/Favorite actions, photo detail, Favorite and Not Me correction.
  */
 @Composable
 internal fun ParityPhotoGallery(
@@ -90,7 +100,8 @@ internal fun ParityPhotoGallery(
     val scope = rememberCoroutineScope()
     val store = remember(context) { AndroidPhotoFavoritesStore(context) }
     val matches = remember { FirebaseMatchRepository() }
-    var columns by rememberSaveable(title) { mutableIntStateOf(3) }
+    val bulkActions = remember(context) { AndroidPhotoBulkActions(context) }
+    var columns by rememberSaveable(title) { mutableIntStateOf(2) }
     var densityMenuOpen by rememberSaveable(title) { mutableStateOf(false) }
     var favoritesOnly by rememberSaveable(title) { mutableStateOf(false) }
     var selecting by rememberSaveable(title) { mutableStateOf(false) }
@@ -101,6 +112,9 @@ internal fun ParityPhotoGallery(
     var correctingNotMe by remember { mutableStateOf(false) }
     var locallyDismissedSourceKeys by remember(userId) { mutableStateOf(setOf<String>()) }
     var correctionError by remember(userId) { mutableStateOf<String?>(null) }
+    var bulkBusy by remember { mutableStateOf(false) }
+    var bulkMessage by remember { mutableStateOf<String?>(null) }
+    var pendingLegacySave by remember { mutableStateOf<List<PhotoMatch>?>(null) }
 
     fun toggleFavorite(id: String) {
         val next = if (id in favorites) favorites - id else favorites + id
@@ -111,12 +125,99 @@ internal fun ParityPhotoGallery(
     fun endSelection() {
         selecting = false
         selected = emptySet()
+        bulkMessage = null
     }
 
     val availablePhotos = photos.filterNot {
         PhotoMatchDeduplication.logicalSourceKey(it) in locallyDismissedSourceKeys
     }
     val visible = if (favoritesOnly) availablePhotos.filter { it.id in favorites } else availablePhotos
+    val selectedMatches = visible.filter { it.id in selected }
+    val allSelectedAreFavorites = selectedMatches.isNotEmpty() && selectedMatches.all { it.id in favorites }
+
+    val performSave: (List<PhotoMatch>) -> Unit = { chosen ->
+        if (chosen.isNotEmpty() && !bulkBusy) {
+            scope.launch {
+                bulkBusy = true
+                bulkMessage = null
+                runCatching { bulkActions.saveToPhotoLibrary(chosen) }
+                    .onSuccess { count ->
+                        bulkMessage = when (count) {
+                            0 -> "Selected photos couldn't be saved."
+                            1 -> "Saved 1 photo."
+                            else -> "Saved $count photos."
+                        }
+                    }
+                    .onFailure { bulkMessage = "Some photos couldn't be saved." }
+                bulkBusy = false
+            }
+        }
+    }
+
+    val legacyWritePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val pending = pendingLegacySave
+        pendingLegacySave = null
+        if (granted && !pending.isNullOrEmpty()) {
+            performSave(pending)
+        } else if (!granted) {
+            bulkMessage = "Allow storage access to save photos."
+        }
+    }
+
+    fun saveSelected() {
+        val chosen = selectedMatches
+        if (chosen.isEmpty() || bulkBusy) return
+        val needsLegacyPermission = Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        if (needsLegacyPermission) {
+            pendingLegacySave = chosen
+            legacyWritePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else {
+            performSave(chosen)
+        }
+    }
+
+    fun shareSelected() {
+        val chosen = selectedMatches
+        if (chosen.isEmpty() || bulkBusy) return
+        scope.launch {
+            bulkBusy = true
+            bulkMessage = null
+            val uris = runCatching { bulkActions.prepareShareUris(chosen) }.getOrElse {
+                bulkMessage = "Selected photos couldn't be prepared."
+                emptyList()
+            }
+            if (uris.isNotEmpty()) {
+                val clip = ClipData.newUri(context.contentResolver, "SnapLoop photo", uris.first()).apply {
+                    uris.drop(1).forEach { addItem(ClipData.Item(it)) }
+                }
+                val shareIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                    type = "image/jpeg"
+                    putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+                    clipData = clip
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                runCatching {
+                    context.startActivity(Intent.createChooser(shareIntent, "Share SnapLoop photos"))
+                }.onFailure {
+                    bulkMessage = "Selected photos couldn't be shared."
+                }
+            } else if (bulkMessage == null) {
+                bulkMessage = "Selected photos couldn't be prepared."
+            }
+            bulkBusy = false
+        }
+    }
+
+    fun favoriteSelected() {
+        if (selectedMatches.isEmpty() || bulkBusy) return
+        val ids = selectedMatches.mapTo(mutableSetOf()) { it.id }
+        val nextValue = !allSelectedAreFavorites
+        favorites = if (nextValue) favorites + ids else favorites - ids
+        store.save(userId, favorites)
+        bulkMessage = if (nextValue) "Added to Favorites." else "Removed from Favorites."
+        if (favoritesOnly && !nextValue) selected = emptySet()
+    }
 
     Column(modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
         Row(
@@ -137,7 +238,10 @@ internal fun ParityPhotoGallery(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
             )
-            IconButton(onClick = onRefresh) {
+            IconButton(onClick = {
+                correctionError = null
+                onRefresh()
+            }) {
                 Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
             }
         }
@@ -155,37 +259,59 @@ internal fun ParityPhotoGallery(
         ) {
             FilterChip(
                 selected = !favoritesOnly,
-                onClick = { favoritesOnly = false },
+                onClick = {
+                    favoritesOnly = false
+                    selected = emptySet()
+                    bulkMessage = null
+                },
                 label = { Text("All") },
             )
             FilterChip(
                 selected = favoritesOnly,
-                onClick = { favoritesOnly = true },
+                onClick = {
+                    favoritesOnly = true
+                    selected = emptySet()
+                    bulkMessage = null
+                },
                 label = { Text("Favorites") },
             )
             Box(Modifier.weight(1f))
-            Box {
-                TextButton(onClick = { densityMenuOpen = true }) {
-                    Icon(Icons.Filled.GridView, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("  $columns", fontWeight = FontWeight.Bold)
+            if (selecting) {
+                Text("${selected.size} selected", color = Color(0xFF6B6670), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                TextButton(onClick = ::endSelection, enabled = !bulkBusy) {
+                    Text("Cancel", fontWeight = FontWeight.Bold)
                 }
-                DropdownMenu(
-                    expanded = densityMenuOpen,
-                    onDismissRequest = { densityMenuOpen = false },
+            } else {
+                TextButton(
+                    onClick = {
+                        selecting = true
+                        selected = emptySet()
+                        bulkMessage = null
+                    },
+                    enabled = visible.isNotEmpty(),
                 ) {
-                    listOf(2, 3, 4, 6).forEach { count ->
-                        DropdownMenuItem(
-                            text = { Text("$count per row") },
-                            onClick = {
-                                columns = count
-                                densityMenuOpen = false
-                            },
-                        )
+                    Text("Select", fontWeight = FontWeight.Bold)
+                }
+                Box {
+                    TextButton(onClick = { densityMenuOpen = true }) {
+                        Icon(Icons.Filled.GridView, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text("  $columns", fontWeight = FontWeight.Bold)
+                    }
+                    DropdownMenu(
+                        expanded = densityMenuOpen,
+                        onDismissRequest = { densityMenuOpen = false },
+                    ) {
+                        listOf(2, 3, 4, 6).forEach { count ->
+                            DropdownMenuItem(
+                                text = { Text("$count per row") },
+                                onClick = {
+                                    columns = count
+                                    densityMenuOpen = false
+                                },
+                            )
+                        }
                     }
                 }
-            }
-            TextButton(onClick = { if (selecting) endSelection() else selecting = true }) {
-                Text(if (selecting) "Cancel" else "Select", fontWeight = FontWeight.Bold)
             }
         }
 
@@ -198,18 +324,47 @@ internal fun ParityPhotoGallery(
             )
         }
 
-        if (selecting && selected.isNotEmpty()) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
+        if (selecting) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White.copy(alpha = 0.96f),
+                tonalElevation = 2.dp,
             ) {
-                Text("${selected.size} selected", color = Color(0xFF6B6670), fontSize = 12.sp)
-                TextButton(onClick = {
-                    favorites = favorites + selected
-                    store.save(userId, favorites)
-                }) {
-                    Text("Add to Favorites", fontWeight = FontWeight.Bold)
+                Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 5.dp)) {
+                    bulkMessage?.let {
+                        Text(
+                            it,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+                            color = Color(0xFF6B6670),
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        GallerySelectionAction(
+                            label = "Save",
+                            icon = Icons.Filled.Download,
+                            enabled = selected.isNotEmpty() && !bulkBusy,
+                            onClick = ::saveSelected,
+                        )
+                        GallerySelectionAction(
+                            label = "Share",
+                            icon = Icons.Filled.Share,
+                            enabled = selected.isNotEmpty() && !bulkBusy,
+                            onClick = ::shareSelected,
+                        )
+                        GallerySelectionAction(
+                            label = if (allSelectedAreFavorites) "Unfavorite" else "Favorite",
+                            icon = if (allSelectedAreFavorites) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            enabled = selected.isNotEmpty() && !bulkBusy,
+                            onClick = ::favoriteSelected,
+                        )
+                    }
                 }
             }
         }
@@ -225,9 +380,9 @@ internal fun ParityPhotoGallery(
                         )
                         Text(
                             if (favoritesOnly) {
-                                "Tap the heart on a photo to add it here."
+                                "Open a photo and tap Favorite to keep it here."
                             } else {
-                                "Scan Event photos to find matches."
+                                "SnapLoop automatically checks eligible Events for new matched photos. You can also use Scan Photos from an Event at any time."
                             },
                             modifier = Modifier.padding(top = 6.dp),
                             color = Color(0xFF6B6670),
@@ -239,21 +394,24 @@ internal fun ParityPhotoGallery(
             return@Column
         }
 
+        val gridSpacing = if (columns >= 6) 4.dp else 8.dp
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
             modifier = Modifier.fillMaxSize().padding(top = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(gridSpacing),
+            verticalArrangement = Arrangement.spacedBy(gridSpacing),
         ) {
             items(visible, key = { it.id }) { match ->
                 val isSelected = match.id in selected
+                val compact = columns >= 6
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(if (columns <= 2) 12.dp else 5.dp))
+                        .clip(RoundedCornerShape(if (compact) 6.dp else 14.dp))
                         .clickable {
                             if (selecting) {
                                 selected = if (isSelected) selected - match.id else selected + match.id
+                                bulkMessage = null
                             } else {
                                 detail = match
                             }
@@ -272,30 +430,26 @@ internal fun ParityPhotoGallery(
                         )
                     }
 
-                    Surface(
-                        modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
-                        shape = CircleShape,
-                        color = Color.Black.copy(alpha = 0.48f),
-                    ) {
-                        if (selecting) {
+                    if (selecting) {
+                        Surface(
+                            modifier = Modifier.align(Alignment.TopEnd).padding(if (compact) 3.dp else 7.dp),
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.45f),
+                        ) {
                             Text(
                                 if (isSelected) "✓" else "○",
                                 color = Color.White,
-                                fontSize = if (columns >= 4) 13.sp else 17.sp,
+                                fontSize = if (compact) 13.sp else 18.sp,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                             )
-                        } else {
-                            IconButton(
-                                onClick = { toggleFavorite(match.id) },
-                                modifier = Modifier.size(if (columns >= 4) 30.dp else 36.dp),
-                            ) {
-                                Icon(
-                                    if (match.id in favorites) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                                    contentDescription = "Favorite",
-                                    tint = Color.White,
-                                )
-                            }
                         }
+                    } else if (match.id in favorites) {
+                        Icon(
+                            Icons.Filled.Favorite,
+                            contentDescription = "Favorite",
+                            tint = Color(0xFFFF2B90),
+                            modifier = Modifier.align(Alignment.TopEnd).padding(if (compact) 3.dp else 7.dp).size(if (compact) 12.dp else 18.dp),
+                        )
                     }
                 }
             }
@@ -356,6 +510,21 @@ internal fun ParityPhotoGallery(
                 ) { Text("Cancel") }
             },
         )
+    }
+}
+
+@Composable
+private fun GallerySelectionAction(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    TextButton(onClick = onClick, enabled = enabled) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
+            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        }
     }
 }
 
