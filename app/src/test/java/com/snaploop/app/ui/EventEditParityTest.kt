@@ -75,6 +75,51 @@ class EventEditParityTest {
         assertFalse(plan.hasChanges)
     }
 
+    @Test
+    fun `opening historical edit never repairs unchanged dates`() {
+        val start = LocalDate.of(2024, 2, 10)
+        val end = LocalDate.of(2024, 2, 15)
+        assertEquals(
+            end,
+            EventEditParityPolicy.repairEndAfterStartChange(
+                newStart = start,
+                currentEnd = end,
+            ),
+        )
+    }
+
+    @Test
+    fun `changing start repairs illegal end to three day suggestion`() {
+        val start = LocalDate.of(2026, 9, 10)
+        assertEquals(
+            LocalDate.of(2026, 9, 13),
+            EventEditParityPolicy.repairEndAfterStartChange(
+                newStart = start,
+                currentEnd = LocalDate.of(2026, 9, 9),
+            ),
+        )
+        assertEquals(
+            LocalDate.of(2026, 9, 13),
+            EventEditParityPolicy.repairEndAfterStartChange(
+                newStart = start,
+                currentEnd = LocalDate.of(2026, 10, 10),
+            ),
+        )
+    }
+
+    @Test
+    fun `start repair respects configured max below three days`() {
+        val start = LocalDate.of(2026, 9, 10)
+        assertEquals(
+            LocalDate.of(2026, 9, 12),
+            EventEditParityPolicy.repairEndAfterStartChange(
+                newStart = start,
+                currentEnd = LocalDate.of(2026, 10, 10),
+                configuredMaximumDurationDays = 2,
+            ),
+        )
+    }
+
     private fun event() = SnapEvent(
         id = "event",
         joinCode = "ABC123",
