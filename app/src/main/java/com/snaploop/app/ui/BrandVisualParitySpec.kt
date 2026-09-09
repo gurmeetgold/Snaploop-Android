@@ -39,14 +39,25 @@ internal object BrandVisualParitySpec {
     // Pinned iOS HomeView action cards use a 150pt minimum height.
     const val HOME_ACTION_CARD_MIN_HEIGHT_DP = 150
 
-    // Pinned iOS EventDashboardView / Theme.GradientTile geometry.
+    // Pinned iOS EventDashboardView hero geometry.
     const val EVENT_HERO_HEIGHT_DP = 230
     const val EVENT_HERO_RADIUS_DP = 30
     const val EVENT_HERO_SHADOW_DP = 18
     const val EVENT_HERO_SHADOW_ALPHA = 0.18f
-    const val EVENT_FEATURE_TILE_HEIGHT_DP = 118
     const val EVENT_MEMBER_AVATAR_DP = 42
     const val EVENT_MEMBER_AVATAR_BORDER_DP = 2
+
+    // Pinned iOS Theme.GradientTile defaults.
+    const val EVENT_FEATURE_TILE_HEIGHT_DP = 118
+    const val EVENT_FEATURE_TILE_RADIUS_DP = 22
+    const val EVENT_FEATURE_TILE_ICON_DP = 40
+    const val EVENT_FEATURE_TILE_ICON_RADIUS_DP = 12
+    const val EVENT_FEATURE_TILE_DECORATION_DP = 100
+    const val EVENT_FEATURE_TILE_DECORATION_OFFSET_X_DP = 78
+    const val EVENT_FEATURE_TILE_DECORATION_OFFSET_Y_DP = -38
+    const val EVENT_FEATURE_TILE_SHADOW_DP = 14
+    const val EVENT_FEATURE_TILE_SHADOW_Y_DP = 8
+    const val EVENT_FEATURE_TILE_SHADOW_ALPHA = 0.18f
 
     const val DARK_LILAC_GLOW_ALPHA = 0.16f
     const val DARK_HOT_PINK_GLOW_ALPHA = 0.12f
