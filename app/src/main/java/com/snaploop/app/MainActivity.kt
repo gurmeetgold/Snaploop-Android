@@ -10,6 +10,8 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModelProvider
 import com.snaploop.app.core.DeepLinkParser
 import com.snaploop.app.core.InvitationResumeStore
+import com.snaploop.app.notifications.SnapLoopNotificationContract
+import com.snaploop.app.notifications.SnapLoopPushRefreshStore
 import com.snaploop.app.ui.AppCoordinator
 import com.snaploop.app.ui.SnapLoopDeepLinkEffect
 import com.snaploop.app.ui.SnapLoopRoot
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * Single-activity host. Pending invite URLs and non-sensitive invitation resume
  * context are persisted until the coordinator consumes them so cold start,
  * authentication, Face Setup and process recreation retain the same invitation.
+ * Product push payloads are only wake-up hints and never become navigation state.
  */
 class MainActivity : ComponentActivity() {
     private lateinit var coordinator: AppCoordinator
@@ -29,9 +32,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         InvitationResumeStore.initialize(applicationContext)
+        SnapLoopPushRefreshStore.initialize(applicationContext)
         coordinator = ViewModelProvider(this)[AppCoordinator::class.java]
 
         val launchUri = intent?.data
+        if (launchUri == null) capturePushWakeUp(intent)
+
         val restored = InvitationResumeStore.state.value
         val launchRoute = launchUri?.let { DeepLinkParser.parse(it) }
         val launchMatchesRestored = restored != null && launchRoute != null &&
@@ -52,6 +58,7 @@ class MainActivity : ComponentActivity() {
                 // A genuinely new explicit link wins over an older interrupted
                 // invitation rather than inheriting stale action provenance.
                 InvitationResumeStore.clear()
+                SnapLoopPushRefreshStore.clear()
                 capturePendingDeepLink(launchUri)
             }
 
@@ -84,10 +91,33 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        intent.data?.let {
+        val uri = intent.data
+        if (uri != null) {
+            // Explicit user links remain authoritative over a previous push wake-up.
+            SnapLoopPushRefreshStore.clear()
             InvitationResumeStore.clear()
-            capturePendingDeepLink(it)
+            capturePendingDeepLink(uri)
+        } else {
+            capturePushWakeUp(intent)
         }
+    }
+
+    private fun capturePushWakeUp(intent: Intent?) {
+        val route = SnapLoopNotificationContract.route(
+            mapOf(
+                "inviteToken" to intent?.getStringExtra("inviteToken").orEmpty(),
+                "eventId" to intent?.getStringExtra("eventId").orEmpty(),
+            ),
+        ) ?: return
+
+        // A new invite push supersedes only stale durable resume provenance; the
+        // server still decides whether an authenticated invitation is pending.
+        if (route is SnapLoopNotificationContract.Route.Invite) {
+            InvitationResumeStore.clear()
+            invitePrefs.edit().remove(KEY_PENDING_URL).apply()
+            pendingDeepLink.value = null
+        }
+        SnapLoopPushRefreshStore.markPending(applicationContext)
     }
 
     private fun capturePendingDeepLink(uri: Uri?) {
