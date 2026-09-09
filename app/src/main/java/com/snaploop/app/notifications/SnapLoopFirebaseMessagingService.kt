@@ -121,6 +121,32 @@ object SnapLoopNotifications {
         context.getSystemService(NotificationManager::class.java)?.cancel(id)
     }
 
+    /**
+     * Remove only already-delivered invitation notifications for the Event after
+     * the backend has accepted a decline. Android does not schedule local pending
+     * invite notifications, so active notifications are the complete device-local
+     * presentation surface that needs cleanup.
+     */
+    fun removeInviteNotifications(context: Context, eventId: String) {
+        val targetEventId = SnapLoopNotificationContract.normalizeEventId(eventId) ?: return
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        val active = runCatching { manager.activeNotifications }.getOrElse { emptyArray() }
+
+        active.forEach { statusBarNotification ->
+            val extras = statusBarNotification.notification.extras
+            val shouldCancel = InviteNotificationCleanupPolicy.shouldCancel(
+                targetEventId = targetEventId,
+                payloadEventId = extras.getString(SnapLoopNotificationContract.KEY_EVENT_ID),
+                inviteToken = extras.getString(SnapLoopNotificationContract.KEY_INVITE_TOKEN),
+            )
+            if (shouldCancel) {
+                val tag = statusBarNotification.tag
+                if (tag == null) manager.cancel(statusBarNotification.id)
+                else manager.cancel(tag, statusBarNotification.id)
+            }
+        }
+    }
+
     private fun contentIntent(
         context: Context,
         payload: SnapLoopNotificationPayload,
