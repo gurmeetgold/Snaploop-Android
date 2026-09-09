@@ -12,12 +12,15 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import com.snaploop.app.core.DeepLinkParser
 import com.snaploop.app.core.InvitationActionPolicy
 import com.snaploop.app.core.InvitationResumeStore
 import com.snaploop.app.data.FirebaseEventRepository
 import com.snaploop.app.invite.EventInviteClient
 import com.snaploop.app.model.EventStatus
+import com.snaploop.app.notifications.EventNotificationInvalidationStore
+import com.snaploop.app.notifications.SnapLoopNotifications
 
 /**
  * Preserves incoming links through authentication and dispatches explicit invite
@@ -30,6 +33,7 @@ fun SnapLoopDeepLinkEffect(
     onConsumed: () -> Unit,
 ) {
     val state by coordinator.state.collectAsState()
+    val context = LocalContext.current.applicationContext
     var retryNonce by remember { mutableIntStateOf(0) }
     var actionError by remember { mutableStateOf<String?>(null) }
     var declinedEventName by remember { mutableStateOf<String?>(null) }
@@ -113,6 +117,8 @@ fun SnapLoopDeepLinkEffect(
                     }
 
                     EventInviteClient().decline(event.id)
+                    SnapLoopNotifications.removeInviteNotifications(context, event.id)
+                    EventNotificationInvalidationStore.invalidate(event.id)
                     InvitationResumeStore.clear()
                     coordinator.dismissPendingInvite()
                     declinedEventName = event.name
