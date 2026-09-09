@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModelProvider
+import com.snaploop.app.core.InvitationResumeStore
 import com.snaploop.app.ui.AppCoordinator
 import com.snaploop.app.ui.SnapLoopDeepLinkEffect
 import com.snaploop.app.ui.SnapLoopRoot
@@ -15,9 +16,9 @@ import com.snaploop.app.ui.SnapLoopTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * Single-activity host. Pending invite URLs are persisted until the coordinator
- * consumes them so a cold-start invitation survives authentication, process
- * recreation, or an Activity restart, matching the iOS PendingInviteStore model.
+ * Single-activity host. Pending invite URLs and non-sensitive invitation resume
+ * context are persisted until the coordinator consumes them so cold start,
+ * authentication, Face Setup and process recreation retain the same invitation.
  */
 class MainActivity : ComponentActivity() {
     private lateinit var coordinator: AppCoordinator
@@ -26,6 +27,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        InvitationResumeStore.initialize(applicationContext)
         coordinator = ViewModelProvider(this)[AppCoordinator::class.java]
         capturePendingDeepLink(intent?.data)
         if (pendingDeepLink.value == null) {
