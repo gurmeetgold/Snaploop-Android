@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.snaploop.app.data.FirebaseMatchRepository
 import com.snaploop.app.domain.PhotoMatch
+import com.snaploop.app.domain.PhotoMatchDeduplication
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -98,6 +99,8 @@ internal fun ParityPhotoGallery(
     var detail by remember { mutableStateOf<PhotoMatch?>(null) }
     var notMeConfirmation by remember { mutableStateOf<PhotoMatch?>(null) }
     var correctingNotMe by remember { mutableStateOf(false) }
+    var locallyDismissedSourceKeys by remember(userId) { mutableStateOf(setOf<String>()) }
+    var correctionError by remember(userId) { mutableStateOf<String?>(null) }
 
     fun toggleFavorite(id: String) {
         val next = if (id in favorites) favorites - id else favorites + id
@@ -110,7 +113,10 @@ internal fun ParityPhotoGallery(
         selected = emptySet()
     }
 
-    val visible = if (favoritesOnly) photos.filter { it.id in favorites } else photos
+    val availablePhotos = photos.filterNot {
+        PhotoMatchDeduplication.logicalSourceKey(it) in locallyDismissedSourceKeys
+    }
+    val visible = if (favoritesOnly) availablePhotos.filter { it.id in favorites } else availablePhotos
 
     Column(modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
         Row(
@@ -137,7 +143,7 @@ internal fun ParityPhotoGallery(
         }
 
         GalleryInsightBanner(
-            count = photos.size,
+            count = availablePhotos.size,
             subtitle = subtitle,
             modifier = Modifier.padding(top = 4.dp),
         )
@@ -181,6 +187,15 @@ internal fun ParityPhotoGallery(
             TextButton(onClick = { if (selecting) endSelection() else selecting = true }) {
                 Text(if (selecting) "Cancel" else "Select", fontWeight = FontWeight.Bold)
             }
+        }
+
+        correctionError?.let {
+            Text(
+                it,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                color = Color(0xFFB3261E),
+                fontSize = 12.sp,
+            )
         }
 
         if (selecting && selected.isNotEmpty()) {
@@ -310,12 +325,24 @@ internal fun ParityPhotoGallery(
                     onClick = {
                         val uid = userId ?: return@TextButton
                         correctingNotMe = true
+                        correctionError = null
+
+                        // Match iOS: update the visible Gallery and local Favorite state first. The
+                        // correction remains optimistically hidden if the network write fails, while
+                        // the user gets an explicit retry message instead of a silent failure.
+                        locallyDismissedSourceKeys = locallyDismissedSourceKeys +
+                            PhotoMatchDeduplication.logicalSourceKey(match)
+                        favorites = favorites - match.id
+                        store.save(userId, favorites)
+                        detail = null
+                        notMeConfirmation = null
+
                         scope.launch {
                             runCatching { matches.dismissAppearance(match.id, uid) }
-                            detail = null
-                            notMeConfirmation = null
+                                .onFailure {
+                                    correctionError = "Couldn't save the Not Me correction. Refresh and try again."
+                                }
                             correctingNotMe = false
-                            onRefresh()
                         }
                     },
                 ) {
