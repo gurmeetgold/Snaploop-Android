@@ -8,16 +8,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,11 +46,9 @@ import androidx.compose.ui.window.DialogProperties
 import com.snaploop.app.model.EventCategory
 import com.snaploop.app.model.SnapEvent
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
-/** Full-screen edit surface mirrored from pinned iOS EditEventView.swift. */
+/** Full-screen Edit Event surface mirrored from pinned iOS EditEventView.swift. */
 @Composable
 internal fun ParityEditEventDialog(
     event: SnapEvent,
@@ -53,31 +56,19 @@ internal fun ParityEditEventDialog(
     onDismiss: () -> Unit,
     onSubmit: (String, EventCategory, String?, LocalDate, LocalDate) -> Unit,
 ) {
-    val zone = EventEditParityPolicy.eventZone(event)
-    val initialStart = remember(event.id, event.updatedAt) { event.startsAt.atZone(zone).toLocalDate() }
-    val initialEnd = remember(event.id, event.updatedAt) { event.endsAt.atZone(zone).toLocalDate() }
-    var name by remember(event.id, event.updatedAt) { mutableStateOf(event.name) }
+    val zone = remember(event.id, event.photoWindowTimeZoneId) { EventEditParityPolicy.eventZone(event) }
+    val initialStart = remember(event.id, event.startsAt) { event.startsAt.atZone(zone).toLocalDate() }
+    val initialEnd = remember(event.id, event.endsAt) { event.endsAt.atZone(zone).toLocalDate() }
+
+    var name by rememberSaveable(event.id, event.updatedAt) { mutableStateOf(event.name) }
     var category by remember(event.id, event.updatedAt) { mutableStateOf(event.category) }
-    var location by remember(event.id, event.updatedAt) { mutableStateOf(event.locationName.orEmpty()) }
+    var categoryMenu by remember { mutableStateOf(false) }
+    var location by rememberSaveable(event.id, event.updatedAt) { mutableStateOf(event.locationName.orEmpty()) }
     var startsOn by remember(event.id, event.updatedAt) { mutableStateOf(initialStart) }
     var endsOn by remember(event.id, event.updatedAt) { mutableStateOf(initialEnd) }
-    var categoryMenu by remember { mutableStateOf(false) }
 
     val cleanName = name.trim()
     val cleanLocation = location.trim().takeIf { it.isNotEmpty() }
-    val datesChanged = startsOn != initialStart || endsOn != initialEnd
-    val detailsChanged = cleanName != event.name || category != event.category || cleanLocation != event.locationName
-    val today = LocalDate.now(zone)
-    val lower = today.minusDays(15)
-    val upper = today.plusDays(15)
-    val dateInvalid = datesChanged && (
-        endsOn.isBefore(startsOn) ||
-            startsOn.isBefore(lower) || startsOn.isAfter(upper) ||
-            endsOn.isBefore(lower) || endsOn.isAfter(upper) ||
-            ChronoUnit.DAYS.between(startsOn, endsOn) > 15
-        )
-    val canSave = cleanName.isNotEmpty() && cleanName.length <= 20 &&
-        !dateInvalid && (detailsChanged || datesChanged) && !busy
 
     Dialog(
         onDismissRequest = { if (!busy) onDismiss() },
@@ -93,7 +84,7 @@ internal fun ParityEditEventDialog(
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onDismiss, enabled = !busy) {
@@ -103,33 +94,40 @@ internal fun ParityEditEventDialog(
                         "Edit Event",
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center,
-                        fontSize = 21.sp,
-                        fontWeight = FontWeight.Black,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
                     )
                     Spacer(Modifier.size(48.dp))
                 }
 
-                ParityBrandMark(58)
-                Text("Edit Event", fontSize = 28.sp, fontWeight = FontWeight.Black)
+                ParityBrandMark(54)
+                Text(
+                    "Edit Event",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
 
                 ParityPremiumCard {
-                    Text("Event name", fontWeight = FontWeight.Bold)
+                    EditFieldLabel("Event name", Icons.Filled.TextFields)
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it.take(20) },
                         modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Event name") },
                         singleLine = true,
-                        supportingText = { Text("${name.length}/20") },
+                        enabled = !busy,
                     )
 
-                    Text("Type", fontWeight = FontWeight.Bold)
+                    HorizontalDivider()
+                    EditFieldLabel("Type", Icons.Filled.Category)
                     Box(Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = { categoryMenu = true },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !busy,
                         ) {
-                            Text(parityCategoryName(category))
+                            Text(editCategoryName(category))
                         }
                         DropdownMenu(
                             expanded = categoryMenu,
@@ -137,7 +135,7 @@ internal fun ParityEditEventDialog(
                         ) {
                             EventCategory.entries.forEach { item ->
                                 DropdownMenuItem(
-                                    text = { Text(parityCategoryName(item)) },
+                                    text = { Text(editCategoryName(item)) },
                                     onClick = {
                                         category = item
                                         categoryMenu = false
@@ -147,89 +145,69 @@ internal fun ParityEditEventDialog(
                         }
                     }
 
-                    Text("Location", fontWeight = FontWeight.Bold)
+                    HorizontalDivider()
+                    EditFieldLabel("Location", Icons.Filled.LocationOn)
                     OutlinedTextField(
                         value = location,
-                        onValueChange = { location = it.take(80) },
+                        onValueChange = { location = it },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Optional") },
                         singleLine = true,
+                        enabled = !busy,
                     )
                 }
 
                 ParityPremiumCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.CalendarMonth, contentDescription = null, tint = SnapColors.Coral)
-                        Text("  Event dates", fontWeight = FontWeight.Black)
-                    }
-                    ParityEditDateField(
-                        label = "Starts",
-                        value = startsOn,
-                        eventZone = zone,
-                        minimum = lower,
-                        maximum = upper,
-                        busy = busy,
-                    ) { newStart ->
-                        startsOn = newStart
-                        if (endsOn.isBefore(newStart)) endsOn = newStart
-                        if (ChronoUnit.DAYS.between(newStart, endsOn) > 15) {
-                            endsOn = minOf(upper, newStart.plusDays(3))
-                        }
-                    }
-                    ParityEditDateField(
-                        label = "Ends",
-                        value = endsOn,
-                        eventZone = zone,
-                        minimum = maxOf(lower, startsOn),
-                        maximum = minOf(upper, startsOn.plusDays(15)),
-                        busy = busy,
-                        onValue = { endsOn = it },
-                    )
+                    EditFieldLabel("Event dates", Icons.Filled.CalendarMonth)
                     Text(
-                        if (!datesChanged && (initialStart.isBefore(lower) || initialEnd.isAfter(upper))) {
-                            "Existing Event dates are preserved unless you change them."
-                        } else {
-                            "Changed dates must stay within 15 days before or after today, and an Event can span at most 15 calendar days."
-                        },
+                        "Organizer and Admins can change dates. Other members are notified; they do not need to approve the change.",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
                         fontSize = 12.sp,
                     )
-                    if (dateInvalid) {
-                        Text(
-                            "Choose a valid Event date range.",
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
+                    EditDateField("Starts", startsOn, busy) { newStart ->
+                        startsOn = newStart
+                        endsOn = EventEditParityPolicy.repairEndAfterStartChange(
+                            newStart = newStart,
+                            currentEnd = endsOn,
                         )
                     }
+                    HorizontalDivider()
+                    EditDateField("Ends", endsOn, busy) { endsOn = it }
+                    Text(
+                        "Dates must stay within 15 days before or after today, and the event can span at most 15 calendar days.",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        fontSize = 12.sp,
+                    )
                 }
 
                 ParityPrimaryButton(
                     text = if (busy) "Saving…" else "Save Event",
-                    enabled = canSave,
+                    enabled = cleanName.isNotEmpty() && !busy,
                     onClick = {
-                        onSubmit(
-                            cleanName,
-                            category,
-                            cleanLocation,
-                            startsOn,
-                            endsOn,
-                        )
+                        onSubmit(cleanName, category, cleanLocation, startsOn, endsOn)
+                    },
+                    leadingContent = {
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null)
                     },
                 )
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.size(24.dp))
             }
         }
     }
 }
 
 @Composable
-private fun ParityEditDateField(
+private fun EditFieldLabel(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = SnapColors.Coral, modifier = Modifier.size(18.dp))
+        Text("  $text", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+    }
+}
+
+@Composable
+private fun EditDateField(
     label: String,
     value: LocalDate,
-    eventZone: ZoneId,
-    minimum: LocalDate,
-    maximum: LocalDate,
     busy: Boolean,
     onValue: (LocalDate) -> Unit,
 ) {
@@ -241,17 +219,11 @@ private fun ParityEditDateField(
             onClick = {
                 DatePickerDialog(
                     context,
-                    { _, year, month, day ->
-                        val picked = LocalDate.of(year, month + 1, day)
-                        if (!picked.isBefore(minimum) && !picked.isAfter(maximum)) onValue(picked)
-                    },
+                    { _, year, month, day -> onValue(LocalDate.of(year, month + 1, day)) },
                     value.year,
                     value.monthValue - 1,
                     value.dayOfMonth,
-                ).apply {
-                    datePicker.minDate = minimum.atStartOfDay(eventZone).toInstant().toEpochMilli()
-                    datePicker.maxDate = maximum.plusDays(1).atStartOfDay(eventZone).toInstant().toEpochMilli() - 1
-                }.show()
+                ).show()
             },
         ) {
             Text(value.format(DateTimeFormatter.ofPattern("MMM d, yyyy")))
@@ -259,7 +231,7 @@ private fun ParityEditDateField(
     }
 }
 
-private fun parityCategoryName(category: EventCategory): String = when (category) {
+private fun editCategoryName(category: EventCategory): String = when (category) {
     EventCategory.trip -> "Trip"
     EventCategory.wedding -> "Wedding"
     EventCategory.party -> "Party"
