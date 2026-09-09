@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -177,45 +178,83 @@ internal fun ParityEventScanScreen(
 
                     state.scanResult != null -> {
                         val result = state.scanResult
-                        Box(
-                            Modifier.size(94.dp).background(
-                                Brush.linearGradient(listOf(Color(0xFFF05C68), Color(0xFF8E63F6))),
-                                CircleShape,
-                            ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Filled.Check,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(42.dp),
+                        val presentation = ScanResultPresentationPolicy.kind(result.remaining, result.failed)
+
+                        if (presentation == ScanResultPresentationPolicy.Kind.RETRYABLE_FAILURE) {
+                            Box(
+                                Modifier.size(94.dp).background(
+                                    Color(0xFFF05C68).copy(alpha = 0.12f),
+                                    CircleShape,
+                                ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Filled.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF05C68),
+                                    modifier = Modifier.size(42.dp),
+                                )
+                            }
+                            Text("Scan stopped", fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            Text(
+                                ScanResultPresentationPolicy.retryMessage(result.remaining),
+                                color = Color(0xFF6B6670),
+                                textAlign = TextAlign.Center,
                             )
-                        }
-                        Text(
-                            if (result.checked > 0) "Scan complete" else "You're up to date",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Black,
-                        )
-                        Text(
-                            if (result.checked > 0) {
-                                "Matched photos are now available to the Event members found in them."
-                            } else {
-                                "No new photos need scanning for this Event."
-                            },
-                            color = Color(0xFF6B6670),
-                            textAlign = TextAlign.Center,
-                        )
-                        if (photoAccess == PhotoAccessLevel.SELECTED) {
-                            LimitedAccessNotice()
-                        }
-                        if (result.remaining > 0) {
-                            Button(onClick = { coordinator.scanSelectedEvent() }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Scan Next Batch", fontWeight = FontWeight.Bold)
+                            if (photoAccess == PhotoAccessLevel.SELECTED) {
+                                LimitedAccessNotice()
+                            }
+                            Button(
+                                onClick = { coordinator.scanSelectedEvent() },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Try Again", fontWeight = FontWeight.Bold)
                             }
                             TextButton(onClick = onBack) { Text("Done") }
                         } else {
-                            Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                                Text("Done", fontWeight = FontWeight.Bold)
+                            Box(
+                                Modifier.size(94.dp).background(
+                                    Brush.linearGradient(listOf(Color(0xFFF05C68), Color(0xFF8E63F6))),
+                                    CircleShape,
+                                ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Filled.Check,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(42.dp),
+                                )
+                            }
+                            Text(
+                                if (result.checked > 0) "Scan complete" else "You're up to date",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Black,
+                            )
+                            Text(
+                                if (result.checked > 0) {
+                                    "Matched photos are now available to the Event members found in them."
+                                } else {
+                                    "No new photos need scanning for this Event."
+                                },
+                                color = Color(0xFF6B6670),
+                                textAlign = TextAlign.Center,
+                            )
+                            if (photoAccess == PhotoAccessLevel.SELECTED) {
+                                LimitedAccessNotice()
+                            }
+                            if (presentation == ScanResultPresentationPolicy.Kind.DEFERRED_BATCH) {
+                                Button(
+                                    onClick = { coordinator.scanSelectedEvent() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("Scan Next Batch", fontWeight = FontWeight.Bold)
+                                }
+                                TextButton(onClick = onBack) { Text("Done") }
+                            } else {
+                                Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Done", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
