@@ -172,7 +172,7 @@ internal fun SnapLoopMainShell(
     ) { inset ->
         ShellBackground(Modifier.padding(inset)) {
             when {
-                state.pendingInvite != null -> ShellInvitationReview(state.pendingInvite, coordinator)
+                state.pendingInvite != null -> ParityInvitationReviewScreen(state, coordinator)
                 state.selectedEvent != null -> ShellEventHost(state, coordinator)
                 tab == 0 -> ShellHome(state, coordinator)
                 tab == 1 -> ShellGallery(state, coordinator)
@@ -568,10 +568,13 @@ private fun ShellEventHost(state: AppUiState, coordinator: AppCoordinator) {
             onBack = { page = ShellEventPage.DASHBOARD },
             onInvite = { page = ShellEventPage.INVITE },
         )
-        ShellEventPage.INVITE -> ShellInvite(
-            state = state,
-            onBack = { page = ShellEventPage.DASHBOARD },
-            onPhoneInvite = { page = ShellEventPage.PHONE_INVITE },
+        ShellEventPage.INVITE -> ParityShareEventDialog(
+            event = event,
+            inviterName = state.user?.displayName,
+            canManageInvites = shellCurrentRole(event, state.members, state.user?.id).let {
+                it == EventMember.Role.organizer || it == EventMember.Role.admin
+            },
+            onDismiss = { page = ShellEventPage.DASHBOARD },
         )
         ShellEventPage.PHONE_INVITE -> ParityPhoneInviteScreen(event = event) { page = ShellEventPage.INVITE }
         ShellEventPage.EDIT -> ParityEditEventDialog(
