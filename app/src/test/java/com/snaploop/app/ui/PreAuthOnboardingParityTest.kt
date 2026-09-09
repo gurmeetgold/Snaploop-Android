@@ -10,7 +10,7 @@ class PreAuthOnboardingParityTest {
         assertTrue(
             PreAuthOnboardingParity.hasCompleted(
                 globalCompleted = true,
-                legacyEntries = emptyMap(),
+                legacyEntries = emptyMap<String, Any?>(),
             ),
         )
     }
@@ -20,7 +20,7 @@ class PreAuthOnboardingParityTest {
         assertTrue(
             PreAuthOnboardingParity.hasCompleted(
                 globalCompleted = false,
-                legacyEntries = mapOf(
+                legacyEntries = mapOf<String, Any?>(
                     "onboarding.user-123.v1" to true,
                     "other" to false,
                 ),
@@ -33,7 +33,7 @@ class PreAuthOnboardingParityTest {
         assertFalse(
             PreAuthOnboardingParity.hasCompleted(
                 globalCompleted = false,
-                legacyEntries = mapOf(
+                legacyEntries = mapOf<String, Any?>(
                     "face_setup.skipped.user-123.v1" to true,
                     "onboarding.user-123.v2" to true,
                 ),
