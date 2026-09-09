@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,10 +51,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.snaploop.app.data.FirebaseEventRepository
 import com.snaploop.app.model.EventCategory
 import com.snaploop.app.model.SnapEvent
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
 
 /** Full-screen Edit Event surface mirrored from pinned iOS EditEventView.swift. */
 @Composable
@@ -66,6 +69,7 @@ internal fun ParityEditEventDialog(
     val zone = remember(event.id, event.photoWindowTimeZoneId) { EventEditParityPolicy.eventZone(event) }
     val initialStart = remember(event.id, event.startsAt) { event.startsAt.atZone(zone).toLocalDate() }
     val initialEnd = remember(event.id, event.endsAt) { event.endsAt.atZone(zone).toLocalDate() }
+    val scope = rememberCoroutineScope()
 
     var name by rememberSaveable(event.id, event.updatedAt) { mutableStateOf(event.name) }
     var category by remember(event.id, event.updatedAt) { mutableStateOf(event.category) }
@@ -73,12 +77,15 @@ internal fun ParityEditEventDialog(
     var location by rememberSaveable(event.id, event.updatedAt) { mutableStateOf(event.locationName.orEmpty()) }
     var startsOn by remember(event.id, event.updatedAt) { mutableStateOf(initialStart) }
     var endsOn by remember(event.id, event.updatedAt) { mutableStateOf(initialEnd) }
+    var checkingRevision by remember(event.id, event.updatedAt) { mutableStateOf(false) }
+    var editError by remember(event.id, event.updatedAt) { mutableStateOf<String?>(null) }
 
     val cleanName = name.trim()
     val cleanLocation = location.trim().takeIf { it.isNotEmpty() }
+    val controlsBusy = busy || checkingRevision
 
     Dialog(
-        onDismissRequest = { if (!busy) onDismiss() },
+        onDismissRequest = { if (!controlsBusy) onDismiss() },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false,
@@ -94,7 +101,7 @@ internal fun ParityEditEventDialog(
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onDismiss, enabled = !busy) {
+                    IconButton(onClick = onDismiss, enabled = !controlsBusy) {
                         Icon(Icons.Filled.ChevronLeft, contentDescription = "Back")
                     }
                     Text(
@@ -119,9 +126,12 @@ internal fun ParityEditEventDialog(
                     EditFieldLabel("Event name", Icons.Filled.TextFields)
                     EditFilledTextField(
                         value = name,
-                        onValueChange = { name = it.take(20) },
+                        onValueChange = {
+                            name = it.take(20)
+                            editError = null
+                        },
                         placeholder = "Event name",
-                        enabled = !busy,
+                        enabled = !controlsBusy,
                     )
 
                     HorizontalDivider()
@@ -130,7 +140,7 @@ internal fun ParityEditEventDialog(
                         TextButton(
                             onClick = { categoryMenu = true },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !busy,
+                            enabled = !controlsBusy,
                         ) {
                             Text(
                                 editCategoryName(category),
@@ -149,6 +159,7 @@ internal fun ParityEditEventDialog(
                                     onClick = {
                                         category = item
                                         categoryMenu = false
+                                        editError = null
                                     },
                                 )
                             }
@@ -159,9 +170,12 @@ internal fun ParityEditEventDialog(
                     EditFieldLabel("Location", Icons.Filled.LocationOn)
                     EditFilledTextField(
                         value = location,
-                        onValueChange = { location = it },
+                        onValueChange = {
+                            location = it
+                            editError = null
+                        },
                         placeholder = "Optional",
-                        enabled = !busy,
+                        enabled = !controlsBusy,
                     )
                 }
 
@@ -172,15 +186,19 @@ internal fun ParityEditEventDialog(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
                         fontSize = 12.sp,
                     )
-                    EditDateField("Starts", startsOn, busy) { newStart ->
+                    EditDateField("Starts", startsOn, controlsBusy) { newStart ->
                         startsOn = newStart
                         endsOn = EventEditParityPolicy.repairEndAfterStartChange(
                             newStart = newStart,
                             currentEnd = endsOn,
                         )
+                        editError = null
                     }
                     HorizontalDivider()
-                    EditDateField("Ends", endsOn, busy) { endsOn = it }
+                    EditDateField("Ends", endsOn, controlsBusy) {
+                        endsOn = it
+                        editError = null
+                    }
                     Text(
                         "Dates must stay within 15 days before or after today, and the event can span at most 15 calendar days.",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
@@ -188,14 +206,42 @@ internal fun ParityEditEventDialog(
                     )
                 }
 
+                editError?.let { message ->
+                    Text(
+                        message,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+
                 ParityPrimaryButton(
                     text = "Save Event",
-                    enabled = cleanName.isNotEmpty() && !busy,
+                    enabled = cleanName.isNotEmpty() && !controlsBusy,
                     onClick = {
-                        onSubmit(cleanName, category, cleanLocation, startsOn, endsOn)
+                        if (checkingRevision || busy) return@ParityPrimaryButton
+                        checkingRevision = true
+                        editError = null
+                        scope.launch {
+                            val latest = runCatching { FirebaseEventRepository().fetchEvent(event.id) }
+                                .onFailure {
+                                    editError = "SnapLoop couldn't verify the latest Event version. Check your connection and try again."
+                                }
+                                .getOrNull()
+                            if (latest != null) {
+                                if (EventEditConcurrencyPolicy.isFresh(event, latest)) {
+                                    onSubmit(cleanName, category, cleanLocation, startsOn, endsOn)
+                                } else {
+                                    editError = EventEditConcurrencyPolicy.STALE_MESSAGE
+                                }
+                            }
+                            checkingRevision = false
+                        }
                     },
                     leadingContent = {
-                        if (busy) {
+                        if (controlsBusy) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
