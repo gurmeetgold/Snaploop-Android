@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.snaploop.app.core.DeepLinkParser
 import com.snaploop.app.core.InvitationResumeStore
 import com.snaploop.app.notifications.SnapLoopNotificationContract
+import com.snaploop.app.notifications.SnapLoopNotificationKind
 import com.snaploop.app.notifications.SnapLoopPushRefreshStore
 import com.snaploop.app.ui.AppCoordinator
 import com.snaploop.app.ui.SnapLoopDeepLinkEffect
@@ -103,16 +104,19 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun capturePushWakeUp(intent: Intent?) {
-        val route = SnapLoopNotificationContract.route(
+        val payload = SnapLoopNotificationContract.parse(
             mapOf(
-                "inviteToken" to intent?.getStringExtra("inviteToken").orEmpty(),
-                "eventId" to intent?.getStringExtra("eventId").orEmpty(),
+                SnapLoopNotificationContract.KEY_INVITE_TOKEN to
+                    intent?.getStringExtra(SnapLoopNotificationContract.KEY_INVITE_TOKEN).orEmpty(),
+                SnapLoopNotificationContract.KEY_EVENT_ID to
+                    intent?.getStringExtra(SnapLoopNotificationContract.KEY_EVENT_ID).orEmpty(),
             ),
-        ) ?: return
+        )
+        if (payload.kind == SnapLoopNotificationKind.GENERIC) return
 
         // A new invite push supersedes only stale durable resume provenance; the
         // server still decides whether an authenticated invitation is pending.
-        if (route is SnapLoopNotificationContract.Route.Invite) {
+        if (payload.kind == SnapLoopNotificationKind.INVITE) {
             InvitationResumeStore.clear()
             invitePrefs.edit().remove(KEY_PENDING_URL).apply()
             pendingDeepLink.value = null
