@@ -445,6 +445,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     fun resolveJoinInput(raw: String) = launchBusy {
         val intent = DeepLinkParser.parseManual(raw)
             ?: error("That QR code, Event code, or invite link isn't valid.")
+        com.snaploop.app.core.InvitationResumeStore.capture(intent)
         resolveInvitationInternal(intent.code, intent.token, autoJoin = false)
     }
 
