@@ -30,6 +30,26 @@ class CreateEventParityPolicyTest {
     }
 
     @Test
+    fun `end picker upper bound honors both creation window and max duration`() {
+        assertEquals(
+            today.plusDays(5),
+            CreateEventParityPolicy.allowedEndUpper(
+                startsOn = today,
+                today = today,
+                configuredMaxDays = 5,
+            ),
+        )
+        assertEquals(
+            today.plusDays(15),
+            CreateEventParityPolicy.allowedEndUpper(
+                startsOn = today.plusDays(14),
+                today = today,
+                configuredMaxDays = 15,
+            ),
+        )
+    }
+
+    @Test
     fun `start change preserves a still valid end`() {
         val end = today.plusDays(7)
         assertEquals(
