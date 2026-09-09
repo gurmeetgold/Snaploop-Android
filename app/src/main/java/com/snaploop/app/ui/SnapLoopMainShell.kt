@@ -256,6 +256,8 @@ private fun ShellHome(state: AppUiState, coordinator: AppCoordinator) {
             ) { joinOpen = true }
         }
 
+        ParityHomeUpdates(userId = uid)
+
         ShellSectionTitle("Your Events")
         val visible = state.events.filter { it.status != EventStatus.deletedByOrganizer }
         if (visible.isEmpty()) {
