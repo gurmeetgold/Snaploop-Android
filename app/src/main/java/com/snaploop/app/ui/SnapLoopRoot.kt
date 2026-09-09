@@ -15,6 +15,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.snaploop.app.core.InviteAction
 import com.snaploop.app.core.InvitationResumeStore
+import com.snaploop.app.notifications.SnapLoopPushLifecycleEffect
 import com.snaploop.app.scanner.AutomaticForegroundScanController
 
 /**
@@ -34,6 +35,12 @@ fun SnapLoopRoot(
     val automaticScanner = remember(context) { AutomaticForegroundScanController(context) }
     val scanTriggerGeneration = "${state.selectedEvent?.id.orEmpty()}:own=${state.includeOwnMatches}"
     var resumeResolutionInFlight by remember { mutableStateOf(false) }
+
+    SnapLoopPushLifecycleEffect(
+        activity = activity,
+        state = state,
+        coordinator = coordinator,
+    )
 
     // Rebuild an interrupted invitation after Android process recreation, or
     // continue the current-process route after successful Face Setup. Restored
