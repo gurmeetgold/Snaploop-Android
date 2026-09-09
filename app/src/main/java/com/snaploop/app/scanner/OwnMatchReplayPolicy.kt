@@ -14,13 +14,15 @@ import java.time.Instant
  */
 object OwnMatchReplayPolicy {
     fun shouldReplay(
-        enabled: Boolean,
+        previousEnabled: Boolean,
+        savedEnabled: Boolean,
         sharingEnabled: Boolean,
         event: SnapEvent,
         now: Instant,
         gracePeriodDays: Int = RemoteConfigValues().eventGracePeriodDays,
     ): Boolean =
-        enabled &&
+        !previousEnabled &&
+            savedEnabled &&
             sharingEnabled &&
             AutomaticScanPolicy.isWithinSyncWindow(event, now, gracePeriodDays)
 }
