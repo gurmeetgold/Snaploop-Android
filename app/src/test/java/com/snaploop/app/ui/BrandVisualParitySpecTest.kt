@@ -59,6 +59,14 @@ class BrandVisualParitySpecTest {
     }
 
     @Test
+    fun `settings geometry mirrors pinned iOS SettingsView`() {
+        assertEquals(36, BrandVisualParitySpec.SETTINGS_ICON_BADGE_DP)
+        assertEquals(11, BrandVisualParitySpec.SETTINGS_ICON_BADGE_RADIUS_DP)
+        assertEquals(48, BrandVisualParitySpec.SETTINGS_PHOTO_ACTION_HEIGHT_DP)
+        assertEquals(16, BrandVisualParitySpec.SETTINGS_PHOTO_ACTION_RADIUS_DP)
+    }
+
+    @Test
     fun `gradient tile contract mirrors pinned iOS Theme defaults`() {
         assertEquals(118, BrandVisualParitySpec.EVENT_FEATURE_TILE_HEIGHT_DP)
         assertEquals(22, BrandVisualParitySpec.EVENT_FEATURE_TILE_RADIUS_DP)
