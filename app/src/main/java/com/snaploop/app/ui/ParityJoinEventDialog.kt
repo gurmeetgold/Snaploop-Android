@@ -65,12 +65,12 @@ internal fun ParityJoinEventDialog(
     }
 
     if (qrOpen) {
-        ParityQrScannerScreen(
-            onClose = { qrOpen = false },
-            onScanned = { raw ->
+        QrCodeScannerScreen(
+            onResult = { raw: String ->
                 qrOpen = false
                 resolve(raw)
             },
+            onCancel = { qrOpen = false },
         )
     } else {
         Dialog(
