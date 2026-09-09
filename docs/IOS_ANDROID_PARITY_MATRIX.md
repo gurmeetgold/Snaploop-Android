@@ -2,7 +2,7 @@
 
 Source-of-truth baseline: iOS `chatgpt/release-canada-gallery-name-limits-2026-09-03` at `2627881fce5f9b736f0a717e808f0ea2e811ac98`. README history is non-authoritative.
 
-Android implementation checkpoint: `2d8a6ced27492a8704020749ee1cf1d930ef0b9c`, verified by Android CI run 319 (`test`, `lint`, `assembleDebug`, `assembleDebugAndroidTest`).
+Android implementation checkpoint: `76a6715c1c4a051d103bb872d361f5d139a6e703`. Android CI run 319 verified the preceding Edit Event checkpoint; the invitation-review batch at this checkpoint requires its own exact CI result before being called green.
 
 Status legend:
 - ✅ implementation/contract complete for the audited scope and covered by current branch CI/unit/static verification.
@@ -15,7 +15,7 @@ Status legend:
 | App shell Home/Gallery/You | current SwiftUI RootView/screens | Compose main shell with parity Home/Event/Gallery/You surfaces and Android back semantics | no backend change | visual/device walkthrough against pinned screenshots | ✅ impl · 🟡 acceptance |
 | Phone OTP auth | Firebase Auth | Firebase Auth Android, country-code/verification/session restoration flow | same project; no OTP logging | real-device Firebase phone auth | ✅ impl · 🟡 acceptance |
 | Event create/edit | Event + FirebaseEventRepository + functions | civil-date Create/Edit UI, exact managed payloads/status lifecycle, pinned iOS filled-field/menu styling | stable event ID/token; server authority | emulator/real backend cross-client event mutation | ✅ impl · 🟡 acceptance |
-| Join code/link/QR | pinned Events invitation flow | App Link/custom URI parser, manual code/token, camera QR, invitation review/decline provenance | reject untrusted/expired inputs | iOS↔Android device link/QR matrix | ✅ impl · 🟡 acceptance |
+| Join code/link/QR | pinned Events invitation flow | App Link/custom URI parser, manual code/token, camera QR, invitation review/decline provenance, inviter fallback and automatic-action copy parity | reject untrusted/expired inputs | exact CI for current invitation batch; iOS↔Android device link/QR matrix | 🟡 CI · 🟡 acceptance |
 | Membership generation | EventMember/functions | server-issued membership IDs carried through face roster/match context | stale generations must never receive matches | leave/rejoin emulator + cross-client test | ✅ impl · 🟡 acceptance |
 | Event civil dates | eventDateSemantics.js | `LocalDate` + explicit Event timezone/day-number contract | no midnight timezone drift | deterministic DST/unit coverage | ✅ |
 | Remote Config | RemoteConfigValues.swift | Firebase Remote Config with fail-safe defaults and observable Event grace | no permissive biometric fallback | unit/static integration | ✅ |
