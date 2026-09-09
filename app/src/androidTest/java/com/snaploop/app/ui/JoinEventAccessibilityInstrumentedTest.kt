@@ -16,6 +16,11 @@ class JoinEventAccessibilityInstrumentedTest {
 
     @Test
     fun joinEntryPrimaryControlsAreDiscoverableInSemanticsTree() {
+        // Keep this smoke test deterministic on physical devices. The Join surface contains
+        // platform/Dialog/TextField work that can keep Compose's auto-advancing clock from
+        // reaching quiescence on some OEM builds even though the semantics tree is ready.
+        composeRule.mainClock.autoAdvance = false
+
         composeRule.setContent {
             MaterialTheme {
                 ParityJoinEventDialog(
@@ -24,6 +29,10 @@ class JoinEventAccessibilityInstrumentedTest {
                 )
             }
         }
+
+        // Produce the initial composition/frame without asking the rule to chase every
+        // animation/timer to an idle state.
+        composeRule.mainClock.advanceTimeByFrame()
 
         composeRule.onNodeWithText("Join an Event").assertExists()
         composeRule.onNodeWithText("Cancel").assertExists().assertHasClickAction()
