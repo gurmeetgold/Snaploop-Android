@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -22,6 +21,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.google.firebase.auth.FirebaseAuth
+import com.snaploop.app.data.FirebaseBiometricConsentStore
 
 /** Privacy & Data wording and hierarchy aligned to the production iOS source of truth. */
 @Composable
@@ -45,9 +47,22 @@ internal fun ParityPrivacyScreen(
     onDelete: () -> Unit,
 ) {
     val context = LocalContext.current
+    val consentStore = remember { FirebaseBiometricConsentStore() }
     var confirmWithdraw by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var licensesOpen by remember { mutableStateOf(false) }
+    var consentActive by remember { mutableStateOf<Boolean?>(null) }
+
+    LaunchedEffect(Unit) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        consentActive = if (userId == null) {
+            false
+        } else {
+            runCatching { consentStore.load(userId)?.isActive == true }.getOrDefault(false)
+        }
+    }
+
+    val consentPresentation = PrivacyConsentParityPolicy.presentation(consentActive)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -80,12 +95,14 @@ internal fun ParityPrivacyScreen(
 
                     PrivacyCard {
                         Text("Face Match Consent", fontSize = 19.sp, fontWeight = FontWeight.Black, color = SnapColors.Ink)
-                        Text("Active · Review or withdraw", color = SnapColors.Secondary)
-                        OutlinedButton(
-                            onClick = { confirmWithdraw = true },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Withdraw Face Match Consent", color = SnapColors.Coral, fontWeight = FontWeight.Bold)
+                        Text(consentPresentation.statusText, color = SnapColors.Secondary)
+                        if (consentPresentation.canWithdraw) {
+                            OutlinedButton(
+                                onClick = { confirmWithdraw = true },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Withdraw Face Match Consent", color = SnapColors.Coral, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
 
