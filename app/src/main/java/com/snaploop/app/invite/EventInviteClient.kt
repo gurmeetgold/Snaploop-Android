@@ -1,6 +1,7 @@
 package com.snaploop.app.invite
 
 import com.google.firebase.functions.FirebaseFunctions
+import com.snaploop.app.core.DeepLinkParser
 import kotlinx.coroutines.tasks.await
 
 data class EventInviteDelivery(
@@ -42,6 +43,19 @@ class EventInviteClient(
             kind = kind,
             phoneNumber = (data["phoneNumber"] as? String) ?: phoneNumber,
         )
+    }
+
+    /**
+     * Server-authoritative pending invitation lookup used for authenticated push delivery.
+     * A push token is only a wake-up hint: delayed notifications must never resurrect an
+     * invitation whose durable backend state is already declined/revoked.
+     */
+    suspend fun nextPendingToken(): String? {
+        val result = functions.getHttpsCallable("nextPendingInvite")
+            .call(emptyMap<String, Any?>())
+            .await()
+        val data = result.data as? Map<*, *> ?: return null
+        return DeepLinkParser.normalizeToken(data["inviteToken"] as? String)
     }
 
     suspend fun list(eventId: String): List<EventInviteStatusRow> {
