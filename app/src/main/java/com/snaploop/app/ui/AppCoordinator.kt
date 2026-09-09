@@ -365,6 +365,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         locationName: String?,
         startsOn: LocalDate,
         endsOn: LocalDate,
+        onSuccess: () -> Unit = {},
     ) = launchBusy {
         val uid = requireUid()
         require(faceProfiles.load(uid) != null) {
@@ -404,6 +405,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         val merged = if (serverEvents.any { it.id == persisted.id }) serverEvents else listOf(persisted) + serverEvents
         update { copy(events = merged, selectedEvent = null, pendingInvite = null) }
         refreshAllPhotosInternal(uid, merged)
+        onSuccess()
     }
 
     fun editSelectedEvent(

@@ -176,7 +176,7 @@ internal fun SnapLoopMainShell(
                 state.selectedEvent != null -> ShellEventHost(state, coordinator)
                 tab == 0 -> ShellHome(state, coordinator)
                 tab == 1 -> ShellGallery(state, coordinator)
-                else -> ShellYou(state, coordinator)
+                else -> ParityYouScreen(state, coordinator)
             }
         }
     }
@@ -327,23 +327,23 @@ private fun ShellHome(state: AppUiState, coordinator: AppCoordinator) {
     }
 
     if (createOpen) {
-        ShellEventFormDialog(
-            title = "Create an Event",
-            initialName = "",
-            initialCategory = EventCategory.trip,
-            initialLocation = "",
-            initialStart = LocalDate.now(),
-            initialEnd = LocalDate.now().plusDays(3),
-            submitLabel = "Create Event",
+        ParityCreateEventDialog(
+            hasFaceProfile = state.user?.hasFaceProfile == true,
+            busy = state.busy,
             onDismiss = { createOpen = false },
+            onCompleteFaceSetup = {
+                createOpen = false
+                coordinator.openFaceSetupFromMain()
+            },
             onSubmit = { name, category, location, start, end ->
-                if (state.user?.hasFaceProfile == true) {
-                    createOpen = false
-                    coordinator.createEvent(name, category, location, start, end)
-                } else {
-                    createOpen = false
-                    coordinator.openFaceSetupFromMain()
-                }
+                coordinator.createEvent(
+                    name = name,
+                    category = category,
+                    locationName = location,
+                    startsOn = start,
+                    endsOn = end,
+                    onSuccess = { createOpen = false },
+                )
             },
         )
     }
@@ -574,18 +574,19 @@ private fun ShellEventHost(state: AppUiState, coordinator: AppCoordinator) {
             onPhoneInvite = { page = ShellEventPage.PHONE_INVITE },
         )
         ShellEventPage.PHONE_INVITE -> ParityPhoneInviteScreen(event = event) { page = ShellEventPage.INVITE }
-        ShellEventPage.EDIT -> ShellEventFormDialog(
-            title = "Edit Event",
-            initialName = event.name,
-            initialCategory = event.category,
-            initialLocation = event.locationName.orEmpty(),
-            initialStart = event.startsAt.atZone(shellEventZone(event)).toLocalDate(),
-            initialEnd = event.endsAt.atZone(shellEventZone(event)).toLocalDate(),
-            submitLabel = "Save Changes",
+        ShellEventPage.EDIT -> ParityEditEventDialog(
+            event = event,
+            busy = state.busy,
             onDismiss = { page = ShellEventPage.DASHBOARD },
             onSubmit = { name, category, location, start, end ->
-                coordinator.editSelectedEvent(name, category, location, start, end)
-                page = ShellEventPage.DASHBOARD
+                coordinator.editSelectedEvent(
+                    name = name,
+                    category = category,
+                    locationName = location,
+                    startsOn = start,
+                    endsOn = end,
+                    onSuccess = { page = ShellEventPage.DASHBOARD },
+                )
             },
         )
     }
