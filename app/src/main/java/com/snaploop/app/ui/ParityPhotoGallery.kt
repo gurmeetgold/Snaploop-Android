@@ -84,8 +84,13 @@ private class AndroidPhotoFavoritesStore(context: Context) {
 /**
  * Shared Event/My Photos gallery surface matching the iOS interaction model:
  * branded result banner, Favorites filter, compact 2/3/4/6 density menu,
- * selection mode, bulk Save/Share/Favorite actions, photo detail, Favorite and Not Me correction.
+ * selection mode, bulk Save/Share/Favorite actions, full-screen photo detail,
+ * Favorite and Not Me correction.
+ *
+ * The root Gallery is the only iOS surface that performs migration-aware logical-source
+ * deduplication. Event-local My Photos intentionally keeps the Event model's ID semantics.
  */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 internal fun ParityPhotoGallery(
     title: String,
@@ -94,6 +99,7 @@ internal fun ParityPhotoGallery(
     userId: String?,
     onRefresh: () -> Unit,
     onBack: (() -> Unit)? = null,
+    acrossAllEvents: Boolean = onBack == null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -110,14 +116,14 @@ internal fun ParityPhotoGallery(
     var detail by remember { mutableStateOf<PhotoMatch?>(null) }
     var notMeConfirmation by remember { mutableStateOf<PhotoMatch?>(null) }
     var correctingNotMe by remember { mutableStateOf(false) }
-    var locallyDismissedSourceKeys by remember(userId) { mutableStateOf(setOf<String>()) }
+    var locallyDismissedKeys by remember(userId, acrossAllEvents) { mutableStateOf(setOf<String>()) }
     var correctionError by remember(userId) { mutableStateOf<String?>(null) }
     var bulkBusy by remember { mutableStateOf(false) }
     var bulkMessage by remember { mutableStateOf<String?>(null) }
     var pendingLegacySave by remember { mutableStateOf<List<PhotoMatch>?>(null) }
 
-    fun toggleFavorite(id: String) {
-        val next = if (id in favorites) favorites - id else favorites + id
+    fun setFavorite(id: String, favorite: Boolean) {
+        val next = if (favorite) favorites + id else favorites - id
         favorites = next
         store.save(userId, next)
     }
@@ -128,9 +134,11 @@ internal fun ParityPhotoGallery(
         bulkMessage = null
     }
 
-    val availablePhotos = photos.filterNot {
-        PhotoMatchDeduplication.logicalSourceKey(it) in locallyDismissedSourceKeys
-    }
+    fun dismissalKey(match: PhotoMatch): String =
+        if (acrossAllEvents) PhotoMatchDeduplication.logicalSourceKey(match) else match.id
+
+    val canonicalPhotos = if (acrossAllEvents) PhotoMatchDeduplication.unique(photos) else photos
+    val availablePhotos = canonicalPhotos.filterNot { dismissalKey(it) in locallyDismissedKeys }
     val visible = if (favoritesOnly) availablePhotos.filter { it.id in favorites } else availablePhotos
     val selectedMatches = visible.filter { it.id in selected }
     val allSelectedAreFavorites = selectedMatches.isNotEmpty() && selectedMatches.all { it.id in favorites }
@@ -248,7 +256,7 @@ internal fun ParityPhotoGallery(
 
         GalleryInsightBanner(
             count = availablePhotos.size,
-            subtitle = subtitle,
+            acrossAllEvents = acrossAllEvents,
             modifier = Modifier.padding(top = 4.dp),
         )
 
@@ -457,11 +465,15 @@ internal fun ParityPhotoGallery(
     }
 
     detail?.let { match ->
-        PhotoMatchDetailDialog(
-            match = match,
-            favorite = match.id in favorites,
-            onFavorite = { toggleFavorite(match.id) },
-            onNotMe = { notMeConfirmation = match },
+        ParityFullScreenPhotoViewer(
+            matches = visible,
+            initialMatchId = match.id,
+            isFavorite = { it.id in favorites },
+            onFavoriteChanged = { item, value -> setFavorite(item.id, value) },
+            onNotMe = { item ->
+                detail = null
+                notMeConfirmation = item
+            },
             onDismiss = { detail = null },
         )
     }
@@ -481,11 +493,10 @@ internal fun ParityPhotoGallery(
                         correctingNotMe = true
                         correctionError = null
 
-                        // Match iOS: update the visible Gallery and local Favorite state first. The
-                        // correction remains optimistically hidden if the network write fails, while
-                        // the user gets an explicit retry message instead of a silent failure.
-                        locallyDismissedSourceKeys = locallyDismissedSourceKeys +
-                            PhotoMatchDeduplication.logicalSourceKey(match)
+                        // Pinned iOS semantics differ by surface: Event My Photos removes this exact
+                        // match ID, while the root Gallery removes all rows representing the same
+                        // logical source photo during legacy/source-scoped migration.
+                        locallyDismissedKeys = locallyDismissedKeys + dismissalKey(match)
                         favorites = favorites - match.id
                         store.save(userId, favorites)
                         detail = null
@@ -529,7 +540,11 @@ private fun GallerySelectionAction(
 }
 
 @Composable
-private fun GalleryInsightBanner(count: Int, subtitle: String, modifier: Modifier = Modifier) {
+private fun GalleryInsightBanner(
+    count: Int,
+    acrossAllEvents: Boolean,
+    modifier: Modifier = Modifier,
+) {
     Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
         Row(
             Modifier
@@ -549,10 +564,13 @@ private fun GalleryInsightBanner(count: Int, subtitle: String, modifier: Modifie
             Text(count.toString(), fontSize = 38.sp, fontWeight = FontWeight.Black)
             Column(Modifier.padding(start = 14.dp)) {
                 Text(
-                    if (count == 1) "photo found of you" else "photos found of you",
+                    if (acrossAllEvents) {
+                        if (count == 1) "photo of you found across all events" else "photos of you found across all events"
+                    } else {
+                        "photos found of you"
+                    },
                     fontWeight = FontWeight.Black,
                 )
-                Text(subtitle, fontSize = 11.sp, color = Color(0xFF6B6670))
             }
         }
     }
