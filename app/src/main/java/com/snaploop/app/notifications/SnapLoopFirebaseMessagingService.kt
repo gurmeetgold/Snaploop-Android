@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Bundle
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.snaploop.app.MainActivity
@@ -23,22 +24,24 @@ class SnapLoopFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-        val route = SnapLoopNotificationContract.route(message.data) ?: return
+        val payload = SnapLoopNotificationContract.parse(
+            data = message.data,
+            notificationTitle = message.notification?.title,
+            notificationBody = message.notification?.body,
+        )
+        if (payload.kind == SnapLoopNotificationKind.GENERIC) return
 
         // Persist only that authenticated state needs a server refresh. The raw
         // invite token/Event ID never enters local preferences.
         SnapLoopPushRefreshStore.markPending(applicationContext)
-
-        SnapLoopNotifications.show(
-            context = applicationContext,
-            route = route,
-            remoteTitle = message.notification?.title,
-            remoteBody = message.notification?.body,
-        )
+        SnapLoopNotifications.show(applicationContext, payload)
     }
 }
 
 object SnapLoopNotifications {
+    const val CHANNEL_INVITES = "snaploop.invites"
+    const val CHANNEL_PHOTOS = "snaploop.photos"
+
     private const val INVITES_NAME = "Event invitations"
     private const val PHOTOS_NAME = "Photo updates"
     private const val INVITES_DESCRIPTION = "Invitations to SnapLoop Events"
@@ -47,7 +50,7 @@ object SnapLoopNotifications {
     fun ensureChannels(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         val invitations = NotificationChannel(
-            SnapLoopNotificationContract.CHANNEL_INVITES,
+            CHANNEL_INVITES,
             INVITES_NAME,
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
@@ -56,7 +59,7 @@ object SnapLoopNotifications {
             enableVibration(true)
         }
         val photos = NotificationChannel(
-            SnapLoopNotificationContract.CHANNEL_PHOTOS,
+            CHANNEL_PHOTOS,
             PHOTOS_NAME,
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
@@ -67,12 +70,8 @@ object SnapLoopNotifications {
         manager.createNotificationChannels(listOf(invitations, photos))
     }
 
-    fun show(
-        context: Context,
-        route: SnapLoopNotificationContract.Route,
-        remoteTitle: String?,
-        remoteBody: String?,
-    ) {
+    fun show(context: Context, payload: SnapLoopNotificationPayload) {
+        if (payload.kind == SnapLoopNotificationKind.GENERIC) return
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -82,24 +81,29 @@ object SnapLoopNotifications {
 
         ensureChannels(context)
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
-        val copy = SnapLoopNotificationContract.visibleCopy(route, remoteTitle, remoteBody)
-        val pendingIntent = contentIntent(context, route)
-        val channel = when (route) {
-            is SnapLoopNotificationContract.Route.Invite -> SnapLoopNotificationContract.CHANNEL_INVITES
-            is SnapLoopNotificationContract.Route.EventPhotos -> SnapLoopNotificationContract.CHANNEL_PHOTOS
+        val pendingIntent = contentIntent(context, payload)
+        val channel = when (payload.kind) {
+            SnapLoopNotificationKind.INVITE -> CHANNEL_INVITES
+            SnapLoopNotificationKind.EVENT_PHOTOS -> CHANNEL_PHOTOS
+            SnapLoopNotificationKind.GENERIC -> return
+        }
+        val extras = Bundle().apply {
+            payload.inviteToken?.let { putString(SnapLoopNotificationContract.KEY_INVITE_TOKEN, it) }
+            payload.eventId?.let { putString(SnapLoopNotificationContract.KEY_EVENT_ID, it) }
         }
 
         val builder = Notification.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_snaploop)
-            .setContentTitle(copy.title)
-            .setContentText(copy.body)
-            .setStyle(Notification.BigTextStyle().bigText(copy.body))
+            .setContentTitle(payload.title)
+            .setContentText(payload.body)
+            .setStyle(Notification.BigTextStyle().bigText(payload.body))
             .setCategory(Notification.CATEGORY_SOCIAL)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .setExtras(extras)
 
-        if (route is SnapLoopNotificationContract.Route.Invite) {
+        if (payload.kind == SnapLoopNotificationKind.INVITE) {
             builder.addAction(
                 Notification.Action.Builder(
                     R.drawable.ic_stat_snaploop,
@@ -109,7 +113,7 @@ object SnapLoopNotifications {
             )
         }
 
-        manager.notify(SnapLoopNotificationContract.notificationId(route), builder.build())
+        manager.notify(SnapLoopNotificationContract.notificationId(payload), builder.build())
     }
 
     fun cancelInvite(context: Context, token: String) {
@@ -119,15 +123,13 @@ object SnapLoopNotifications {
 
     private fun contentIntent(
         context: Context,
-        route: SnapLoopNotificationContract.Route,
+        payload: SnapLoopNotificationPayload,
     ): PendingIntent {
-        val requestCode = SnapLoopNotificationContract.notificationId(route)
+        val requestCode = SnapLoopNotificationContract.notificationId(payload)
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            when (route) {
-                is SnapLoopNotificationContract.Route.Invite -> putExtra("inviteToken", route.token)
-                is SnapLoopNotificationContract.Route.EventPhotos -> putExtra("eventId", route.eventId)
-            }
+            payload.inviteToken?.let { putExtra(SnapLoopNotificationContract.KEY_INVITE_TOKEN, it) }
+            payload.eventId?.let { putExtra(SnapLoopNotificationContract.KEY_EVENT_ID, it) }
         }
         return PendingIntent.getActivity(
             context,
