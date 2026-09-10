@@ -1,6 +1,7 @@
 package com.snaploop.app.ui
 
 import java.io.File
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -18,6 +19,12 @@ class FaceSetupReturnNavigationParityTest {
         val source = source("AppCoordinator.kt")
         assertTrue(source.contains("val returnToYou = state.value.faceSetupMode == FaceSetupMode.RETURN_TO_MAIN"))
         assertTrue(source.contains("copy(returnToYouAfterFaceSetup = true)"))
+    }
+
+    @Test fun `initial Face Setup does not request You-tab return`() {
+        val source = source("AppCoordinator.kt")
+        assertTrue(source.contains("if (returnToYou)"))
+        assertFalse(source.contains("returnToYouAfterFaceSetup = true,\n                faceSetupMode = FaceSetupMode.INITIAL_GATE"))
     }
 
     @Test fun `main shell consumes update destination on You tab`() {
