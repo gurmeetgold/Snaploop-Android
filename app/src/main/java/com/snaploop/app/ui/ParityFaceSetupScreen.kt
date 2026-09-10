@@ -126,7 +126,7 @@ internal fun ParityFaceSetupScreen(
             }
 
             ParityPrimaryButton(
-                if (hasFaceProfile) "◎  Selfie Scan" else "◎  Selfie Scan",
+                "◎  Selfie Scan",
                 onClick = { onReset(); scanOpen = true },
                 modifier = Modifier.padding(top = 18.dp),
             )
@@ -157,8 +157,6 @@ internal fun ParityFaceSetupScreen(
                 ) {
                     Text("Skip for now", fontWeight = FontWeight.Bold)
                 }
-            } else {
-                TextButton(onClick = onExit, modifier = Modifier.padding(top = 10.dp)) { Text("Done") }
             }
             Spacer(Modifier.height(26.dp))
         }
