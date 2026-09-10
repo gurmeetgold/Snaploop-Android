@@ -1,0 +1,32 @@
+name: One-shot final visual parity batch
+
+on:
+  push:
+    branches:
+      - 'feature/android-production-parity-v1'
+    paths:
+      - '.github/workflows/one-shot-finish-visual-parity.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply guarded final visual parity fixes
+        run: python3 scripts/one_shot_finish_visual_parity.py
+      - name: Commit guarded final visual parity fixes
+        run: |
+          git config user.name "gurmeetgold"
+          git config user.email "50425243+gurmeetgold@users.noreply.github.com"
+          git add \
+            app/src/main/java/com/snaploop/app/ui/ParityPhotoGallery.kt \
+            app/src/main/java/com/snaploop/app/ui/ParityFullScreenPhotoViewer.kt \
+            app/src/test/java/com/snaploop/app/ui/FinalVisualParityRegressionTest.kt
+          git diff --cached --check
+          git commit -m "Finish Gallery and viewer visual parity"
+          git push origin HEAD:feature/android-production-parity-v1
