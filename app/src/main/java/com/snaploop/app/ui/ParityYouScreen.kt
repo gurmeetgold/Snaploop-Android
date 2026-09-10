@@ -54,6 +54,16 @@ internal fun ParityYouScreen(
     var privacy by remember { mutableStateOf(false) }
     var signOutConfirm by remember { mutableStateOf(false) }
     var replayConfirm by remember { mutableStateOf(false) }
+    var replayOnboarding by remember { mutableStateOf(false) }
+
+    // Replay is intentionally local to the authenticated You surface. Driving the coordinator back
+    // through AppGate.ONBOARDING races SnapLoopRoot's legacy-onboarding migration and immediately
+    // consumes the replay gate. Keeping replay presentation-local preserves the account, Events,
+    // photos and Face Setup and deterministically returns the user to You when replay finishes.
+    if (replayOnboarding) {
+        ParityOnboardingScreen(onCompleted = { replayOnboarding = false })
+        return
+    }
 
     if (editName) {
         ParityNameSetupScreen(
@@ -80,7 +90,7 @@ internal fun ParityYouScreen(
         Text(
             "You",
             modifier = Modifier.semantics { heading() },
-            fontSize = 34.sp,
+            fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -93,12 +103,12 @@ internal fun ParityYouScreen(
                     modifier = Modifier.size(YouScreenParitySpec.PROFILE_THUMBNAIL_DP.dp),
                 )
                 Column(
-                    Modifier.weight(1f).padding(start = 14.dp),
+                    Modifier.weight(1f).padding(start = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     Text(
                         state.user?.displayName ?: "Add your name",
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
                     state.user?.phoneNumber?.takeIf { it.isNotBlank() }?.let { phone ->
@@ -247,7 +257,7 @@ internal fun ParityYouScreen(
             confirmButton = {
                 TextButton(onClick = {
                     replayConfirm = false
-                    coordinator.replayOnboarding()
+                    replayOnboarding = true
                 }) { Text("Replay Onboarding") }
             },
             dismissButton = {
@@ -271,13 +281,13 @@ private fun YouAccountRow(
             .clickable(onClick = onClick)
             .padding(vertical = YouScreenParitySpec.ACCOUNT_ROW_VERTICAL_PADDING_DP.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         YouIconBadge(icon, tint)
         Text(
             title,
             modifier = Modifier.weight(1f),
-            fontSize = 16.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
         )
         Icon(
@@ -301,16 +311,16 @@ private fun YouMenuRow(
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         YouIconBadge(icon, tint)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = titleColor)
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = titleColor)
             subtitle?.let {
                 Text(
                     it,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                 )
             }
         }
@@ -336,6 +346,6 @@ private fun YouIconBadge(icon: ImageVector, tint: Color) {
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(19.dp))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
     }
 }

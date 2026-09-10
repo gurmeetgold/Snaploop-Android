@@ -26,7 +26,7 @@ class FirebasePhoneAuthService(private val auth: FirebaseAuth = FirebaseAuth.get
 
     suspend fun startPhoneVerification(activity: Activity, phoneNumberE164: String): PhoneVerificationStart {
         if (!phoneNumberE164.startsWith("+") || phoneNumberE164.length !in 8..16 || phoneNumberE164.drop(1).any { !it.isDigit() }) {
-            throw SnapLoopException.InvalidData("Enter a valid phone number including country code")
+            throw SnapLoopException.InvalidData("Check the country code and enter a valid phone number.")
         }
 
         return suspendCancellableCoroutine { continuation ->
@@ -76,7 +76,14 @@ class FirebasePhoneAuthService(private val auth: FirebaseAuth = FirebaseAuth.get
 
     private fun mapError(error: Throwable): SnapLoopException = when (error) {
         is FirebaseTooManyRequestsException -> SnapLoopException.Backend("too_many_requests", "Too many attempts. Please wait a bit and try again.", error)
-        is FirebaseAuthInvalidCredentialsException -> SnapLoopException.InvalidData("The phone number or verification code is invalid", error)
-        else -> SnapLoopException.Backend("phone_auth_failed", "Phone verification couldn't complete. Please try again.", error)
+        is FirebaseAuthInvalidCredentialsException -> SnapLoopException.InvalidData(
+            "Check the country code and phone number, or the verification code, then try again.",
+            error,
+        )
+        else -> SnapLoopException.Backend(
+            "phone_auth_failed",
+            "Phone verification couldn't complete. Check the country code and phone number, then try again. If they are correct, check your connection.",
+            error,
+        )
     }
 }

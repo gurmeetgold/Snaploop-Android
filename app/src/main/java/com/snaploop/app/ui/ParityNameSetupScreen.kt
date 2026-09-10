@@ -97,12 +97,6 @@ internal fun ParityNameSetupScreen(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     placeholder = { Text("Your name") },
                     leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = SnapColors.Coral) },
-                    supportingText = {
-                        Text(
-                            "${name.length}/${ProfileNamePolicy.MAXIMUM_CHARACTERS}",
-                            color = SnapColors.Secondary,
-                        )
-                    },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     singleLine = true,
                     shape = RoundedCornerShape(15.dp),

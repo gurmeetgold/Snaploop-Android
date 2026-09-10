@@ -19,21 +19,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.snaploop.app.media.PhotoAccessLevel
 import com.snaploop.app.media.PhotoAccessState
+import com.snaploop.app.scanner.CameraSyncCoordinator
 import com.snaploop.app.scanner.ScanCancellationRegistry
 
 @Composable
@@ -63,11 +65,24 @@ internal fun ParityEventScanScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var photoAccess by remember { mutableStateOf(PhotoAccessState.current(context)) }
+    // loadEvent() refreshes the Event immediately after a scan and currently clears scanResult as
+    // part of that refresh. Retain the terminal result locally so the iOS-parity completion screen
+    // remains visible until the user explicitly taps Done instead of disappearing by itself.
+    var retainedResult by remember(state.selectedEvent?.id) {
+        mutableStateOf<CameraSyncCoordinator.Result?>(null)
+    }
+    LaunchedEffect(state.scanResult) {
+        state.scanResult?.let { retainedResult = it }
+    }
+    val visibleResult = state.scanResult ?: retainedResult
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         PhotoAccessState.markRequested(context)
         photoAccess = PhotoAccessState.current(context)
-        if (photoAccess.canRead) coordinator.scanSelectedEvent()
+        if (photoAccess.canRead) {
+            retainedResult = null
+            coordinator.scanSelectedEvent()
+        }
     }
 
     DisposableEffect(lifecycleOwner, context) {
@@ -81,6 +96,7 @@ internal fun ParityEventScanScreen(
     }
 
     fun startScan() {
+        retainedResult = null
         photoAccess = PhotoAccessState.current(context)
         if (photoAccess.canRead) {
             coordinator.scanSelectedEvent()
@@ -100,53 +116,47 @@ internal fun ParityEventScanScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 10.dp),
+        Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("‹ Back") }
+            IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
             Text(
                 "Scan Photos",
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
-                fontSize = 21.sp,
-                fontWeight = FontWeight.Black,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
             )
-            Spacer(Modifier.size(56.dp))
+            Spacer(Modifier.size(48.dp))
         }
-        Spacer(Modifier.height(34.dp))
+        Spacer(Modifier.height(24.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.98f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
         ) {
             Column(
-                Modifier.fillMaxWidth().padding(22.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(13.dp),
             ) {
                 when {
                     state.scanProgress != null -> {
                         val progress = state.scanProgress
-                        Box(
-                            Modifier.size(92.dp).background(
-                                Brush.linearGradient(listOf(Color(0xFFF05C68), Color(0xFF8E63F6))),
-                                CircleShape,
-                            ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator(color = Color.White)
-                        }
+                        ScanCircleIcon(Icons.Filled.PhotoLibrary)
                         Text(
                             if (progress.total > 0) {
                                 "Scanning ${progress.checked} of ${progress.total} Event photos"
                             } else {
-                                "Preparing your Event photos…"
+                                "Preparing Event photos…"
                             },
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Black,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
                         )
                         if (progress.total > 0) {
@@ -157,32 +167,28 @@ internal fun ParityEventScanScreen(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
-                        if (photoAccess == PhotoAccessLevel.SELECTED) {
-                            LimitedAccessNotice()
-                        }
+                        if (photoAccess == PhotoAccessLevel.SELECTED) LimitedAccessNotice()
                         Text(
-                            "Keep SnapLoop open in the foreground until the scan finishes.",
+                            "Keep SnapLoop open until the scan finishes.",
                             color = Color(0xFF6B6670),
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
                         )
                         OutlinedButton(
-                            onClick = {
-                                state.selectedEvent?.id?.let(ScanCancellationRegistry::cancel)
-                            },
+                            onClick = { state.selectedEvent?.id?.let(ScanCancellationRegistry::cancel) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text("Stop Scan", fontWeight = FontWeight.Bold)
                         }
                     }
 
-                    state.scanResult != null -> {
-                        val result = state.scanResult
+                    visibleResult != null -> {
+                        val result = visibleResult
                         val presentation = ScanResultPresentationPolicy.kind(result.remaining, result.failed)
 
                         if (presentation == ScanResultPresentationPolicy.Kind.RETRYABLE_FAILURE) {
                             Box(
-                                Modifier.size(94.dp).background(
+                                Modifier.size(82.dp).background(
                                     Color(0xFFF05C68).copy(alpha = 0.12f),
                                     CircleShape,
                                 ),
@@ -192,20 +198,22 @@ internal fun ParityEventScanScreen(
                                     Icons.Filled.Warning,
                                     contentDescription = null,
                                     tint = Color(0xFFF05C68),
-                                    modifier = Modifier.size(42.dp),
+                                    modifier = Modifier.size(38.dp),
                                 )
                             }
-                            Text("Scan stopped", fontSize = 22.sp, fontWeight = FontWeight.Black)
+                            Text("Scan stopped", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                             Text(
                                 ScanResultPresentationPolicy.retryMessage(result.remaining),
                                 color = Color(0xFF6B6670),
+                                fontSize = 14.sp,
                                 textAlign = TextAlign.Center,
                             )
-                            if (photoAccess == PhotoAccessLevel.SELECTED) {
-                                LimitedAccessNotice()
-                            }
+                            if (photoAccess == PhotoAccessLevel.SELECTED) LimitedAccessNotice()
                             Button(
-                                onClick = { coordinator.scanSelectedEvent() },
+                                onClick = {
+                                    retainedResult = null
+                                    coordinator.scanSelectedEvent()
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text("Try Again", fontWeight = FontWeight.Bold)
@@ -213,7 +221,7 @@ internal fun ParityEventScanScreen(
                             TextButton(onClick = onBack) { Text("Done") }
                         } else {
                             Box(
-                                Modifier.size(94.dp).background(
+                                Modifier.size(82.dp).background(
                                     Brush.linearGradient(listOf(Color(0xFFF05C68), Color(0xFF8E63F6))),
                                     CircleShape,
                                 ),
@@ -223,13 +231,13 @@ internal fun ParityEventScanScreen(
                                     Icons.Filled.Check,
                                     contentDescription = null,
                                     tint = Color.White,
-                                    modifier = Modifier.size(42.dp),
+                                    modifier = Modifier.size(38.dp),
                                 )
                             }
                             Text(
                                 if (result.checked > 0) "Scan complete" else "You're up to date",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Black,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
                             )
                             Text(
                                 if (result.checked > 0) {
@@ -238,14 +246,16 @@ internal fun ParityEventScanScreen(
                                     "No new photos need scanning for this Event."
                                 },
                                 color = Color(0xFF6B6670),
+                                fontSize = 14.sp,
                                 textAlign = TextAlign.Center,
                             )
-                            if (photoAccess == PhotoAccessLevel.SELECTED) {
-                                LimitedAccessNotice()
-                            }
+                            if (photoAccess == PhotoAccessLevel.SELECTED) LimitedAccessNotice()
                             if (presentation == ScanResultPresentationPolicy.Kind.DEFERRED_BATCH) {
                                 Button(
-                                    onClick = { coordinator.scanSelectedEvent() },
+                                    onClick = {
+                                        retainedResult = null
+                                        coordinator.scanSelectedEvent()
+                                    },
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text("Scan Next Batch", fontWeight = FontWeight.Bold)
@@ -260,24 +270,12 @@ internal fun ParityEventScanScreen(
                     }
 
                     else -> {
-                        Box(
-                            Modifier.size(92.dp).background(
-                                Brush.linearGradient(listOf(Color(0xFFF05C68), Color(0xFF8E63F6))),
-                                CircleShape,
-                            ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Filled.PhotoLibrary,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(42.dp),
-                            )
-                        }
-                        Text("Scan Event Photos", fontSize = 22.sp, fontWeight = FontWeight.Black)
+                        ScanCircleIcon(Icons.Filled.PhotoLibrary)
+                        Text("Scan Event Photos", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         Text(
                             "SnapLoop checks only photos within this Event's selected date range.",
                             color = Color(0xFF6B6670),
+                            fontSize = 14.sp,
                             textAlign = TextAlign.Center,
                         )
 
@@ -297,8 +295,8 @@ internal fun ParityEventScanScreen(
                             else -> Unit
                         }
 
-                        Button(onClick = ::startScan, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                            Icon(Icons.Filled.CameraAlt, contentDescription = null)
+                        Button(onClick = ::startScan, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                            Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
                             Text(
                                 if (photoAccess == PhotoAccessLevel.DENIED) "  Check Photo Access" else "  Start Scan",
                                 fontWeight = FontWeight.Bold,
@@ -308,6 +306,19 @@ internal fun ParityEventScanScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ScanCircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Box(
+        Modifier.size(82.dp).background(
+            Brush.linearGradient(listOf(Color(0xFFF05C68), Color(0xFF8E63F6))),
+            CircleShape,
+        ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(38.dp))
     }
 }
 

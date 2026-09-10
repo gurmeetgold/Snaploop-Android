@@ -48,4 +48,22 @@ class GuidedFacePoseEvaluatorTest {
         assertTrue(evaluator.framingStatus(observation()) == FaceFramingStatus.READY)
         assertTrue(evaluator.framingStatus(observation(centerX = 0.12f)) == FaceFramingStatus.NEEDS_ADJUSTMENT)
     }
+
+    @Test fun framing_rejects_partially_cropped_face() {
+        val evaluator = GuidedFacePoseEvaluator()
+        val lowCropped = observation(centerY = 0.72f, height = 0.42f)
+        assertTrue(evaluator.framingStatus(lowCropped) == FaceFramingStatus.NEEDS_ADJUSTMENT)
+        assertFalse(evaluator.matches(GuidedFacePose.FRONT, lowCropped))
+
+        val rightCropped = observation(centerX = 0.74f, width = 0.42f)
+        assertTrue(evaluator.framingStatus(rightCropped) == FaceFramingStatus.NEEDS_ADJUSTMENT)
+        assertFalse(evaluator.matches(GuidedFacePose.LEFT, rightCropped.copy(yawDegrees = 24f)))
+    }
+
+    @Test fun framing_rejects_narrow_partial_detection() {
+        val evaluator = GuidedFacePoseEvaluator()
+        val partial = observation(width = 0.22f, height = 0.55f)
+        assertTrue(evaluator.framingStatus(partial) == FaceFramingStatus.NEEDS_ADJUSTMENT)
+        assertFalse(evaluator.matches(GuidedFacePose.FRONT, partial))
+    }
 }
