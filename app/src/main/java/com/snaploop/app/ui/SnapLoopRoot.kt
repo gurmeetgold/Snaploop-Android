@@ -197,7 +197,9 @@ fun SnapLoopRoot(
         onDispose { automaticScanner.close() }
     }
 
-    if (state.gate == AppGate.AUTH && !preAuthOnboardingCompleted) {
+    // Onboarding is deliberately independent of Firebase/session restoration. A clean install
+    // must show it even if Firebase restores an authenticated session before AppGate.AUTH appears.
+    if (PreAuthOnboardingParity.shouldPresent(preAuthOnboardingCompleted)) {
         ParityOnboardingScreen(
             onCompleted = {
                 uiPrefs.edit().putBoolean(PreAuthOnboardingParity.GLOBAL_KEY, true).apply()
