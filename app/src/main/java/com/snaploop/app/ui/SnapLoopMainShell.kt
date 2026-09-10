@@ -35,6 +35,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Cake
+import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -1385,10 +1388,10 @@ private fun shellCategoryName(category: EventCategory): String = when (category)
 }
 
 private fun shellCategoryIcon(category: EventCategory): ImageVector = when (category) {
-    EventCategory.trip -> Icons.Filled.LocationOn
+    EventCategory.trip -> Icons.Filled.Flight
     EventCategory.wedding -> Icons.Filled.Image
-    EventCategory.party -> Icons.Filled.Groups
-    EventCategory.birthday -> Icons.Filled.MoreHoriz
+    EventCategory.party -> Icons.Filled.Celebration
+    EventCategory.birthday -> Icons.Filled.Cake
     EventCategory.conference -> Icons.Filled.Groups
     EventCategory.family -> Icons.Filled.Groups
     EventCategory.sports -> Icons.Filled.MoreHoriz
