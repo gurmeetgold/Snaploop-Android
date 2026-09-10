@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -36,11 +37,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -134,7 +132,10 @@ private sealed interface ViewerPhotoLoadState {
  *
  * Normal-size one-finger horizontal gestures remain owned by the pager. Pinch/double-tap zoom
  * switches the current page into local pan mode; paging is re-enabled after zoom returns to 1x.
+ * iOS parity intentionally keeps only back/count chrome at the top and icon-only Save/Share/
+ * Favorite controls at the bottom. "Not Me" remains a gallery-selection action, not a viewer menu.
  */
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun ParityFullScreenPhotoViewer(
@@ -160,7 +161,6 @@ internal fun ParityFullScreenPhotoViewer(
     var actionBusy by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var favoriteOverrides by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
-    var overflowOpen by remember { mutableStateOf(false) }
     var pendingLegacySave by remember { mutableStateOf<PhotoMatch?>(null) }
     var verticalDismissOffset by remember { mutableFloatStateOf(0f) }
 
@@ -250,7 +250,6 @@ internal fun ParityFullScreenPhotoViewer(
         currentPageZoomed = false
         statusMessage = null
         verticalDismissOffset = 0f
-        overflowOpen = false
     }
 
     Dialog(
@@ -319,7 +318,7 @@ internal fun ParityFullScreenPhotoViewer(
                         TextButton(onClick = onDismiss) {
                             Text("‹", color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Light)
                         }
-                        androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                        Spacer(Modifier.weight(1f))
                         Surface(
                             color = Color.Black.copy(alpha = 0.42f),
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
@@ -332,23 +331,9 @@ internal fun ParityFullScreenPhotoViewer(
                                 fontWeight = FontWeight.Bold,
                             )
                         }
-                        Box {
-                            IconButton(onClick = { overflowOpen = true }) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = "More photo actions", tint = Color.White)
-                            }
-                            DropdownMenu(
-                                expanded = overflowOpen,
-                                onDismissRequest = { overflowOpen = false },
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Not Me", color = Color(0xFFB3261E)) },
-                                    onClick = {
-                                        overflowOpen = false
-                                        onNotMe(currentMatch)
-                                    },
-                                )
-                            }
-                        }
+                        // Preserve balanced top-bar geometry without exposing the Android-only
+                        // overflow/Not-Me menu that is absent from the iOS viewer.
+                        Spacer(Modifier.size(48.dp))
                     }
 
                     Column(
@@ -414,10 +399,12 @@ private fun ViewerAction(
     onClick: () -> Unit,
 ) {
     IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(52.dp)) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(21.dp))
-            Text(label, color = Color.White, fontSize = 9.sp, maxLines = 1)
-        }
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = Color.White,
+            modifier = Modifier.size(28.dp),
+        )
     }
 }
 
