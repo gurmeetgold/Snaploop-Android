@@ -17,4 +17,11 @@ internal object PreAuthOnboardingParity {
                 value == true
         }
     }
+
+    /**
+     * Onboarding is a device-level pre-auth surface. Its visibility must not depend on the current
+     * Firebase/session gate: a clean install with no completion marker shows onboarding even if an
+     * authentication session is restored before the coordinator reaches AUTH.
+     */
+    fun shouldPresent(completed: Boolean): Boolean = !completed
 }
