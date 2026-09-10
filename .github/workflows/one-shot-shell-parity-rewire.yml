@@ -1,4 +1,4 @@
-name: One-shot reported category icon parity batch
+name: One-shot Face Setup return parity batch
 
 on:
   push:
@@ -17,16 +17,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Apply guarded category icon parity fixes
+      - name: Apply guarded Face Setup return fixes
         run: python3 scripts/one_shot_rewire_shell_parity.py
-      - name: Commit guarded category icon parity fixes
+      - name: Commit guarded Face Setup return fixes
         run: |
           git config user.name "gurmeetgold"
           git config user.email "50425243+gurmeetgold@users.noreply.github.com"
           git add \
+            app/src/main/java/com/snaploop/app/ui/AppCoordinator.kt \
             app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt \
-            app/src/main/java/com/snaploop/app/ui/ParityEventDashboard.kt \
-            app/src/test/java/com/snaploop/app/ui/ReportedCategoryIconParityTest.kt
+            app/src/test/java/com/snaploop/app/ui/FaceSetupReturnNavigationParityTest.kt
           git diff --cached --check
-          git commit -m "Match Home and Event category icons"
+          git commit -m "Return updated Face Setup to You"
           git push origin HEAD:feature/android-production-parity-v1
