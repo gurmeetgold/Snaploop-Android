@@ -27,10 +27,12 @@ class FinalVisualParityRegressionTest {
         assertFalse(source.contains("Text(label, fontSize = 11.sp"))
     }
 
-    @Test fun `full screen viewer exposes no Not Me callback`() {
+    @Test fun `full screen viewer exposes no Android only overflow action`() {
         val source = source("ParityFullScreenPhotoViewer.kt")
         assertFalse(source.contains("onNotMe:"))
-        assertFalse(source.contains("Not Me"))
+        assertFalse(source.contains("Icons.Filled.MoreVert"))
+        assertFalse(source.contains("DropdownMenu("))
+        assertFalse(source.contains("DropdownMenuItem("))
     }
 
     @Test fun `gallery density selector is a bordered capsule`() {
