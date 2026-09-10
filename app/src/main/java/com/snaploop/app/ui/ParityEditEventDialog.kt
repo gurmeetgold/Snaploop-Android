@@ -16,10 +16,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -135,17 +134,23 @@ internal fun ParityEditEventDialog(
                     )
 
                     HorizontalDivider()
-                    EditFieldLabel("Type", Icons.Filled.Category)
+                    EditFieldLabel("Type", eventCategoryIcon(category))
                     Box(Modifier.fillMaxWidth()) {
                         TextButton(
                             onClick = { categoryMenu = true },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !controlsBusy,
                         ) {
+                            Icon(
+                                eventCategoryIcon(category),
+                                contentDescription = null,
+                                tint = SnapColors.Coral,
+                                modifier = Modifier.size(20.dp),
+                            )
                             Text(
                                 editCategoryName(category),
                                 color = SnapColors.Coral,
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(1f).padding(start = 8.dp),
                                 textAlign = TextAlign.Start,
                             )
                         }
@@ -156,6 +161,9 @@ internal fun ParityEditEventDialog(
                             EventCategory.entries.forEach { item ->
                                 DropdownMenuItem(
                                     text = { Text(editCategoryName(item)) },
+                                    leadingIcon = {
+                                        Icon(eventCategoryIcon(item), contentDescription = null)
+                                    },
                                     onClick = {
                                         category = item
                                         categoryMenu = false
@@ -167,7 +175,7 @@ internal fun ParityEditEventDialog(
                     }
 
                     HorizontalDivider()
-                    EditFieldLabel("Location", Icons.Filled.LocationOn)
+                    EditFieldLabel("Location", Icons.Filled.Navigation)
                     EditFilledTextField(
                         value = location,
                         onValueChange = {

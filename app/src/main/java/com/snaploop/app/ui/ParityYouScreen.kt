@@ -15,14 +15,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.PhoneIphone
-import androidx.compose.material.icons.filled.PrivacyTip
-import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -156,14 +156,14 @@ internal fun ParityYouScreen(
         ParityPremiumCard {
             YouAccountRow(
                 title = if (state.user?.displayName == null) "Add Your Name" else "Edit Your Name",
-                icon = Icons.Filled.Edit,
+                icon = Icons.Filled.Badge,
                 tint = SnapColors.Coral,
                 onClick = { editName = true },
             )
             HorizontalDivider(Modifier.padding(start = YouScreenParitySpec.ACCOUNT_DIVIDER_START_DP.dp))
             YouAccountRow(
                 title = if (state.user?.hasFaceProfile == true) "Update Face Setup" else "Set Up Your Face",
-                icon = Icons.Filled.Face,
+                icon = Icons.Filled.CenterFocusStrong,
                 tint = SnapColors.Lilac,
                 onClick = coordinator::openFaceSetupFromMain,
             )
@@ -179,7 +179,7 @@ internal fun ParityYouScreen(
             YouMenuRow(
                 title = "Privacy & Data",
                 subtitle = "Face data, deletion and account controls",
-                icon = Icons.Filled.PrivacyTip,
+                icon = Icons.Filled.Shield,
                 tint = SnapColors.Blue,
                 showChevron = true,
             )
@@ -193,7 +193,7 @@ internal fun ParityYouScreen(
             YouMenuRow(
                 title = "Replay Onboarding",
                 subtitle = "Review how Events, matching and permissions work",
-                icon = Icons.Filled.RestartAlt,
+                icon = Icons.Filled.AutoAwesome,
                 tint = SnapColors.Lilac,
                 showChevron = true,
             )

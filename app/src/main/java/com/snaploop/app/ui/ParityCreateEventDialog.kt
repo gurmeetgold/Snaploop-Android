@@ -18,9 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.ButtonDefaults
@@ -140,7 +139,7 @@ internal fun ParityCreateEventDialog(
                     )
 
                     HorizontalDivider()
-                    CreateFieldLabel("Type", Icons.Filled.Category)
+                    CreateFieldLabel("Type", eventCategoryIcon(category))
                     Box(Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = { categoryMenu = true },
@@ -155,9 +154,14 @@ internal fun ParityCreateEventDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Start,
                             ) {
+                                Icon(
+                                    eventCategoryIcon(category),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                )
                                 Text(
                                     createCategoryName(category),
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier.weight(1f).padding(start = 8.dp),
                                     textAlign = TextAlign.Start,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -171,6 +175,9 @@ internal fun ParityCreateEventDialog(
                             EventCategory.entries.forEach { item ->
                                 DropdownMenuItem(
                                     text = { Text(createCategoryName(item)) },
+                                    leadingIcon = {
+                                        Icon(eventCategoryIcon(item), contentDescription = null)
+                                    },
                                     onClick = {
                                         category = item
                                         categoryMenu = false
@@ -181,7 +188,7 @@ internal fun ParityCreateEventDialog(
                     }
 
                     HorizontalDivider()
-                    CreateFieldLabel("Location", Icons.Filled.LocationOn)
+                    CreateFieldLabel("Location", Icons.Filled.Navigation)
                     CreateFilledTextField(
                         value = location,
                         onValueChange = { location = it.take(80) },
