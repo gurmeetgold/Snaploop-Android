@@ -135,6 +135,15 @@ internal fun SnapLoopMainShell(
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
+    LaunchedEffect(state.returnToYouAfterFaceSetup) {
+        if (state.returnToYouAfterFaceSetup) {
+            coordinator.dismissPendingInvite()
+            coordinator.closeEvent()
+            tab = 2
+            coordinator.consumeFaceSetupReturnDestination()
+        }
+    }
+
     Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {

@@ -71,6 +71,7 @@ data class AppUiState(
     val scanResult: CameraSyncCoordinator.Result? = null,
     val faceCaptures: Int = 0,
     val faceSetupMode: FaceSetupMode = FaceSetupMode.INITIAL_GATE,
+    val returnToYouAfterFaceSetup: Boolean = false,
 )
 
 class AppCoordinator(application: Application) : AndroidViewModel(application) {
@@ -287,6 +288,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
 
     fun completeFaceSetup() = launchBusy {
         val uid = requireUid()
+        val returnToYou = state.value.faceSetupMode == FaceSetupMode.RETURN_TO_MAIN
         require(pendingFaceEmbeddings.size == FaceModelPolicy.TARGET_TEMPLATE_COUNT) {
             "Complete all ${FaceModelPolicy.TARGET_TEMPLATE_COUNT} guided face steps."
         }
@@ -342,6 +344,13 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         pendingFaceReferenceJpeg = null
         users.syncMyProfile(uid, state.value.user?.displayName)
         routeAuthenticated(uid)
+        if (returnToYou) {
+            update { copy(returnToYouAfterFaceSetup = true) }
+        }
+    }
+
+    fun consumeFaceSetupReturnDestination() {
+        update { copy(returnToYouAfterFaceSetup = false) }
     }
 
     fun refreshEvents() = launchBusy {
