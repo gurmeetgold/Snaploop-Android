@@ -344,7 +344,7 @@ write(rel, s)
 
 rel = "app/src/main/java/com/snaploop/app/ui/GuidedFaceEnrollmentCamera.kt"
 s = read(rel)
-s = replace_once(s, 'if (now - lastAutoCaptureAt < 550L)', 'if (now - lastAutoCaptureAt < 1_400L)', "face capture cooldown")
+s = replace_once(s, 'if (now - lastCaptureAt < 550L)', 'if (now - lastCaptureAt < 1_400L)', "face capture cooldown")
 write(rel, s)
 
 rel = "app/src/test/java/com/snaploop/app/ui/GuidedFacePoseTrackerTest.kt"
