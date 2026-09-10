@@ -9,71 +9,81 @@ def replace_once(path: Path, old: str, new: str, label: str) -> None:
     path.write_text(text.replace(old, new, 1))
 
 
+coordinator = Path("app/src/main/java/com/snaploop/app/ui/AppCoordinator.kt")
+replace_once(
+    coordinator,
+    '''    val faceCaptures: Int = 0,
+    val faceSetupMode: FaceSetupMode = FaceSetupMode.INITIAL_GATE,
+)''',
+    '''    val faceCaptures: Int = 0,
+    val faceSetupMode: FaceSetupMode = FaceSetupMode.INITIAL_GATE,
+    val returnToYouAfterFaceSetup: Boolean = false,
+)''',
+    "Face Setup return destination state",
+)
+replace_once(
+    coordinator,
+    '''    fun completeFaceSetup() = launchBusy {
+        val uid = requireUid()
+        require(pendingFaceEmbeddings.size == FaceModelPolicy.TARGET_TEMPLATE_COUNT) {''',
+    '''    fun completeFaceSetup() = launchBusy {
+        val uid = requireUid()
+        val returnToYou = state.value.faceSetupMode == FaceSetupMode.RETURN_TO_MAIN
+        require(pendingFaceEmbeddings.size == FaceModelPolicy.TARGET_TEMPLATE_COUNT) {''',
+    "Capture Face Setup launch origin",
+)
+replace_once(
+    coordinator,
+    '''        users.syncMyProfile(uid, state.value.user?.displayName)
+        routeAuthenticated(uid)
+    }
+
+    fun refreshEvents()''',
+    '''        users.syncMyProfile(uid, state.value.user?.displayName)
+        routeAuthenticated(uid)
+        if (returnToYou) {
+            update { copy(returnToYouAfterFaceSetup = true) }
+        }
+    }
+
+    fun consumeFaceSetupReturnDestination() {
+        update { copy(returnToYouAfterFaceSetup = false) }
+    }
+
+    fun refreshEvents()''',
+    "Publish Face Setup return destination",
+)
+
 shell = Path("app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt")
-replace_once(shell, "import androidx.compose.material.icons.filled.CalendarMonth\n", "import androidx.compose.material.icons.filled.CalendarMonth\nimport androidx.compose.material.icons.filled.Cake\nimport androidx.compose.material.icons.filled.Celebration\nimport androidx.compose.material.icons.filled.Flight\n", "Shell category icon imports")
 replace_once(
     shell,
-    '''private fun shellCategoryIcon(category: EventCategory): ImageVector = when (category) {
-    EventCategory.trip -> Icons.Filled.LocationOn
-    EventCategory.wedding -> Icons.Filled.Image
-    EventCategory.party -> Icons.Filled.Groups
-    EventCategory.birthday -> Icons.Filled.MoreHoriz
-    EventCategory.conference -> Icons.Filled.Groups
-    EventCategory.family -> Icons.Filled.Groups
-    EventCategory.sports -> Icons.Filled.MoreHoriz
-    EventCategory.other -> Icons.Filled.PhotoLibrary
-}''',
-    '''private fun shellCategoryIcon(category: EventCategory): ImageVector = when (category) {
-    EventCategory.trip -> Icons.Filled.Flight
-    EventCategory.wedding -> Icons.Filled.Image
-    EventCategory.party -> Icons.Filled.Celebration
-    EventCategory.birthday -> Icons.Filled.Cake
-    EventCategory.conference -> Icons.Filled.Groups
-    EventCategory.family -> Icons.Filled.Groups
-    EventCategory.sports -> Icons.Filled.MoreHoriz
-    EventCategory.other -> Icons.Filled.PhotoLibrary
-}''',
-    "Shell category icons",
+    '''    var tab by rememberSaveable { mutableIntStateOf(0) }
+
+    Scaffold(''',
+    '''    var tab by rememberSaveable { mutableIntStateOf(0) }
+
+    LaunchedEffect(state.returnToYouAfterFaceSetup) {
+        if (state.returnToYouAfterFaceSetup) {
+            coordinator.dismissPendingInvite()
+            coordinator.closeEvent()
+            tab = 2
+            coordinator.consumeFaceSetupReturnDestination()
+        }
+    }
+
+    Scaffold(''',
+    "Return updated Face Setup to You tab",
 )
 
 
-dashboard = Path("app/src/main/java/com/snaploop/app/ui/ParityEventDashboard.kt")
-replace_once(dashboard, "import androidx.compose.material.icons.filled.CalendarMonth\n", "import androidx.compose.material.icons.filled.CalendarMonth\nimport androidx.compose.material.icons.filled.Cake\nimport androidx.compose.material.icons.filled.Celebration\nimport androidx.compose.material.icons.filled.Flight\n", "Dashboard category icon imports")
-replace_once(
-    dashboard,
-    '''private fun parityCategoryIcon(category: EventCategory): ImageVector = when (category) {
-    EventCategory.trip -> Icons.Filled.LocationOn
-    EventCategory.wedding -> Icons.Filled.Image
-    EventCategory.party -> Icons.Filled.Groups
-    EventCategory.birthday -> Icons.Filled.MoreHoriz
-    EventCategory.conference -> Icons.Filled.Groups
-    EventCategory.family -> Icons.Filled.Groups
-    EventCategory.sports -> Icons.Filled.MoreHoriz
-    EventCategory.other -> Icons.Filled.PhotoLibrary
-}''',
-    '''private fun parityCategoryIcon(category: EventCategory): ImageVector = when (category) {
-    EventCategory.trip -> Icons.Filled.Flight
-    EventCategory.wedding -> Icons.Filled.Image
-    EventCategory.party -> Icons.Filled.Celebration
-    EventCategory.birthday -> Icons.Filled.Cake
-    EventCategory.conference -> Icons.Filled.Groups
-    EventCategory.family -> Icons.Filled.Groups
-    EventCategory.sports -> Icons.Filled.MoreHoriz
-    EventCategory.other -> Icons.Filled.PhotoLibrary
-}''',
-    "Dashboard category icons",
-)
-
-
-test_path = Path("app/src/test/java/com/snaploop/app/ui/ReportedCategoryIconParityTest.kt")
+test_path = Path("app/src/test/java/com/snaploop/app/ui/FaceSetupReturnNavigationParityTest.kt")
 test_path.write_text('''package com.snaploop.app.ui
 
 import java.io.File
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class ReportedCategoryIconParityTest {
+class FaceSetupReturnNavigationParityTest {
     private fun source(name: String): String {
         val candidates = listOf(
             File("src/main/java/com/snaploop/app/ui/$name"),
@@ -83,18 +93,22 @@ class ReportedCategoryIconParityTest {
             ?: error("$name was not found from the unit-test working directory")
     }
 
-    @Test fun `home uses meaningful trip and birthday icons instead of placeholders`() {
-        val source = source("SnapLoopMainShell.kt")
-        assertTrue(source.contains("EventCategory.trip -> Icons.Filled.Flight"))
-        assertTrue(source.contains("EventCategory.birthday -> Icons.Filled.Cake"))
-        assertFalse(source.contains("EventCategory.birthday -> Icons.Filled.MoreHoriz"))
+    @Test fun `coordinator remembers that update Face Setup came from main`() {
+        val source = source("AppCoordinator.kt")
+        assertTrue(source.contains("val returnToYou = state.value.faceSetupMode == FaceSetupMode.RETURN_TO_MAIN"))
+        assertTrue(source.contains("copy(returnToYouAfterFaceSetup = true)"))
     }
 
-    @Test fun `event hero uses same trip birthday and party icon language`() {
-        val source = source("ParityEventDashboard.kt")
-        assertTrue(source.contains("EventCategory.trip -> Icons.Filled.Flight"))
-        assertTrue(source.contains("EventCategory.birthday -> Icons.Filled.Cake"))
-        assertTrue(source.contains("EventCategory.party -> Icons.Filled.Celebration"))
+    @Test fun `main shell consumes update destination on You tab`() {
+        val source = source("SnapLoopMainShell.kt")
+        assertTrue(source.contains("if (state.returnToYouAfterFaceSetup)"))
+        assertTrue(source.contains("tab = 2"))
+        assertTrue(source.contains("coordinator.consumeFaceSetupReturnDestination()"))
+    }
+
+    @Test fun `camera closes before slow profile persistence starts`() {
+        val source = source("ParityFaceSetupScreen.kt")
+        assertTrue(source.contains("scanOpen = false\\n                onComplete()"))
     }
 }
 ''')
