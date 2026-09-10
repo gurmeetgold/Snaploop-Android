@@ -1,0 +1,33 @@
+name: One-shot device acceptance batch
+
+on:
+  push:
+    branches:
+      - 'fix/device-acceptance-batch-2026-09-10-impl'
+    paths:
+      - '.github/workflows/one-shot-device-acceptance-batch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-test-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply guarded device acceptance fixes
+        run: python3 scripts/device_acceptance_batch_fix.py
+      - name: Verify diff
+        run: git diff --check
+      - name: Run full Android verification
+        run: ./gradlew test lint assembleDebug assembleRelease assembleDebugAndroidTest
+      - name: Commit verified implementation
+        run: |
+          git config user.name "gurmeetgold"
+          git config user.email "50425243+gurmeetgold@users.noreply.github.com"
+          git add app/src/main app/src/test
+          git diff --cached --check
+          git commit -m "Fix device acceptance parity and consent enforcement"
+          git push origin HEAD:fix/device-acceptance-batch-2026-09-10-impl
