@@ -225,9 +225,8 @@ internal fun ParityEventDashboard(
             Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onBack) {
-                Icon(Icons.Filled.ChevronLeft, contentDescription = null)
-                Text("Events")
+            androidx.compose.material3.IconButton(onClick = onBack) {
+                Icon(Icons.Filled.ChevronLeft, contentDescription = "Back")
             }
         }
 
@@ -265,7 +264,7 @@ internal fun ParityEventDashboard(
             ) {
                 ParityEventFeatureTile(
                     title = "My Photos",
-                    subtitle = "$photosOfMe found of you",
+                    subtitle = if (photosOfMe == 1) "1 photo of you" else "$photosOfMe photos of you",
                     icon = Icons.Filled.Image,
                     gradient = SnapGradients.Brand,
                     modifier = Modifier.weight(1f),
@@ -470,22 +469,28 @@ private fun ParityEventHero(
                     color = Color.White.copy(alpha = 0.92f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 1,
                 )
-                role?.let {
-                    Surface(color = Color.White.copy(alpha = 0.18f), shape = CircleShape) {
-                        Row(
-                            Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(parityRoleIcon(it), contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
-                            Text(
-                                parityRoleLabel(it),
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                modifier = Modifier.padding(start = 4.dp),
-                            )
-                        }
+            }
+            role?.let {
+                Surface(
+                    color = Color.White.copy(alpha = 0.18f),
+                    shape = CircleShape,
+                    modifier = Modifier.padding(top = 7.dp),
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(parityRoleIcon(it), contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                        Text(
+                            parityRoleLabel(it),
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.padding(start = 4.dp),
+                            maxLines = 1,
+                        )
                     }
                 }
             }
@@ -782,8 +787,8 @@ private fun parityEventRange(event: SnapEvent): String {
     val zone = runCatching {
         ZoneId.of(event.photoWindowTimeZoneId ?: ZoneId.systemDefault().id)
     }.getOrDefault(ZoneId.systemDefault())
-    val formatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
-    val start = event.startsAt.atZone(zone).toLocalDate().format(formatter)
-    val end = event.endsAt.atZone(zone).toLocalDate().format(formatter)
-    return if (start == end) start else "$start – $end"
+    return EventDateRangeFormatter.format(
+        event.startsAt.atZone(zone).toLocalDate(),
+        event.endsAt.atZone(zone).toLocalDate(),
+    )
 }

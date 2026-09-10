@@ -1261,8 +1261,19 @@ private fun ShellActionCard(
                 Icon(icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
             }
             Column(Modifier.align(Alignment.BottomStart)) {
-                Text(title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text(subtitle, color = Color.White.copy(alpha = 0.90f), fontSize = 12.sp)
+                Text(
+                    title,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                )
+                Text(
+                    subtitle,
+                    color = Color.White.copy(alpha = 0.90f),
+                    fontSize = 11.sp,
+                    maxLines = 2,
+                )
             }
         }
     }
@@ -1402,10 +1413,10 @@ private fun shellEventZone(event: SnapEvent): ZoneId = runCatching {
 
 private fun shellEventRange(event: SnapEvent): String {
     val zone = shellEventZone(event)
-    val formatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
-    val start = event.startsAt.atZone(zone).toLocalDate().format(formatter)
-    val end = event.endsAt.atZone(zone).toLocalDate().format(formatter)
-    return if (start == end) start else "$start – $end"
+    return EventDateRangeFormatter.format(
+        event.startsAt.atZone(zone).toLocalDate(),
+        event.endsAt.atZone(zone).toLocalDate(),
+    )
 }
 
 private fun shellFormatMillis(value: Long): String = Instant.ofEpochMilli(value)

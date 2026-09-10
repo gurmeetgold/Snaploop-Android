@@ -287,7 +287,13 @@ internal fun ParityPhotoGallery(
             if (selecting) {
                 Text("${selected.size} selected", color = Color(0xFF6B6670), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 TextButton(onClick = ::endSelection, enabled = !bulkBusy) {
-                    Text("Cancel", fontWeight = FontWeight.Bold)
+                    Text(
+                        "Cancel",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
                 }
             } else {
                 TextButton(
@@ -567,7 +573,7 @@ private fun GalleryInsightBanner(
                     if (acrossAllEvents) {
                         if (count == 1) "photo of you found across all events" else "photos of you found across all events"
                     } else {
-                        "photos found of you"
+                        if (count == 1) "photo of you found in this Event" else "photos of you found in this Event"
                     },
                     fontWeight = FontWeight.Black,
                 )
