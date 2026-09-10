@@ -26,6 +26,18 @@ jobs:
           gradle-version: '9.6.0'
       - name: Apply guarded device acceptance fixes
         run: python3 scripts/device_acceptance_batch_fix.py
+      - name: Update superseded Face Setup regression assertion
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/test/java/com/snaploop/app/ui/FaceSetupReturnNavigationParityTest.kt')
+          s = p.read_text()
+          old = 'assertTrue(source.contains("scanOpen = false\\n                onComplete()"))'
+          new = 'assertTrue(source.contains("scanOpen = false\\n                finishingSetup = true\\n                onComplete()"))'
+          if s.count(old) != 1:
+              raise SystemExit('expected one legacy Face Setup assertion')
+          p.write_text(s.replace(old, new, 1))
+          PY
       - name: Verify diff
         run: git diff --check
       - name: Run full Android verification
@@ -39,4 +51,4 @@ jobs:
           git commit -m "Fix device acceptance parity and consent enforcement"
           git push origin HEAD:fix/device-acceptance-batch-2026-09-10-impl
 
-# Retry 3: mirror the repository's working Java/Gradle CI bootstrap.
+# Retry 4: update the old camera-close regression for the new explicit processing state.
