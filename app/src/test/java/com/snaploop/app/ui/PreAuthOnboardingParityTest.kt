@@ -40,4 +40,14 @@ class PreAuthOnboardingParityTest {
             ),
         )
     }
+
+    @Test
+    fun `fresh device always presents onboarding before any session gate`() {
+        assertTrue(PreAuthOnboardingParity.shouldPresent(completed = false))
+    }
+
+    @Test
+    fun `completed device does not replay onboarding automatically`() {
+        assertFalse(PreAuthOnboardingParity.shouldPresent(completed = true))
+    }
 }
