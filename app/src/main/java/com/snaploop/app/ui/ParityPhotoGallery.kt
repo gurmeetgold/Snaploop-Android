@@ -259,11 +259,11 @@ internal fun ParityPhotoGallery(
         GalleryInsightBanner(
             count = availablePhotos.size,
             acrossAllEvents = acrossAllEvents,
-            modifier = Modifier.padding(horizontal = 16.dp, top = 4.dp),
+            modifier = Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp),
         )
 
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, top = 10.dp),
+            Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp, end = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
