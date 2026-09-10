@@ -7,6 +7,7 @@ import com.google.firebase.storage.StorageMetadata
 import com.snaploop.app.core.SnapLoopException
 import com.snaploop.app.domain.PhotoMatch
 import com.snaploop.app.domain.PhotoMatchAppearance
+import com.snaploop.app.domain.PhotoMatchDeduplication
 import kotlinx.coroutines.tasks.await
 
 /** Production match metadata/optimized preview repository. Originals intentionally remain unavailable in v1 parity. */
@@ -93,7 +94,8 @@ class FirebaseMatchRepository(
         val raw = callable.call("listMyMatchedPhotos", mapOf("eventId" to eventId))
         val wrapper = raw as? Map<*, *> ?: throw SnapLoopException.InvalidData("Matched photo response is malformed")
         val rows = wrapper["photos"] as? List<*> ?: throw SnapLoopException.InvalidData("Matched photo response is malformed")
-        return rows.map { decode(it as? Map<*, *> ?: throw SnapLoopException.InvalidData("Malformed photo")) }
+        val decoded = rows.map { decode(it as? Map<*, *> ?: throw SnapLoopException.InvalidData("Malformed photo")) }
+        return PhotoMatchDeduplication.unique(decoded)
             .sortedByDescending { it.capturedAtMillis }
     }
 
