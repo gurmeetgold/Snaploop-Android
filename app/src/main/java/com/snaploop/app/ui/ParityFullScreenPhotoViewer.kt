@@ -143,7 +143,6 @@ internal fun ParityFullScreenPhotoViewer(
     initialMatchId: String,
     isFavorite: (PhotoMatch) -> Boolean,
     onFavoriteChanged: (PhotoMatch, Boolean) -> Unit,
-    onNotMe: (PhotoMatch) -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (matches.isEmpty()) return

@@ -37,6 +37,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -227,7 +229,7 @@ internal fun ParityPhotoGallery(
         if (favoritesOnly && !nextValue) selected = emptySet()
     }
 
-    Column(modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
+    Column(modifier.fillMaxSize().padding(vertical = 8.dp)) {
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -257,11 +259,11 @@ internal fun ParityPhotoGallery(
         GalleryInsightBanner(
             count = availablePhotos.size,
             acrossAllEvents = acrossAllEvents,
-            modifier = Modifier.padding(top = 4.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, top = 4.dp),
         )
 
         Row(
-            Modifier.fillMaxWidth().padding(top = 10.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, top = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -272,7 +274,13 @@ internal fun ParityPhotoGallery(
                     selected = emptySet()
                     bulkMessage = null
                 },
-                label = { Text("All") },
+                label = { Text("All", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                leadingIcon = { Icon(Icons.Filled.GridView, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = SnapColors.Lilac.copy(alpha = 0.14f),
+                    selectedLabelColor = SnapColors.Lilac,
+                    selectedLeadingIconColor = SnapColors.Lilac,
+                ),
             )
             FilterChip(
                 selected = favoritesOnly,
@@ -281,7 +289,13 @@ internal fun ParityPhotoGallery(
                     selected = emptySet()
                     bulkMessage = null
                 },
-                label = { Text("Favorites") },
+                label = { Text("Favorites", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                leadingIcon = { Icon(Icons.Filled.Favorite, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = SnapColors.Coral.copy(alpha = 0.13f),
+                    selectedLabelColor = SnapColors.Coral,
+                    selectedLeadingIconColor = SnapColors.Coral,
+                ),
             )
             Box(Modifier.weight(1f))
             if (selecting) {
@@ -307,9 +321,15 @@ internal fun ParityPhotoGallery(
                     Text("Select", fontWeight = FontWeight.Bold)
                 }
                 Box {
-                    TextButton(onClick = { densityMenuOpen = true }) {
-                        Icon(Icons.Filled.GridView, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("  $columns", fontWeight = FontWeight.Bold)
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)),
+                    ) {
+                        TextButton(onClick = { densityMenuOpen = true }) {
+                            Icon(Icons.Filled.GridView, contentDescription = null, tint = SnapColors.Lilac, modifier = Modifier.size(18.dp))
+                            Text("  $columns", color = SnapColors.Lilac, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                     DropdownMenu(
                         expanded = densityMenuOpen,
@@ -361,19 +381,19 @@ internal fun ParityPhotoGallery(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         GallerySelectionAction(
-                            label = "Save",
+                            label = "Save selected photos",
                             icon = Icons.Filled.Download,
                             enabled = selected.isNotEmpty() && !bulkBusy,
                             onClick = ::saveSelected,
                         )
                         GallerySelectionAction(
-                            label = "Share",
+                            label = "Share selected photos",
                             icon = Icons.Filled.Share,
                             enabled = selected.isNotEmpty() && !bulkBusy,
                             onClick = ::shareSelected,
                         )
                         GallerySelectionAction(
-                            label = if (allSelectedAreFavorites) "Unfavorite" else "Favorite",
+                            label = if (allSelectedAreFavorites) "Remove selected photos from Favorites" else "Favorite selected photos",
                             icon = if (allSelectedAreFavorites) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             enabled = selected.isNotEmpty() && !bulkBusy,
                             onClick = ::favoriteSelected,
@@ -476,10 +496,6 @@ internal fun ParityPhotoGallery(
             initialMatchId = match.id,
             isFavorite = { it.id in favorites },
             onFavoriteChanged = { item, value -> setFavorite(item.id, value) },
-            onNotMe = { item ->
-                detail = null
-                notMeConfirmation = item
-            },
             onDismiss = { detail = null },
         )
     }
@@ -537,11 +553,8 @@ private fun GallerySelectionAction(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    TextButton(onClick = onClick, enabled = enabled) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        }
+    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) {
+        Icon(icon, contentDescription = label, modifier = Modifier.size(21.dp))
     }
 }
 
@@ -567,7 +580,7 @@ private fun GalleryInsightBanner(
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(count.toString(), fontSize = 38.sp, fontWeight = FontWeight.Black)
+            Text(count.toString(), fontSize = 32.sp, fontWeight = FontWeight.Bold)
             Column(Modifier.padding(start = 14.dp)) {
                 Text(
                     if (acrossAllEvents) {
@@ -575,7 +588,8 @@ private fun GalleryInsightBanner(
                     } else {
                         if (count == 1) "photo of you found in this Event" else "photos of you found in this Event"
                     },
-                    fontWeight = FontWeight.Black,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
                 )
             }
         }
