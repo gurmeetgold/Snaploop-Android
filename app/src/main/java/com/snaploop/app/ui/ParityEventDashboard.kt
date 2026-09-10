@@ -604,8 +604,8 @@ private fun ParityEventFeatureTile(
                     .background(Color.White.copy(alpha = 0.12f), CircleShape),
             )
             Column(
-                Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(7.dp),
+                Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 Box(
                     Modifier
@@ -619,8 +619,8 @@ private fun ParityEventFeatureTile(
                     Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.weight(1f))
-                Text(title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text(subtitle, color = Color.White.copy(alpha = 0.90f), fontSize = 12.sp)
+                Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(subtitle, color = Color.White.copy(alpha = 0.92f), fontSize = 11.sp, maxLines = 1)
             }
         }
     }

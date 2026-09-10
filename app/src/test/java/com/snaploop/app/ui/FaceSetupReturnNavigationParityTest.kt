@@ -36,6 +36,6 @@ class FaceSetupReturnNavigationParityTest {
 
     @Test fun `camera closes before slow profile persistence starts`() {
         val source = source("ParityFaceSetupScreen.kt")
-        assertTrue(source.contains("scanOpen = false\n                onComplete()"))
+        assertTrue(source.contains("scanOpen = false\n                finishingSetup = true\n                onComplete()"))
     }
 }

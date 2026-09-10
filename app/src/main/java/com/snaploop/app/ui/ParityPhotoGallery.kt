@@ -229,7 +229,7 @@ internal fun ParityPhotoGallery(
         if (favoritesOnly && !nextValue) selected = emptySet()
     }
 
-    Column(modifier.fillMaxSize().padding(vertical = 8.dp)) {
+    Column(modifier.fillMaxSize().background(SnapGradients.SoftWash).padding(vertical = 8.dp)) {
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -569,13 +569,7 @@ private fun GalleryInsightBanner(
             Modifier
                 .fillMaxWidth()
                 .background(
-                    Brush.linearGradient(
-                        listOf(
-                            Color(0xFFFF571A).copy(alpha = 0.14f),
-                            Color(0xFFFF0070).copy(alpha = 0.12f),
-                            Color(0xFF7D14FF).copy(alpha = 0.12f),
-                        ),
-                    ),
+                    SnapGradients.SoftWash,
                 )
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,

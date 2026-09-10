@@ -223,7 +223,8 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     }
 
     fun addFaceCapture(jpeg: ByteArray) = launchBusy {
-        requireUid()
+        val uid = requireUid()
+        if (!ensureActiveBiometricConsent(uid)) return@launchBusy
         require(jpeg.isNotEmpty()) { "Camera capture is empty." }
         require(pendingFaceEmbeddings.size < FaceModelPolicy.TARGET_TEMPLATE_COUNT) {
             "Face Setup already has enough captures."
@@ -251,8 +252,10 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         update { copy(faceCaptures = 0, message = null) }
     }
 
-    /** Opens Face Setup from the authenticated app and always permits returning to Main. */
-    fun openFaceSetupFromMain() {
+    /** Opens Face Setup from the authenticated app only while biometric consent is active. */
+    fun openFaceSetupFromMain() = launchBusy {
+        val uid = requireUid()
+        if (!ensureActiveBiometricConsent(uid)) return@launchBusy
         pendingFaceEmbeddings.clear()
         pendingFaceReferenceJpeg = null
         update {
@@ -288,6 +291,7 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
 
     fun completeFaceSetup() = launchBusy {
         val uid = requireUid()
+        if (!ensureActiveBiometricConsent(uid)) return@launchBusy
         val returnToYou = state.value.faceSetupMode == FaceSetupMode.RETURN_TO_MAIN
         require(pendingFaceEmbeddings.size == FaceModelPolicy.TARGET_TEMPLATE_COUNT) {
             "Complete all ${FaceModelPolicy.TARGET_TEMPLATE_COUNT} guided face steps."
@@ -532,44 +536,57 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         val previous = memberPreferences.load(event.id)
         require(previous.sharingEnabled) { "Turn on photo sharing for this Event first." }
         if (enabled) {
+            if (!ensureActiveBiometricConsent(uid)) return@launchBusy
             require(faceProfiles.load(uid) != null) { "Set up your face to see your own photo matches." }
         }
 
         memberPreferences.setIncludeOwnMatches(event.id, enabled)
         val saved = memberPreferences.load(event.id)
+        val resolvedEnabled = saved.sharingEnabled && saved.includeOwnMatches
 
-        if (
-            OwnMatchReplayPolicy.shouldReplay(
-                previousEnabled = previous.includeOwnMatches,
-                savedEnabled = saved.includeOwnMatches,
-                sharingEnabled = saved.sharingEnabled,
-                event = event,
-                now = Instant.now(),
-                gracePeriodDays = remoteConfig.eventGracePeriodDays,
+        // Preference persistence is the user-visible transaction. Reflect it immediately instead
+        // of blocking the switch behind a potentially long on-device corpus replay.
+        update {
+            copy(
+                includeOwnMatches = resolvedEnabled,
+                photos = if (resolvedEnabled) photos else photos.filter { it.ownerUserId != uid },
             )
-        ) {
-            // The preference save is authoritative. Replaying the bounded Event corpus is an
-            // opportunistic UX optimization; a permission/device/scanner failure must not turn a
-            // successful preference update into an error or roll the saved preference back.
-            runCatching {
-                withContext(Dispatchers.IO) {
-                    CameraSyncCoordinator(getApplication()).use { coordinator ->
-                        coordinator.scan(
-                            eventId = event.id,
-                            startMillis = event.startsAt.toEpochMilli(),
-                            endMillis = event.endsAt.toEpochMilli(),
-                            sharingEnabled = saved.sharingEnabled,
-                            includeOwnMatches = saved.includeOwnMatches,
-                            ownMatchesRevision = saved.revisionToken,
-                            config = remoteConfig,
-                        )
+        }
+
+        val shouldReplay = OwnMatchReplayPolicy.shouldReplay(
+            previousEnabled = previous.includeOwnMatches,
+            savedEnabled = saved.includeOwnMatches,
+            sharingEnabled = saved.sharingEnabled,
+            event = event,
+            now = Instant.now(),
+            gracePeriodDays = remoteConfig.eventGracePeriodDays,
+        )
+
+        // Replay and refresh are opportunistic background work. A successful preference update
+        // must never leave the switch spinning for tens of seconds while local face scanning runs.
+        viewModelScope.launch {
+            if (shouldReplay) {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        CameraSyncCoordinator(getApplication()).use { coordinator ->
+                            coordinator.scan(
+                                eventId = event.id,
+                                startMillis = event.startsAt.toEpochMilli(),
+                                endMillis = event.endsAt.toEpochMilli(),
+                                sharingEnabled = saved.sharingEnabled,
+                                includeOwnMatches = saved.includeOwnMatches,
+                                ownMatchesRevision = saved.revisionToken,
+                                config = remoteConfig,
+                            )
+                        }
                     }
                 }
             }
+            if (state.value.selectedEvent?.id == event.id) {
+                runCatching { refreshPhotosInternal(event.id, uid) }
+            }
+            runCatching { refreshAllPhotosInternal(uid, state.value.events) }
         }
-
-        loadEvent(eventRepository.fetchEvent(event.id))
-        refreshAllPhotosInternal(uid, state.value.events)
     }
 
     fun leaveSelectedEvent() = launchBusy {
@@ -859,6 +876,25 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         val maxDays = minOf(15, remoteConfig.maxEventDurationDays.coerceAtLeast(1)).toLong()
         val dayDistance = ChronoUnit.DAYS.between(startsOn, endsOn)
         require(dayDistance <= maxDays) { "An Event can span at most $maxDays calendar days." }
+    }
+
+    /**
+     * Consent is server-authoritative. Any stale entry point into Face Setup is closed immediately,
+     * pending biometric material is discarded, and the user is returned to the consent gate.
+     */
+    private suspend fun ensureActiveBiometricConsent(uid: String): Boolean {
+        if (consent.load(uid)?.isActive == true) return true
+        pendingFaceEmbeddings.clear()
+        pendingFaceReferenceJpeg = null
+        update {
+            copy(
+                gate = AppGate.BIOMETRIC_CONSENT,
+                faceSetupMode = FaceSetupMode.INITIAL_GATE,
+                faceCaptures = 0,
+                message = null,
+            )
+        }
+        return false
     }
 
     private fun requireUid(): String = auth.currentUserId ?: error("Authentication is required.")

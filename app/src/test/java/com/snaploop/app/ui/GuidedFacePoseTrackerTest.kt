@@ -45,11 +45,11 @@ class GuidedFacePoseTrackerTest {
         assertTrue(tracker.evaluate(GuidedFacePose.FRONT, observation()).readyToCapture)
         tracker.onCaptured()
 
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 23f)).readyToCapture)
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 36f)).readyToCapture)
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 24f)).readyToCapture)
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 23f)).readyToCapture)
-        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 22f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 32f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 32f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 32f)).readyToCapture)
+        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 32f)).readyToCapture)
     }
 
     @Test
@@ -60,14 +60,14 @@ class GuidedFacePoseTrackerTest {
         assertTrue(tracker.evaluate(GuidedFacePose.FRONT, observation()).readyToCapture)
         tracker.onCaptured()
 
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = -24f)).readyToCapture)
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 24f)).readyToCapture)
-        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 24f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = -32f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 32f)).readyToCapture)
+        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 32f)).readyToCapture)
         tracker.onCaptured()
 
-        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = 24f)).readyToCapture)
-        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = -24f)).readyToCapture)
-        assertTrue(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = -24f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = 32f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = -32f)).readyToCapture)
+        assertTrue(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = -32f)).readyToCapture)
     }
 
     @Test
@@ -79,8 +79,8 @@ class GuidedFacePoseTrackerTest {
         tracker.onCaptured()
 
         assertFalse(tracker.evaluate(GuidedFacePose.TILT_DOWN, observation(pitch = -11f)).readyToCapture)
-        assertFalse(tracker.evaluate(GuidedFacePose.TILT_DOWN, observation(pitch = -27f)).readyToCapture)
-        assertTrue(tracker.evaluate(GuidedFacePose.TILT_DOWN, observation(pitch = -27f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.TILT_DOWN, observation(pitch = -31f)).readyToCapture)
+        assertTrue(tracker.evaluate(GuidedFacePose.TILT_DOWN, observation(pitch = -31f)).readyToCapture)
     }
 
     @Test
@@ -91,15 +91,15 @@ class GuidedFacePoseTrackerTest {
         assertTrue(tracker.evaluate(GuidedFacePose.FRONT, observation()).readyToCapture)
         tracker.onCaptured()
 
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 24f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 32f)).readyToCapture)
         assertFalse(
             tracker.evaluate(
                 GuidedFacePose.LEFT,
                 observation(yaw = 24f, centerY = 0.72f),
             ).readyToCapture,
         )
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 24f)).readyToCapture)
-        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 24f)).readyToCapture)
-        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 24f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 32f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 32f)).readyToCapture)
+        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 32f)).readyToCapture)
     }
 }

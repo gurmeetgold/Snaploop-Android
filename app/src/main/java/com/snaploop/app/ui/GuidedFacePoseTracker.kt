@@ -17,7 +17,7 @@ import kotlin.math.abs
  */
 internal class GuidedFacePoseTracker(
     private val calibrationSamplesRequired: Int = 8,
-    private val stableFramesRequired: Int = 10,
+    private val stableFramesRequired: Int = 18,
 ) {
     data class Decision(
         val readyToCapture: Boolean,
@@ -74,9 +74,9 @@ internal class GuidedFacePoseTracker(
             GuidedFacePose.FRONT -> abs(yaw) <= 7f && abs(pitch) <= 8f
             // ML Kit observes the unmirrored sensor frame. These signs intentionally mirror the
             // displayed selfie preview so LEFT/RIGHT mean the direction the user is instructed to turn.
-            GuidedFacePose.LEFT -> yaw in 20f..42f && abs(pitch) <= 11f
-            GuidedFacePose.RIGHT -> yaw in -42f..-20f && abs(pitch) <= 11f
-            GuidedFacePose.TILT_DOWN -> pitch in -32f..-14f && abs(yaw) <= 11f
+            GuidedFacePose.LEFT -> yaw in 28f..48f && abs(pitch) <= 11f
+            GuidedFacePose.RIGHT -> yaw in -48f..-28f && abs(pitch) <= 11f
+            GuidedFacePose.TILT_DOWN -> pitch in -38f..-18f && abs(yaw) <= 11f
             GuidedFacePose.FINISH_FRONT -> abs(yaw) <= 8f && abs(pitch) <= 10f
         }
 

@@ -80,6 +80,7 @@ internal fun ParityYouScreen(
     Column(
         Modifier
             .fillMaxSize()
+            .background(SnapGradients.SoftWash)
             .verticalScroll(rememberScrollState())
             .padding(
                 horizontal = YouScreenParitySpec.HORIZONTAL_PADDING_DP.dp,

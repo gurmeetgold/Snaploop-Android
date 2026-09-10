@@ -330,9 +330,8 @@ internal fun ParityFullScreenPhotoViewer(
                                 fontWeight = FontWeight.Bold,
                             )
                         }
-                        // Preserve balanced top-bar geometry without exposing the Android-only
-                        // overflow/Not-Me menu that is absent from the iOS viewer.
-                        Spacer(Modifier.size(48.dp))
+                        // iOS places the count capsule at the trailing edge rather than
+                        // artificially centering it with a mirrored spacer.
                     }
 
                     Column(

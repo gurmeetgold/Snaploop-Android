@@ -167,10 +167,9 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
                     )
                     state.photoCorpus[asset.id] = corpus
 
-                    // Persist expensive on-device extraction before any network publication.
-                    // A transient upload failure can then retry from cached faces instead of
-                    // decoding and embedding the same source photo again.
-                    states.save(state)
+                    // Keep the extracted corpus in memory for this pass. The encrypted scan
+                    // checkpoint is batched below so first-time scans do not serialize the entire
+                    // growing state twice for every photo.
                 }
 
                 val pendingIds = state.pendingRecipientUserIds(asset.id, matchableIds)
@@ -240,7 +239,9 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
 
                 completed++
                 state.lastSyncedAtMillis = System.currentTimeMillis()
-                states.save(state)
+                // Bound crash rework while avoiding an encrypted full-state write after every
+                // asset. The final checkpoint below is unconditional.
+                if (completed % 4 == 0) states.save(state)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {

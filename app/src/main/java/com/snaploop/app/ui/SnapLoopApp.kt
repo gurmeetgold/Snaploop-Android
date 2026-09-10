@@ -152,7 +152,7 @@ private fun LoadingScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            BrandMark(78)
+            ParityBrandMark(78)
             if (!canRetry) CircularProgressIndicator(Modifier.padding(top = 22.dp))
             Text(message, Modifier.padding(top = 18.dp), fontWeight = FontWeight.Bold)
             if (canRetry) {

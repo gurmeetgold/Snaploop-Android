@@ -116,7 +116,7 @@ internal fun ParityOnboardingScreen(onCompleted: () -> Unit) {
                 Column(
                     Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                         pages.indices.forEach { index ->
@@ -150,12 +150,12 @@ internal fun ParityOnboardingScreen(onCompleted: () -> Unit) {
                     if (page > 0) {
                         TextButton(
                             onClick = { scope.launch { pagerState.animateScrollToPage(page - 1) } },
-                            modifier = Modifier.height(32.dp),
+                            modifier = Modifier.height(28.dp),
                         ) {
                             Text("Back", color = SnapColors.Secondary, fontWeight = FontWeight.SemiBold)
                         }
                     } else {
-                        Spacer(Modifier.height(32.dp))
+                        Spacer(Modifier.height(28.dp))
                     }
                 }
             }
@@ -171,7 +171,7 @@ private fun OnboardingParityPageContent(item: OnboardingParityPage, index: Int) 
             .verticalScroll(rememberScrollState())
             .padding(bottom = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Spacer(Modifier.height(4.dp))
         OnboardingParityIllustration(item.kind)
@@ -194,7 +194,7 @@ private fun OnboardingParityPageContent(item: OnboardingParityPage, index: Int) 
                         "Welcome to SnapLoop!",
                         style = TextStyle(
                             brush = SnapGradients.Brand,
-                            fontSize = 22.sp,
+                            fontSize = 19.sp,
                             fontWeight = FontWeight.Black,
                         ),
                     )
@@ -205,15 +205,16 @@ private fun OnboardingParityPageContent(item: OnboardingParityPage, index: Int) 
             Text(
                 item.title,
                 color = SnapColors.Ink,
-                fontSize = 30.sp,
+                fontSize = 26.sp,
+                lineHeight = 29.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )
             Text(
                 item.body,
                 color = SnapColors.Secondary,
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
                 textAlign = TextAlign.Center,
             )
         }
@@ -236,7 +237,8 @@ private fun OnboardingParityPageContent(item: OnboardingParityPage, index: Int) 
             Text(
                 item.note,
                 color = SnapColors.Ink.copy(alpha = 0.78f),
-                fontSize = 13.sp,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(start = 8.dp),
@@ -249,16 +251,24 @@ private fun OnboardingParityPageContent(item: OnboardingParityPage, index: Int) 
 @Composable
 private fun OnboardingParityIllustration(kind: OnboardingParityKind) {
     Box(
-        Modifier.size(205.dp),
+        Modifier.size(172.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.size(190.dp).background(SnapGradients.SoftWash, CircleShape))
-        when (kind) {
-            OnboardingParityKind.FIND -> PhotoStackIllustration()
-            OnboardingParityKind.FACE -> FaceSetupIllustration()
-            OnboardingParityKind.TRIP -> TripFlowIllustration()
-            OnboardingParityKind.RESULT -> ResultFlowIllustration()
-            OnboardingParityKind.PRIVACY -> PrivacySummaryIllustration()
+        Box(Modifier.size(164.dp).background(SnapGradients.SoftWash, CircleShape))
+        Box(
+            Modifier.graphicsLayer {
+                scaleX = 0.82f
+                scaleY = 0.82f
+            },
+            contentAlignment = Alignment.Center,
+        ) {
+            when (kind) {
+                OnboardingParityKind.FIND -> PhotoStackIllustration()
+                OnboardingParityKind.FACE -> FaceSetupIllustration()
+                OnboardingParityKind.TRIP -> TripFlowIllustration()
+                OnboardingParityKind.RESULT -> ResultFlowIllustration()
+                OnboardingParityKind.PRIVACY -> PrivacySummaryIllustration()
+            }
         }
     }
 }

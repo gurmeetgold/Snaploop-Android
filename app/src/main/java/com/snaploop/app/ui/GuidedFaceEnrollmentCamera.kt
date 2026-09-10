@@ -502,7 +502,7 @@ private class GuidedFaceAnalyzer(
         }
 
         val now = System.currentTimeMillis()
-        if (now - lastCaptureAt < 550L) return
+        if (now - lastCaptureAt < 1_400L) return
 
         val jpeg = runCatching { imageProxy.toFrontFacingJpeg() }.getOrNull()
         if (jpeg == null) {
