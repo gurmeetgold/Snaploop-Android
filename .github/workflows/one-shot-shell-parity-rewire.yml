@@ -1,4 +1,4 @@
-name: One-shot shell parity rewire
+name: One-shot reported parity layout batch
 
 on:
   push:
@@ -17,12 +17,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Route Home through pinned Join Event parity surface
+      - name: Apply guarded screenshot parity fixes
         run: python3 scripts/one_shot_rewire_shell_parity.py
-      - name: Commit guarded Join Event routing change
+      - name: Commit guarded screenshot parity fixes
         run: |
           git config user.name "gurmeetgold"
           git config user.email "50425243+gurmeetgold@users.noreply.github.com"
-          git add app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt app/src/test/java/com/snaploop/app/ui/ActiveShellParityRoutingTest.kt
-          git commit -m "Route Home through Join Event parity surface"
+          git add \
+            app/src/main/java/com/snaploop/app/ui/SnapLoopMainShell.kt \
+            app/src/main/java/com/snaploop/app/ui/ParityEventDashboard.kt \
+            app/src/main/java/com/snaploop/app/ui/ParityPhotoGallery.kt \
+            app/src/test/java/com/snaploop/app/ui/ReportedLayoutParityTest.kt
+          git diff --cached --check
+          git commit -m "Fix event and gallery screenshot parity"
           git push origin HEAD:feature/android-production-parity-v1
