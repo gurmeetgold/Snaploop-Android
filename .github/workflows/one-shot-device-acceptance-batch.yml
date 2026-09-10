@@ -31,3 +31,5 @@ jobs:
           git diff --cached --check
           git commit -m "Fix device acceptance parity and consent enforcement"
           git push origin HEAD:fix/device-acceptance-batch-2026-09-10-impl
+
+# Retry 2: corrected the guarded Face Setup cooldown matcher.
