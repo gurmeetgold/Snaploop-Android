@@ -49,7 +49,13 @@ internal fun ParityFaceSetupScreen(
             captures = state.faceCaptures,
             onCapture = onCapture,
             onReset = onReset,
-            onComplete = onComplete,
+            onComplete = {
+                // Close the camera immediately once all five valid poses are captured. Persisting
+                // the face profile can involve ML + network work and must not leave a frozen camera
+                // on screen while that work finishes.
+                scanOpen = false
+                onComplete()
+            },
         )
         return
     }
