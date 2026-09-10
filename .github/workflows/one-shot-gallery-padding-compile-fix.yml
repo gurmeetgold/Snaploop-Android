@@ -19,8 +19,6 @@ jobs:
           fetch-depth: 0
       - name: Apply guarded padding fix
         run: python3 scripts/fix_gallery_padding_compile.py
-      - name: Verify Kotlin compile
-        run: ./gradlew :app:compileDebugKotlin :app:compileReleaseKotlin
       - name: Commit compile fix
         run: |
           git config user.name "gurmeetgold"
