@@ -6,10 +6,18 @@ import org.junit.Test
 
 class ScanResultPresentationPolicyTest {
     @Test
-    fun `retryable failures are not presented as a deferred clean batch`() {
+    fun `a pass that makes no progress and fails stays retryable`() {
         assertEquals(
             ScanResultPresentationPolicy.Kind.RETRYABLE_FAILURE,
-            ScanResultPresentationPolicy.kind(remaining = 3, failed = 1),
+            ScanResultPresentationPolicy.kind(remaining = 3, failed = 1, checked = 0),
+        )
+    }
+
+    @Test
+    fun `a partial asset failure after progress is deferred instead of falsely stopped`() {
+        assertEquals(
+            ScanResultPresentationPolicy.Kind.DEFERRED_BATCH,
+            ScanResultPresentationPolicy.kind(remaining = 1, failed = 1, checked = 24),
         )
     }
 
@@ -17,7 +25,7 @@ class ScanResultPresentationPolicyTest {
     fun `clean remaining work is presented as next batch`() {
         assertEquals(
             ScanResultPresentationPolicy.Kind.DEFERRED_BATCH,
-            ScanResultPresentationPolicy.kind(remaining = 20, failed = 0),
+            ScanResultPresentationPolicy.kind(remaining = 20, failed = 0, checked = 80),
         )
     }
 
@@ -25,7 +33,7 @@ class ScanResultPresentationPolicyTest {
     fun `caught up pass is complete`() {
         assertEquals(
             ScanResultPresentationPolicy.Kind.COMPLETE,
-            ScanResultPresentationPolicy.kind(remaining = 0, failed = 0),
+            ScanResultPresentationPolicy.kind(remaining = 0, failed = 0, checked = 25),
         )
     }
 

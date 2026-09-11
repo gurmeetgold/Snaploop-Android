@@ -24,6 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -48,6 +49,10 @@ internal class MatchedThumbnailLoader(
 ) {
     private val appContext = context.applicationContext
     private val cacheDir = File(appContext.cacheDir, "matched-thumbnails").apply { mkdirs() }
+
+    private companion object {
+        @Volatile var directStorageReadable: Boolean? = null
+    }
 
     suspend fun load(path: String?, maxPixelSize: Int = 720): Bitmap = withContext(Dispatchers.IO) {
         val normalizedPath = path?.trim().orEmpty()
@@ -79,11 +84,20 @@ internal class MatchedThumbnailLoader(
     }
 
     private suspend fun fetchBytes(path: String): ByteArray {
+        if (directStorageReadable == false) return authorizedFallback(path)
         return try {
             // Published previews are already bounded by SnapLoop's thumbnail policy. Keep this cap
             // larger than iOS's current maximum to tolerate older rows during migration.
-            storage.reference.child(path).getBytes(12L * 1024L * 1024L).await()
-        } catch (_: Throwable) {
+            storage.reference.child(path).getBytes(12L * 1024L * 1024L).await().also {
+                directStorageReadable = true
+            }
+        } catch (error: Throwable) {
+            // Production recipient rules can intentionally reject direct object reads. Remember
+            // that authorization result process-wide so the other Gallery cells go straight to the
+            // authorized callable instead of each waiting for an identical failing Storage request.
+            if ((error as? StorageException)?.errorCode == StorageException.ERROR_NOT_AUTHORIZED) {
+                directStorageReadable = false
+            }
             authorizedFallback(path)
         }
     }

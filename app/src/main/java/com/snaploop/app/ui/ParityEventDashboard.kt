@@ -54,7 +54,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,7 +73,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.snaploop.app.core.RemoteConfigValues
-import com.snaploop.app.data.FirebaseMatchRepository
 import com.snaploop.app.model.EventCategory
 import com.snaploop.app.model.EventMember
 import com.snaploop.app.model.EventStatus
@@ -191,25 +189,7 @@ internal fun ParityEventDashboard(
         sharingEnabled = me?.sharingEnabled == true,
     )
 
-    val photosOfMe by produceState(
-        initialValue = state.photos.size,
-        key1 = event.id,
-        key2 = uid,
-        key3 = Pair(me?.sharingEnabled, state.photos),
-    ) {
-        if (uid == null) {
-            value = 0
-            return@produceState
-        }
-        value = runCatching {
-            val matches = FirebaseMatchRepository().myPhotos(event.id, uid)
-            EventDashboardParityPolicy.photosOfMeCount(
-                ownerUserIds = matches.map { it.ownerUserId },
-                userId = uid,
-                sharingEnabled = me?.sharingEnabled == true,
-            )
-        }.getOrDefault(state.photos.size)
-    }
+    val photosOfMe = state.photos.size
 
     var confirmEnd by remember(event.id) { mutableStateOf(false) }
     var confirmDelete by remember(event.id) { mutableStateOf(false) }

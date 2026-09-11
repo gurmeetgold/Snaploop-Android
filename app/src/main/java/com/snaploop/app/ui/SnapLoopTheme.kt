@@ -81,6 +81,23 @@ object SnapGradients {
             SnapColors.BlueSoft.copy(alpha = 0.42f),
         ),
     )
+
+    // iOS insight/scan cards carry a visible warm-pink wash rather than a white Material surface.
+    val ScanSurface = Brush.linearGradient(
+        listOf(
+            Color(0xFFFFE6EE),
+            Color(0xFFFFEEF5),
+            Color(0xFFF4E8FF),
+        ),
+    )
+
+    val Insight = Brush.linearGradient(
+        listOf(
+            Color(0xFFFFE1EB),
+            Color(0xFFFFEAF2),
+            Color(0xFFF0E2FF),
+        ),
+    )
 }
 
 @Composable

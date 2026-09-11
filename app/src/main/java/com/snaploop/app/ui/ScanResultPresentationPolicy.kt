@@ -4,8 +4,11 @@ package com.snaploop.app.ui
 object ScanResultPresentationPolicy {
     enum class Kind { RETRYABLE_FAILURE, DEFERRED_BATCH, COMPLETE }
 
-    fun kind(remaining: Int, failed: Int): Kind = when {
-        failed > 0 -> Kind.RETRYABLE_FAILURE
+    fun kind(remaining: Int, failed: Int, checked: Int): Kind = when {
+        // “Scan stopped” is reserved for a pass that could not process a single asset. A stale
+        // MediaStore row or one transient publication failure must not tell the user they stopped
+        // a scan that actually made progress; the pending item simply remains retryable.
+        failed > 0 && checked == 0 -> Kind.RETRYABLE_FAILURE
         remaining > 0 -> Kind.DEFERRED_BATCH
         else -> Kind.COMPLETE
     }

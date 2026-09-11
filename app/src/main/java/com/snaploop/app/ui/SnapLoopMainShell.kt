@@ -561,6 +561,12 @@ private fun ShellEventHost(state: AppUiState, coordinator: AppCoordinator) {
         }
     }
 
+    LaunchedEffect(page, event.id) {
+        if (page == ShellEventPage.PHOTOS) {
+            coordinator.refreshSelectedEventPhotosInBackground()
+        }
+    }
+
     when (page) {
         ShellEventPage.DASHBOARD -> ParityEventDashboard(
             state = state,

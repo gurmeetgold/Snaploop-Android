@@ -275,7 +275,14 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         pendingFaceEmbeddings.clear()
         pendingFaceReferenceJpeg = null
         if (state.value.faceSetupMode == FaceSetupMode.RETURN_TO_MAIN) {
-            update { copy(gate = AppGate.MAIN, faceCaptures = 0, message = null) }
+            update {
+                copy(
+                    gate = AppGate.MAIN,
+                    faceCaptures = 0,
+                    returnToYouAfterFaceSetup = true,
+                    message = null,
+                )
+            }
         } else {
             skipFaceSetup()
         }
@@ -347,10 +354,10 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         pendingFaceEmbeddings.clear()
         pendingFaceReferenceJpeg = null
         users.syncMyProfile(uid, state.value.user?.displayName)
-        routeAuthenticated(uid)
         if (returnToYou) {
             update { copy(returnToYouAfterFaceSetup = true) }
         }
+        routeAuthenticated(uid)
     }
 
     fun consumeFaceSetupReturnDestination() {
@@ -666,6 +673,15 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
         val uid = requireUid()
         val event = state.value.selectedEvent ?: error("Open an Event first.")
         refreshPhotosInternal(event.id, uid)
+    }
+
+    /** Refresh Event My Photos without a global busy overlay when the gallery becomes visible. */
+    fun refreshSelectedEventPhotosInBackground() {
+        val uid = auth.currentUserId ?: return
+        val eventId = state.value.selectedEvent?.id ?: return
+        viewModelScope.launch {
+            runCatching { refreshPhotosInternal(eventId, uid) }
+        }
     }
 
     fun dismissPhoto(match: PhotoMatch) = launchBusy {

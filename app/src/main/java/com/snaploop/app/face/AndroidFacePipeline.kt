@@ -15,8 +15,8 @@ data class FacePipelineDiagnostics(
 )
 
 /** Production Android face pipeline mirroring iOS v5.2 gates and AuraFace embedding semantics. */
-class AndroidFacePipeline(context: Context) : AutoCloseable {
-    private val aligner = MlKitFaceAligner()
+class AndroidFacePipeline(context: Context, fastDetection: Boolean = false) : AutoCloseable {
+    private val aligner = MlKitFaceAligner(fastDetection = fastDetection)
     private val engine = AuraFaceEngine(context.applicationContext)
 
     suspend fun detectFaces(imageData: ByteArray): List<DetectedEmbedding> = process(imageData).first

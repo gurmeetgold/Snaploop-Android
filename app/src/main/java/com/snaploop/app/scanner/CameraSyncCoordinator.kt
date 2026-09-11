@@ -37,7 +37,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
     private val appContext = context.applicationContext
     private val auth = FirebaseAuth.getInstance()
     private val library = MediaStorePhotoLibrary(appContext)
-    private val faces = AndroidFacePipeline(appContext)
+    private val faces = AndroidFacePipeline(appContext, fastDetection = true)
     private val rosterClient = EventFaceProfileClient()
     private val matches = FirebaseMatchRepository()
     private val states = EncryptedScanStateStore(appContext)
@@ -146,19 +146,21 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
             ScanCancellationRegistry.ensureActive(cancellationToken)
 
             try {
-                // Keep the normalized bytes for this iteration so a newly-processed photo is not
-                // read from MediaStore a second time just to publish its thumbnail.
-                var sourceJpeg: ByteArray? = null
+                // Face analysis does not need the 2560px publication preview. Most Event photos
+                // never match anybody, so analyze a much smaller normalized JPEG and only create
+                // the high-quality publication thumbnail when a positive appearance must upload.
+                // This mirrors the iOS strategy of keeping recognition input bounded independently
+                // from the user-visible preview and removes the largest Android per-photo cost.
                 var corpus = state.photoCorpus[asset.id]
                 if (corpus == null) {
-                    sourceJpeg = library.normalizedJpeg(
+                    val analysisJpeg = library.normalizedJpeg(
                         asset,
-                        config.thumbnailMaxPixelSize,
-                        (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
+                        ANALYSIS_MAX_PIXEL_SIZE,
+                        ANALYSIS_JPEG_QUALITY,
                     )
 
                     ScanCancellationRegistry.ensureActive(cancellationToken)
-                    val detected = faces.detectFaces(sourceJpeg)
+                    val detected = faces.detectFaces(analysisJpeg)
                     corpus = PhotoCorpusRecord(
                         asset.id,
                         asset.creationDateMillis,
@@ -198,7 +200,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
                     ScanCancellationRegistry.ensureActive(cancellationToken)
                     if (sharingEnabled && (publishAppearances.isNotEmpty() || removals.isNotEmpty())) {
                         val thumbnail = if (publishAppearances.isNotEmpty()) {
-                            sourceJpeg ?: library.normalizedJpeg(
+                            library.normalizedJpeg(
                                 asset,
                                 config.thumbnailMaxPixelSize,
                                 (config.thumbnailJpegQuality * 100).toInt().coerceIn(1, 100),
@@ -266,6 +268,13 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
             remaining = remaining,
             failed = failed,
         )
+    }
+
+    private companion object {
+        // 1280px preserves ample pixels for the minimum supported face fraction while cutting
+        // decode, EXIF rotation, JPEG encode and ML Kit work substantially on mid-range phones.
+        const val ANALYSIS_MAX_PIXEL_SIZE = 1280
+        const val ANALYSIS_JPEG_QUALITY = 84
     }
 
     override fun close() {

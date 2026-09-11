@@ -41,9 +41,13 @@ internal data class FaceAlignmentDiagnostics(
  * detection; no image leaves the device. The bundled detector avoids a network dependency.
  */
 internal class MlKitFaceAligner(
+    fastDetection: Boolean = false,
     private val detector: FaceDetector = FaceDetection.getClient(
         FaceDetectorOptions.Builder()
-            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+            .setPerformanceMode(
+                if (fastDetection) FaceDetectorOptions.PERFORMANCE_MODE_FAST
+                else FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE
+            )
             .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
             .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)

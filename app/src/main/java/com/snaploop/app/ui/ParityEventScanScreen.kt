@@ -132,16 +132,21 @@ internal fun ParityEventScanScreen(
             )
             Spacer(Modifier.size(48.dp))
         }
-        Spacer(Modifier.height(24.dp))
-
+        Box(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            contentAlignment = Alignment.Center,
+        ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.98f)),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
             elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
         ) {
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 22.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .background(SnapGradients.ScanSurface)
+                    .padding(horizontal = 20.dp, vertical = 22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(13.dp),
             ) {
@@ -184,7 +189,7 @@ internal fun ParityEventScanScreen(
 
                     visibleResult != null -> {
                         val result = visibleResult
-                        val presentation = ScanResultPresentationPolicy.kind(result.remaining, result.failed)
+                        val presentation = ScanResultPresentationPolicy.kind(result.remaining, result.failed, result.checked)
 
                         if (presentation == ScanResultPresentationPolicy.Kind.RETRYABLE_FAILURE) {
                             Box(
@@ -305,6 +310,7 @@ internal fun ParityEventScanScreen(
                     }
                 }
             }
+        }
         }
     }
 }

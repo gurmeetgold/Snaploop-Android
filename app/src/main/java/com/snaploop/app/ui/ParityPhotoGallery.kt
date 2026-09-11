@@ -569,7 +569,7 @@ private fun GalleryInsightBanner(
             Modifier
                 .fillMaxWidth()
                 .background(
-                    SnapGradients.SoftWash,
+                    SnapGradients.Insight,
                 )
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,

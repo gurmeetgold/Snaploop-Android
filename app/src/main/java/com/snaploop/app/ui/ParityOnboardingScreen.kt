@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
@@ -109,7 +110,8 @@ internal fun ParityOnboardingScreen(onCompleted: () -> Unit) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)),
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.98f))
+                    .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
@@ -150,12 +152,12 @@ internal fun ParityOnboardingScreen(onCompleted: () -> Unit) {
                     if (page > 0) {
                         TextButton(
                             onClick = { scope.launch { pagerState.animateScrollToPage(page - 1) } },
-                            modifier = Modifier.height(28.dp),
+                            modifier = Modifier.height(44.dp),
                         ) {
                             Text("Back", color = SnapColors.Secondary, fontWeight = FontWeight.SemiBold)
                         }
                     } else {
-                        Spacer(Modifier.height(28.dp))
+                        Spacer(Modifier.height(44.dp))
                     }
                 }
             }
@@ -251,17 +253,13 @@ private fun OnboardingParityPageContent(item: OnboardingParityPage, index: Int) 
 @Composable
 private fun OnboardingParityIllustration(kind: OnboardingParityKind) {
     Box(
-        Modifier.size(172.dp),
+        Modifier.fillMaxWidth().height(164.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.size(164.dp).background(SnapGradients.SoftWash, CircleShape))
-        Box(
-            Modifier.graphicsLayer {
-                scaleX = 0.82f
-                scaleY = 0.82f
-            },
-            contentAlignment = Alignment.Center,
-        ) {
+        Box(Modifier.size(154.dp).background(SnapGradients.SoftWash, CircleShape))
+        // The illustration gets the page width, not a 172dp clipping viewport. Multi-column
+        // illustrations such as Create/Join and privacy chips therefore keep whole words intact.
+        Box(contentAlignment = Alignment.Center) {
             when (kind) {
                 OnboardingParityKind.FIND -> PhotoStackIllustration()
                 OnboardingParityKind.FACE -> FaceSetupIllustration()
@@ -336,7 +334,7 @@ private fun TripFlowIllustration() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FeatureBubble(Icons.Filled.AddCircle, "Create")
-        Icon(Icons.Filled.SwapHoriz, contentDescription = null, tint = SnapColors.Coral, modifier = Modifier.size(30.dp))
+        Icon(Icons.Filled.SwapHoriz, contentDescription = null, tint = SnapColors.Coral, modifier = Modifier.size(26.dp))
         FeatureBubble(Icons.Filled.PersonAdd, "Join")
     }
 }
@@ -357,13 +355,13 @@ private fun ResultFlowIllustration() {
 private fun FeatureBubble(icon: ImageVector, label: String) {
     Column(
         Modifier
-            .size(width = 98.dp, height = 104.dp)
+            .size(width = 92.dp, height = 96.dp)
             .background(Color.White, RoundedCornerShape(24.dp)),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(icon, contentDescription = null, tint = SnapColors.Coral, modifier = Modifier.size(42.dp))
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 9.dp))
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.padding(top = 7.dp))
     }
 }
 
@@ -371,7 +369,7 @@ private fun FeatureBubble(icon: ImageVector, label: String) {
 private fun IllustrationLabel(icon: ImageVector, label: String, tint: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(52.dp))
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
+        Text(label, fontSize = 11.sp, lineHeight = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 5.dp))
     }
 }
 
@@ -398,7 +396,7 @@ private fun PermissionChip(icon: ImageVector, text: String) {
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Icon(icon, contentDescription = null, tint = SnapColors.Ink, modifier = Modifier.size(14.dp))
-        Text(text, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SnapColors.Ink)
+        Text(text, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = SnapColors.Ink, maxLines = 1)
     }
 }
 
