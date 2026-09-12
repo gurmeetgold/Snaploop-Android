@@ -1,9 +1,23 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val hasFirebaseConfig = file("google-services.json").exists()
+val snapLoopApplicationId = "com.gurmeetchhiber.snaploop.app"
+val firebaseConfigFile = file("google-services.json")
+val hasFirebaseConfig = firebaseConfigFile.exists()
+val faceModelFile = file("src/main/assets/models/glintr100.onnx")
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.isFile) {
+        keystorePropertiesFile.inputStream().use(::load)
+    }
+}
+val hasReleaseSigningConfig = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+    .all { !keystoreProperties.getProperty(it).isNullOrBlank() }
+
 if (hasFirebaseConfig) {
     apply(plugin = "com.google.gms.google-services")
     apply(plugin = "com.google.firebase.crashlytics")
@@ -15,7 +29,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.snaploop.app"
+        applicationId = snapLoopApplicationId
         minSdk = 26
         targetSdk = 37
         versionCode = 1
@@ -23,6 +37,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         buildConfigField("boolean", "FIREBASE_CONFIG_PRESENT", hasFirebaseConfig.toString())
+    }
+
+    signingConfigs {
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
@@ -34,6 +59,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             manifestPlaceholders["snaploopAssociatedDomain"] = "getsnaploop.web.app"
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -90,4 +118,33 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+
+val verifySnapLoopReleaseInputs by tasks.registering {
+    group = "verification"
+    description = "Fails release builds that would produce a broken or unpublishable SnapLoop bundle."
+    doLast {
+        check(faceModelFile.isFile && faceModelFile.length() > 0L) {
+            "Missing AuraFace model: app/src/main/assets/models/glintr100.onnx"
+        }
+        check(firebaseConfigFile.isFile) {
+            "Missing app/google-services.json for $snapLoopApplicationId"
+        }
+        val firebaseText = firebaseConfigFile.readText()
+        check(firebaseText.contains("\"package_name\": \"$snapLoopApplicationId\"")) {
+            "google-services.json does not contain Android package $snapLoopApplicationId"
+        }
+        check(hasReleaseSigningConfig) {
+            "Missing release upload-key configuration in keystore.properties"
+        }
+        val configuredStore = rootProject.file(keystoreProperties.getProperty("storeFile"))
+        check(configuredStore.isFile) {
+            "Upload keystore does not exist: ${configuredStore.path}"
+        }
+    }
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    dependsOn(verifySnapLoopReleaseInputs)
 }

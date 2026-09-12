@@ -968,6 +968,11 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
 
     private fun userMessage(t: Throwable): String {
         val text = t.message?.trim().orEmpty()
+        if (text.contains("glintr100.onnx", ignoreCase = true) ||
+            text.contains("models/", ignoreCase = true)
+        ) {
+            return "SnapLoop couldn't start Face Setup. Please update the app or try again."
+        }
         return text.takeIf { it.isNotBlank() } ?: "Something went wrong. Please try again."
     }
 
