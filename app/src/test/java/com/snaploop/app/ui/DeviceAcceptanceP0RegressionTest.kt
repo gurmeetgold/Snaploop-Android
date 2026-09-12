@@ -70,8 +70,10 @@ class DeviceAcceptanceP0RegressionTest {
         assertTrue(face.contains("Selected Face Setup test photo"))
     }
 
-    @Test fun `left enrollment pose requires deliberate turn`() {
+    @Test fun `left enrollment pose requires a clear but comfortable turn`() {
         val tracker = source("src/main/java/com/snaploop/app/ui/GuidedFacePoseTracker.kt")
-        assertTrue(tracker.contains("GuidedFacePose.LEFT -> yaw in 36f..55f"))
+        assertTrue(tracker.contains("GuidedFacePose.LEFT -> yaw in 24f..52f"))
+        assertTrue(tracker.contains("GuidedFacePose.RIGHT -> yaw in -52f..-24f"))
+        assertTrue(tracker.contains("stableFramesRequired: Int = 10"))
     }
 }
