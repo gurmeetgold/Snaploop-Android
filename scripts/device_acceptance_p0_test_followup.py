@@ -27,7 +27,11 @@ rw(
     'app/src/test/java/com/snaploop/app/ui/GuidedFacePoseTrackerTest.kt',
     lambda s: s
         .replace('observation(yaw = 32f)).readyToCapture)', 'observation(yaw = 42f)).readyToCapture)')
-        .replace('observation(yaw = 24f, centerY = 0.72f)', 'observation(yaw = 42f, centerY = 0.72f)'),
+        .replace('observation(yaw = 24f, centerY = 0.72f)', 'observation(yaw = 42f, centerY = 0.72f)')
+        .replace(
+            '''        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n''',
+            '''        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n''',
+        ),
 )
 
 rw(
