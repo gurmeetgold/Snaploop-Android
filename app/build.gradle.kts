@@ -32,8 +32,8 @@ android {
         applicationId = snapLoopApplicationId
         minSdk = 26
         targetSdk = 37
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         buildConfigField("boolean", "FIREBASE_CONFIG_PRESENT", hasFirebaseConfig.toString())
@@ -56,8 +56,13 @@ android {
             manifestPlaceholders["snaploopAssociatedDomain"] = "snaploop-dev.web.app"
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Temporarily disable R8/resource shrinking for the Play release while ONNX Runtime
+            // initializes through JNI. The Play-distributed minified build was aborting inside
+            // OrtSession.getOutputInfo with NodeInfo constructor linkage errors. Correctness and
+            // release stability take priority over APK/AAB size until we have a verified safe
+            // shrinker configuration for ONNX Runtime.
+            isMinifyEnabled = false
+            isShrinkResources = false
             manifestPlaceholders["snaploopAssociatedDomain"] = "getsnaploop.web.app"
             if (hasReleaseSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
