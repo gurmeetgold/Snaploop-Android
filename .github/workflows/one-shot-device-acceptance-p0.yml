@@ -25,7 +25,9 @@ jobs:
         with:
           gradle-version: '9.6.0'
       - name: Apply device acceptance P0 batch
-        run: python3 scripts/device_acceptance_p0_batch.py
+        run: |
+          python3 scripts/device_acceptance_p0_batch.py
+          python3 scripts/device_acceptance_p0_test_followup.py
       - name: Verify diff
         run: git diff --check
       - name: Run full Android verification
