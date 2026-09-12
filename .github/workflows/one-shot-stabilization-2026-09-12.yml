@@ -1,0 +1,38 @@
+name: One-shot stabilization 2026-09-12
+
+on:
+  push:
+    branches:
+      - fix/device-acceptance-p0-2026-09-11
+    paths:
+      - scripts/stabilize_internal_1_0_5.py
+
+permissions:
+  contents: write
+
+jobs:
+  stabilize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/device-acceptance-p0-2026-09-11
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Apply stabilization patch
+        run: python3 scripts/stabilize_internal_1_0_5.py
+      - name: Verify patch
+        run: git diff --check && git diff --stat
+      - name: Run unit tests and lint
+        run: gradle test lint
+      - name: Commit verified stabilization
+        run: |
+          git config user.name gurmeetgold
+          git config user.email 50425243+gurmeetgold@users.noreply.github.com
+          git add app/src/main/java app/src/test/java app/build.gradle.kts
+          git commit -m "Stabilize Face Setup refresh scan and event editing"
+          git push origin HEAD:fix/device-acceptance-p0-2026-09-11
