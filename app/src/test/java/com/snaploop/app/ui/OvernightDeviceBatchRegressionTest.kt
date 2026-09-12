@@ -61,8 +61,12 @@ class OvernightDeviceBatchRegressionTest {
 
     @Test fun `thumbnail loader remembers direct storage authorization denial`() {
         val loader = source("src/main/java/com/snaploop/app/ui/MatchedThumbnailLoader.kt")
-        assertTrue(loader.contains("directStorageReadable == false"))
+        // Keep this contract behavioral rather than tied to one exact branch expression. The
+        // follow-up serializes the first capability probe, but denied recipients must still be
+        // remembered and routed directly through the authorized callable fallback thereafter.
+        assertTrue(loader.contains("directStorageReadable"))
         assertTrue(loader.contains("StorageException.ERROR_NOT_AUTHORIZED"))
         assertTrue(loader.contains("directStorageReadable = false"))
+        assertTrue(loader.contains("authorizedFallback(path)"))
     }
 }
