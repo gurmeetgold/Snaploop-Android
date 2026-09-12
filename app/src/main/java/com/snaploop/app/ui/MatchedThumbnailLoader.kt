@@ -27,6 +27,8 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -52,6 +54,7 @@ internal class MatchedThumbnailLoader(
 
     private companion object {
         @Volatile var directStorageReadable: Boolean? = null
+        val directStorageProbeMutex = Mutex()
     }
 
     suspend fun load(path: String?, maxPixelSize: Int = 720): Bitmap = withContext(Dispatchers.IO) {
@@ -84,22 +87,34 @@ internal class MatchedThumbnailLoader(
     }
 
     private suspend fun fetchBytes(path: String): ByteArray {
-        if (directStorageReadable == false) return authorizedFallback(path)
-        return try {
-            // Published previews are already bounded by SnapLoop's thumbnail policy. Keep this cap
-            // larger than iOS's current maximum to tolerate older rows during migration.
-            storage.reference.child(path).getBytes(12L * 1024L * 1024L).await().also {
-                directStorageReadable = true
+        return when (directStorageReadable) {
+            false -> authorizedFallback(path)
+            true -> directStorageOrFallback(path)
+            null -> directStorageProbeMutex.withLock {
+                // Re-check after waiting: another Gallery cell may have completed the probe.
+                when (directStorageReadable) {
+                    false -> authorizedFallback(path)
+                    true -> directStorageOrFallback(path)
+                    null -> directStorageOrFallback(path)
+                }
             }
-        } catch (error: Throwable) {
-            // Production recipient rules can intentionally reject direct object reads. Remember
-            // that authorization result process-wide so the other Gallery cells go straight to the
-            // authorized callable instead of each waiting for an identical failing Storage request.
-            if ((error as? StorageException)?.errorCode == StorageException.ERROR_NOT_AUTHORIZED) {
-                directStorageReadable = false
-            }
-            authorizedFallback(path)
         }
+    }
+
+    private suspend fun directStorageOrFallback(path: String): ByteArray = try {
+        // Published previews are already bounded by SnapLoop's thumbnail policy. Keep this cap
+        // larger than iOS's current maximum to tolerate older rows during migration.
+        storage.reference.child(path).getBytes(12L * 1024L * 1024L).await().also {
+            directStorageReadable = true
+        }
+    } catch (error: Throwable) {
+        // Production recipient rules can intentionally reject direct object reads. Remember
+        // that authorization result process-wide so the other Gallery cells go straight to the
+        // authorized callable instead of each waiting for an identical failing Storage request.
+        if ((error as? StorageException)?.errorCode == StorageException.ERROR_NOT_AUTHORIZED) {
+            directStorageReadable = false
+        }
+        authorizedFallback(path)
     }
 
     private suspend fun authorizedFallback(path: String): ByteArray {

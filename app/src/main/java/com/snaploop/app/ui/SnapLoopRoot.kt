@@ -155,8 +155,13 @@ fun SnapLoopRoot(
     // Authenticated startup, Face Setup completion, Event membership changes and
     // own-match preference changes all get an immediate foreground opportunity.
     // The controller's persisted fingerprint still prevents unnecessary rescans.
-    LaunchedEffect(state.gate, state.events, scanTriggerGeneration) {
-        if (
+    LaunchedEffect(state.gate, state.events, scanTriggerGeneration, state.scanProgress) {
+        if (state.scanProgress != null) {
+            // A manual scan owns the foreground scanner slot. Automatic and manual coordinators
+            // share ScanCancellationRegistry, so allowing them to overlap can make an automatic
+            // generation invalidate a user-initiated pass and surface a false “Scan stopped”.
+            automaticScanner.cancelActive()
+        } else if (
             state.gate == AppGate.MAIN &&
             lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
         ) {
@@ -175,11 +180,13 @@ fun SnapLoopRoot(
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
                     val current = coordinator.state.value
-                    if (current.gate == AppGate.MAIN) {
+                    if (current.gate == AppGate.MAIN && current.scanProgress == null) {
                         automaticScanner.request(
                             events = current.events,
                             triggerGeneration = "${current.selectedEvent?.id.orEmpty()}:own=${current.includeOwnMatches}",
                         )
+                    } else if (current.scanProgress != null) {
+                        automaticScanner.cancelActive()
                     }
                 }
                 Lifecycle.Event.ON_STOP -> automaticScanner.cancelActive()

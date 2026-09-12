@@ -640,12 +640,15 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
     fun scanSelectedEvent() = launchBusy {
         val uid = requireUid()
         val event = state.value.selectedEvent ?: error("Open an Event first.")
-        val preference = memberPreferences.load(event.id)
-        require(preference.sharingEnabled) {
-            "You have turned off photo sharing for this Event. Turn it on before scanning."
-        }
+        // Publish manual-scan intent before preference/manifest I/O. The root uses this signal to
+        // cancel opportunistic automatic scanning for the same foreground session, preventing a
+        // later automatic ScanCancellationRegistry.start() from invalidating the user's scan.
         update { copy(scanProgress = CameraSyncCoordinator.Progress(0, 0, 0), scanResult = null) }
         try {
+            val preference = memberPreferences.load(event.id)
+            require(preference.sharingEnabled) {
+                "You have turned off photo sharing for this Event. Turn it on before scanning."
+            }
             val result = withContext(Dispatchers.IO) {
                 CameraSyncCoordinator(getApplication()).use { coordinator ->
                     coordinator.scan(
