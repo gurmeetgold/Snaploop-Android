@@ -59,12 +59,12 @@ object AutomaticSyncIdentityScope {
  * Automatic scans are intentionally conservative: only Events still inside
  * their Event/grace photo window, only while the member is sharing, only with
  * readable photo access, never in power-save mode, and normally no more than
- * once per Event per hour. A changed Event, trusted biometric roster,
+ * once per Event per 30 minutes. A changed Event, trusted biometric roster,
  * membership generation, or sharing/own-match generation bypasses the cooldown
  * so newly eligible recipient work is not delayed.
  */
 object AutomaticScanPolicy {
-    const val COOLDOWN_MILLIS: Long = 60L * 60L * 1000L
+    const val COOLDOWN_MILLIS: Long = 30L * 60L * 1000L
 
     fun isWithinSyncWindow(
         event: SnapEvent,
@@ -84,7 +84,7 @@ object AutomaticScanPolicy {
 
     /**
      * Full pinned-iOS automatic-sync generation. Roster and source-membership
-     * changes must bypass the otherwise persistent one-hour cooldown.
+     * changes must bypass the otherwise persistent 30-minute cooldown.
      */
     fun triggerFingerprint(
         event: SnapEvent,

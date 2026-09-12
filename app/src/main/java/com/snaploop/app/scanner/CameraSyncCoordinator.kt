@@ -153,14 +153,13 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
                 // from the user-visible preview and removes the largest Android per-photo cost.
                 var corpus = state.photoCorpus[asset.id]
                 if (corpus == null) {
-                    val analysisJpeg = library.normalizedJpeg(
-                        asset,
-                        ANALYSIS_MAX_PIXEL_SIZE,
-                        ANALYSIS_JPEG_QUALITY,
-                    )
-
-                    ScanCancellationRegistry.ensureActive(cancellationToken)
-                    val detected = faces.detectFaces(analysisJpeg)
+                    val analysisBitmap = library.normalizedBitmap(asset, ANALYSIS_MAX_PIXEL_SIZE)
+                    val detected = try {
+                        ScanCancellationRegistry.ensureActive(cancellationToken)
+                        faces.detectFaces(analysisBitmap)
+                    } finally {
+                        analysisBitmap.recycle()
+                    }
                     corpus = PhotoCorpusRecord(
                         asset.id,
                         asset.creationDateMillis,
@@ -273,8 +272,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
     private companion object {
         // 1280px preserves ample pixels for the minimum supported face fraction while cutting
         // decode, EXIF rotation, JPEG encode and ML Kit work substantially on mid-range phones.
-        const val ANALYSIS_MAX_PIXEL_SIZE = 1280
-        const val ANALYSIS_JPEG_QUALITY = 84
+        const val ANALYSIS_MAX_PIXEL_SIZE = 1024
     }
 
     override fun close() {

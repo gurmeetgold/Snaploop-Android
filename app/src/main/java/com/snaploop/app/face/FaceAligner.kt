@@ -58,8 +58,16 @@ internal class MlKitFaceAligner(
 
     suspend fun diagnostics(imageData: ByteArray, outputSize: Int = 112): FaceAlignmentDiagnostics {
         val upright = decodeUpright(imageData) ?: throw SnapLoopException.InvalidData("Photo could not be decoded")
+        return try {
+            diagnostics(upright, outputSize)
+        } finally {
+            upright.recycle()
+        }
+    }
+
+    suspend fun diagnostics(upright: Bitmap, outputSize: Int = 112): FaceAlignmentDiagnostics {
         val faces = try { detector.process(InputImage.fromBitmap(upright, 0)).awaitResult() }
-        catch (t: Throwable) { upright.recycle(); throw SnapLoopException.Backend("face_detection_failed", "Face detection failed", t) }
+        catch (t: Throwable) { throw SnapLoopException.Backend("face_detection_failed", "Face detection failed", t) }
 
         val shorter = max(1, min(upright.width, upright.height)).toDouble()
         val target = CanonicalFaceGeometry.targets(outputSize)
@@ -91,7 +99,6 @@ internal class MlKitFaceAligner(
                 rollDegrees = face.headEulerAngleZ.toDouble(),
             )
         }
-        upright.recycle()
         return FaceAlignmentDiagnostics(faces.size, usable, failures, aligned)
     }
 

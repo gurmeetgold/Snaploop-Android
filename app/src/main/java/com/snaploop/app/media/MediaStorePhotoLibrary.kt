@@ -126,15 +126,10 @@ class MediaStorePhotoLibrary(private val context: Context) {
         return result
     }
 
-    /** Downsamples and bakes EXIF orientation before face processing or preview publication. */
+    /** Downsamples and bakes EXIF orientation for local on-device face analysis. */
     @Throws(PhotoUnavailableException::class)
-    fun normalizedJpeg(asset: LocalPhotoAsset, maxPixelSize: Int, quality: Int = 92): ByteArray {
+    fun normalizedBitmap(asset: LocalPhotoAsset, maxPixelSize: Int): Bitmap {
         require(maxPixelSize > 0)
-        require(quality in 1..100)
-
-        // MediaStore already exposes image dimensions for normal local rows. Using those dimensions
-        // avoids opening/decoding every photo once purely for BitmapFactory bounds before the real
-        // sampled decode. OEM/cloud providers that omit dimensions still use the safe bounds fallback.
         var sourceWidth = asset.width
         var sourceHeight = asset.height
         if (sourceWidth <= 0 || sourceHeight <= 0) {
@@ -148,10 +143,7 @@ class MediaStorePhotoLibrary(private val context: Context) {
         }
 
         var sample = 1
-        while (max(sourceWidth / sample, sourceHeight / sample) > maxPixelSize * 2) {
-            sample *= 2
-        }
-
+        while (max(sourceWidth / sample, sourceHeight / sample) > maxPixelSize * 2) sample *= 2
         val bitmap = openAsset(asset).use {
             BitmapFactory.decodeStream(
                 it,
@@ -165,10 +157,7 @@ class MediaStorePhotoLibrary(private val context: Context) {
 
         val orientation = runCatching {
             openAsset(asset).use {
-                ExifInterface(it).getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_NORMAL,
-                )
+                ExifInterface(it).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
             }
         }.getOrElse { error ->
             bitmap.recycle()
@@ -177,14 +166,26 @@ class MediaStorePhotoLibrary(private val context: Context) {
         }
 
         val upright = applyOrientation(bitmap, orientation)
+        if (upright !== bitmap) bitmap.recycle()
         val scaled = scaleDown(upright, maxPixelSize)
-        val output = ByteArrayOutputStream()
-        val encoded = scaled.compress(Bitmap.CompressFormat.JPEG, quality, output)
-        if (scaled !== upright) scaled.recycle()
-        if (upright !== bitmap) upright.recycle()
-        bitmap.recycle()
-        if (!encoded) throw PhotoUnavailableException("Photo ${asset.id} could not be encoded")
-        return output.toByteArray()
+        if (scaled !== upright) upright.recycle()
+        return scaled
+    }
+
+    /** Publication preview encoder. Face analysis uses normalizedBitmap directly. */
+    @Throws(PhotoUnavailableException::class)
+    fun normalizedJpeg(asset: LocalPhotoAsset, maxPixelSize: Int, quality: Int = 92): ByteArray {
+        require(quality in 1..100)
+        val bitmap = normalizedBitmap(asset, maxPixelSize)
+        return try {
+            val output = ByteArrayOutputStream()
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)) {
+                throw PhotoUnavailableException("Photo ${asset.id} could not be encoded")
+            }
+            output.toByteArray()
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     private fun openAsset(asset: LocalPhotoAsset): InputStream = try {

@@ -1,6 +1,7 @@
 package com.snaploop.app.face
 
 import android.content.Context
+import android.graphics.Bitmap
 import com.snaploop.app.core.DetectedEmbedding
 import com.snaploop.app.core.FaceModelPolicy
 import com.snaploop.app.core.SnapLoopException
@@ -20,6 +21,7 @@ class AndroidFacePipeline(context: Context, fastDetection: Boolean = false) : Au
     private val engine = AuraFaceEngine(context.applicationContext)
 
     suspend fun detectFaces(imageData: ByteArray): List<DetectedEmbedding> = process(imageData).first
+    suspend fun detectFaces(bitmap: Bitmap): List<DetectedEmbedding> = process(bitmap).first
 
     suspend fun embeddingForSelfie(imageData: ByteArray): FloatArray {
         val alignment = aligner.diagnostics(imageData, 112)
@@ -39,8 +41,13 @@ class AndroidFacePipeline(context: Context, fastDetection: Boolean = false) : Au
 
     suspend fun diagnose(imageData: ByteArray): FacePipelineDiagnostics = process(imageData).second
 
-    private suspend fun process(imageData: ByteArray): Pair<List<DetectedEmbedding>, FacePipelineDiagnostics> {
-        val alignment = aligner.diagnostics(imageData, 112)
+    private suspend fun process(imageData: ByteArray): Pair<List<DetectedEmbedding>, FacePipelineDiagnostics> =
+        processAlignment(aligner.diagnostics(imageData, 112))
+
+    private suspend fun process(bitmap: Bitmap): Pair<List<DetectedEmbedding>, FacePipelineDiagnostics> =
+        processAlignment(aligner.diagnostics(bitmap, 112))
+
+    private fun processAlignment(alignment: FaceAlignmentDiagnostics): Pair<List<DetectedEmbedding>, FacePipelineDiagnostics> {
         val embeddings = mutableListOf<DetectedEmbedding>()
         val rejections = mutableListOf<String>()
         try {
@@ -53,7 +60,6 @@ class AndroidFacePipeline(context: Context, fastDetection: Boolean = false) : Au
                 try {
                     embeddings += DetectedEmbedding(embed(face), face.sizeFraction)
                 } catch (_: Throwable) {
-                    // No identity-bearing values are logged or persisted for a failed face.
                     rejections += "embedding failed"
                 }
             }

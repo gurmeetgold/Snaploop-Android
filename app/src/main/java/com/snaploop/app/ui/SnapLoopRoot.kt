@@ -1,6 +1,9 @@
 package com.snaploop.app.ui
 
 import android.app.Activity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -9,6 +12,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -229,7 +234,15 @@ fun SnapLoopRoot(
                 SnapLoopMainShell(state = state, coordinator = coordinator)
             }
         }
-        AppGate.ONBOARDING -> ParityOnboardingScreen(onCompleted = coordinator::finishOnboarding)
+        AppGate.ONBOARDING -> if (preAuthOnboardingCompleted && state.user != null) {
+            ParityBrandBackground {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+        } else {
+            ParityOnboardingScreen(onCompleted = coordinator::finishOnboarding)
+        }
         AppGate.NAME_SETUP -> ParityNameSetupScreen(
             initialName = state.user?.displayName.orEmpty(),
             onSave = coordinator::saveDisplayName,

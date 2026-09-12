@@ -15,10 +15,10 @@ class ReportedLayoutParityTest {
             ?: error("$name was not found from the unit-test working directory")
     }
 
-    @Test fun `event dashboard back is icon only`() {
+    @Test fun `event dashboard back uses consistent labeled back affordance`() {
         val source = source("ParityEventDashboard.kt")
-        assertTrue(source.contains("Icon(Icons.Filled.ChevronLeft, contentDescription = \"Back\")"))
-        assertFalse(source.contains("Text(\"Events\")"))
+        assertTrue(source.contains("Text(\"‹ Back\""))
+        assertFalse(source.contains("contentDescription = \"Back\")"))
     }
 
     @Test fun `event hero role is not squeezed beside the full date`() {
@@ -35,8 +35,8 @@ class ReportedLayoutParityTest {
 
     @Test fun `home action cards cap title and subtitle lines`() {
         val source = source("SnapLoopMainShell.kt")
-        assertTrue(source.contains("fontSize = 16.sp"))
-        assertTrue(source.contains("fontSize = 11.sp"))
+        assertTrue(source.contains("fontSize = 14.sp"))
+        assertTrue(source.contains("fontSize = 10.sp"))
         assertTrue(source.contains("EventDateRangeFormatter.format("))
     }
 }

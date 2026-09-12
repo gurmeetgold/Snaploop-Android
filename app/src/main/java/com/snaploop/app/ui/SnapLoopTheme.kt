@@ -5,8 +5,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 
 /**
  * Canonical Android representation of the production SnapLoop visual system.
@@ -125,5 +128,13 @@ fun SnapLoopTheme(content: @Composable () -> Unit) {
             onSurface = SnapColors.Ink,
         )
     }
-    MaterialTheme(colorScheme = colors, content = content)
+    val systemDensity = LocalDensity.current
+    CompositionLocalProvider(
+        LocalDensity provides Density(
+            density = systemDensity.density,
+            fontScale = systemDensity.fontScale * 0.90f,
+        ),
+    ) {
+        MaterialTheme(colorScheme = colors, content = content)
+    }
 }

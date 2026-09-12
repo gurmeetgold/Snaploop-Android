@@ -74,7 +74,7 @@ internal class GuidedFacePoseTracker(
             GuidedFacePose.FRONT -> abs(yaw) <= 7f && abs(pitch) <= 8f
             // ML Kit observes the unmirrored sensor frame. These signs intentionally mirror the
             // displayed selfie preview so LEFT/RIGHT mean the direction the user is instructed to turn.
-            GuidedFacePose.LEFT -> yaw in 28f..48f && abs(pitch) <= 11f
+            GuidedFacePose.LEFT -> yaw in 36f..55f && abs(pitch) <= 10f
             GuidedFacePose.RIGHT -> yaw in -48f..-28f && abs(pitch) <= 11f
             GuidedFacePose.TILT_DOWN -> pitch in -38f..-18f && abs(yaw) <= 11f
             GuidedFacePose.FINISH_FRONT -> abs(yaw) <= 8f && abs(pitch) <= 10f
@@ -187,8 +187,8 @@ internal class GuidedFacePoseTracker(
             else -> "Hold still"
         }
         GuidedFacePose.LEFT -> when {
-            yaw < 20f -> "Keep turning LEFT"
-            yaw > 42f -> "Come slightly back toward center"
+            yaw < 36f -> "Keep turning LEFT"
+            yaw > 55f -> "Come slightly back toward center"
             abs(pitch) > 11f -> "Keep your chin level"
             else -> "Hold still"
         }

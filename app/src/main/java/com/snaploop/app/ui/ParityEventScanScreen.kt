@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -116,12 +117,12 @@ internal fun ParityEventScanScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 8.dp),
+        Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 18.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            TextButton(onClick = onBack) {
+                Text("‹ Back", fontWeight = FontWeight.SemiBold)
             }
             Text(
                 "Scan Photos",
@@ -130,7 +131,7 @@ internal fun ParityEventScanScreen(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
             )
-            Spacer(Modifier.size(48.dp))
+            Spacer(Modifier.size(64.dp))
         }
         Box(
             modifier = Modifier.fillMaxWidth().weight(1f),

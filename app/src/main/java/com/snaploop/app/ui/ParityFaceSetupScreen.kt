@@ -1,8 +1,10 @@
 package com.snaploop.app.ui
 
+import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -54,6 +60,8 @@ internal fun ParityFaceSetupScreen(
     var deleteConfirmationOpen by rememberSaveable { mutableStateOf(false) }
     var testBusy by rememberSaveable { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<FaceSetupTestResult?>(null) }
+    var testJpeg by remember { mutableStateOf<ByteArray?>(null) }
+    var testScreenOpen by rememberSaveable { mutableStateOf(false) }
     var testError by remember { mutableStateOf<String?>(null) }
     val hasFaceProfile = state.user?.hasFaceProfile == true
     val context = LocalContext.current
@@ -71,8 +79,9 @@ internal fun ParityFaceSetupScreen(
                         context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                             ?: error("Could not read that photo.")
                     }
+                    testJpeg = jpeg
                     testActions.testSavedFace(userId, jpeg)
-                }.onSuccess { testResult = it }
+                }.onSuccess { testResult = it; testScreenOpen = true }
                     .onFailure { testError = it.message ?: "Could not test that photo." }
                 testBusy = false
             }
@@ -122,10 +131,22 @@ internal fun ParityFaceSetupScreen(
         return
     }
 
+    if (testScreenOpen) {
+        BackHandler { testScreenOpen = false; testResult = null; testError = null }
+        ParityFaceTestResultScreen(
+            jpeg = testJpeg,
+            result = testResult,
+            error = testError,
+            onBack = { testScreenOpen = false; testResult = null; testError = null },
+            onChooseAnother = { testScreenOpen = false; testResult = null; testError = null; testPhotoPicker.launch("image/*") },
+        )
+        return
+    }
+
     BackHandler(onBack = onExit)
     ParityBrandBackground {
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp),
+            Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(30.dp))
@@ -228,15 +249,6 @@ internal fun ParityFaceSetupScreen(
         }
     }
 
-    testResult?.let { result ->
-        AlertDialog(
-            onDismissRequest = { testResult = null },
-            title = { Text(if (result.accepted) "Face Setup Working" else "Face Not Recognized") },
-            text = { Text(result.message) },
-            confirmButton = { TextButton(onClick = { testResult = null }) { Text("Done") } },
-        )
-    }
-
     testError?.let { error ->
         AlertDialog(
             onDismissRequest = { testError = null },
@@ -265,5 +277,66 @@ internal fun ParityFaceSetupScreen(
                 TextButton(onClick = { deleteConfirmationOpen = false }) { Text("Cancel") }
             },
         )
+    }
+}
+
+@Composable
+private fun ParityFaceTestResultScreen(
+    jpeg: ByteArray?,
+    result: FaceSetupTestResult?,
+    error: String?,
+    onBack: () -> Unit,
+    onChooseAnother: () -> Unit,
+) {
+    val bitmap = remember(jpeg) {
+        jpeg?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+    }
+    ParityBrandBackground {
+        Column(
+            Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            TextButton(onClick = onBack, modifier = Modifier.align(Alignment.Start)) { Text("‹ Back") }
+            Text("Test My Face Setup", fontSize = 26.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+            Text(
+                "Choose a normal photo and SnapLoop will check it against your saved Face Setup.",
+                color = Color(0xFF66636C),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            )
+            bitmap?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = "Selected Face Setup test photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth().height(300.dp).padding(top = 8.dp),
+                )
+            }
+            ParityPremiumCard(Modifier.padding(top = 16.dp)) {
+                Text(
+                    when {
+                        error != null -> "Could Not Test Face Setup"
+                        result?.accepted == true -> "Face Setup Working"
+                        result != null -> "Face Not Recognized"
+                        else -> "Testing…"
+                    },
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Text(
+                    error ?: result?.message ?: "Checking your saved Face Setup…",
+                    color = Color(0xFF66636C),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            }
+            OutlinedButton(
+                onClick = onChooseAnother,
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp).height(52.dp),
+                shape = RoundedCornerShape(18.dp),
+            ) { Text("Choose Another Photo", fontWeight = FontWeight.Bold) }
+            TextButton(onClick = onBack, modifier = Modifier.padding(top = 6.dp)) { Text("Done", fontWeight = FontWeight.Bold) }
+        }
     }
 }

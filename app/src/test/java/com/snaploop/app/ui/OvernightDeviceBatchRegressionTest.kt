@@ -15,8 +15,8 @@ class OvernightDeviceBatchRegressionTest {
         val scanner = source("src/main/java/com/snaploop/app/scanner/CameraSyncCoordinator.kt")
         val pipeline = source("src/main/java/com/snaploop/app/face/AndroidFacePipeline.kt")
         assertTrue(scanner.contains("AndroidFacePipeline(appContext, fastDetection = true)"))
-        assertTrue(scanner.contains("ANALYSIS_MAX_PIXEL_SIZE = 1280"))
-        assertTrue(scanner.contains("ANALYSIS_JPEG_QUALITY = 84"))
+        assertTrue(scanner.contains("ANALYSIS_MAX_PIXEL_SIZE = 1024"))
+        assertTrue(scanner.contains("library.normalizedBitmap(asset, ANALYSIS_MAX_PIXEL_SIZE)"))
         assertTrue(scanner.contains("config.thumbnailMaxPixelSize"))
         assertTrue(pipeline.contains("fastDetection: Boolean = false"))
     }

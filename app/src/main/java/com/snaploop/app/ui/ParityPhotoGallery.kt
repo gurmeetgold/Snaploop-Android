@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -109,7 +110,7 @@ internal fun ParityPhotoGallery(
     val store = remember(context) { AndroidPhotoFavoritesStore(context) }
     val matches = remember { FirebaseMatchRepository() }
     val bulkActions = remember(context) { AndroidPhotoBulkActions(context) }
-    var columns by rememberSaveable(title) { mutableIntStateOf(2) }
+    var columns by rememberSaveable(title) { mutableIntStateOf(3) }
     var densityMenuOpen by rememberSaveable(title) { mutableStateOf(false) }
     var favoritesOnly by rememberSaveable(title) { mutableStateOf(false) }
     var selecting by rememberSaveable(title) { mutableStateOf(false) }
@@ -229,17 +230,17 @@ internal fun ParityPhotoGallery(
         if (favoritesOnly && !nextValue) selected = emptySet()
     }
 
-    Column(modifier.fillMaxSize().background(SnapGradients.SoftWash).padding(vertical = 8.dp)) {
+    Column(modifier.fillMaxSize().background(SnapGradients.SoftWash).statusBarsPadding().padding(vertical = 8.dp)) {
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Text("‹", fontSize = 34.sp, fontWeight = FontWeight.Light)
+                TextButton(onClick = onBack) {
+                    Text("‹ Back", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
             } else {
-                Box(Modifier.size(48.dp))
+                Box(Modifier.size(64.dp))
             }
             Text(
                 title,
@@ -564,7 +565,11 @@ private fun GalleryInsightBanner(
     acrossAllEvents: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = Color.Transparent),
+    ) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -574,7 +579,7 @@ private fun GalleryInsightBanner(
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(count.toString(), fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            Text(count.toString(), fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Column(Modifier.padding(start = 14.dp)) {
                 Text(
                     if (acrossAllEvents) {

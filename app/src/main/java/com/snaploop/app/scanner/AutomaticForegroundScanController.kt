@@ -27,7 +27,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * The UI asks this controller to run when the authenticated app becomes active
  * and whenever the authenticated Event/preference snapshot changes. The
  * controller enforces Event+grace eligibility, sharing, photo access, battery
- * saver avoidance, a persistent one-hour per-Event cooldown, and one bounded
+ * saver avoidance, a persistent 30-minute per-Event cooldown, and one bounded
  * scanner batch. Event, trusted roster, membership, or sharing/own-match
  * generation changes bypass the cooldown so newly eligible recipient work is
  * replayed immediately from the protected corpus.

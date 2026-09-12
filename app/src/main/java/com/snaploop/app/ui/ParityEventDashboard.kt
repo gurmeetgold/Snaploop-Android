@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -201,16 +202,15 @@ internal fun ParityEventDashboard(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(vertical = 12.dp),
+            .statusBarsPadding()
+            .padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            androidx.compose.material3.IconButton(onClick = onBack) {
-                Icon(Icons.Filled.ChevronLeft, contentDescription = "Back")
-            }
+            TextButton(onClick = onBack) { Text("‹ Back", fontWeight = FontWeight.SemiBold) }
         }
 
         ParityEventHero(event = event, role = role, lifecycle = lifecycle)
@@ -584,7 +584,7 @@ private fun ParityEventFeatureTile(
                     .background(Color.White.copy(alpha = 0.12f), CircleShape),
             )
             Column(
-                Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp),
+                Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 Box(
@@ -599,8 +599,8 @@ private fun ParityEventFeatureTile(
                     Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.weight(1f))
-                Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(subtitle, color = Color.White.copy(alpha = 0.92f), fontSize = 11.sp, maxLines = 1)
+                Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(subtitle, color = Color.White.copy(alpha = 0.94f), fontSize = 10.sp, maxLines = 1)
             }
         }
     }

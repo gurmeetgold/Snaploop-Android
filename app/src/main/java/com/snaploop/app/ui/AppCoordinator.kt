@@ -366,8 +366,26 @@ class AppCoordinator(application: Application) : AndroidViewModel(application) {
 
     fun refreshEvents() = launchBusy {
         val uid = requireUid()
+        val selectedId = state.value.selectedEvent?.id
         val refreshed = eventRepository.eventsForUser(uid)
-        update { copy(events = refreshed) }
+        val refreshedSelected = selectedId?.let { id -> refreshed.firstOrNull { it.id == id } }
+        update {
+            copy(
+                events = refreshed,
+                selectedEvent = when {
+                    selectedId == null -> selectedEvent
+                    refreshedSelected != null -> refreshedSelected
+                    else -> null
+                },
+                members = if (selectedId != null && refreshedSelected == null) emptyList() else members,
+                photos = if (selectedId != null && refreshedSelected == null) emptyList() else photos,
+                scanProgress = if (selectedId != null && refreshedSelected == null) null else scanProgress,
+                scanResult = if (selectedId != null && refreshedSelected == null) null else scanResult,
+            )
+        }
+        if (refreshedSelected != null) {
+            loadEvent(refreshedSelected)
+        }
         refreshAllPhotosInternal(uid, refreshed)
     }
 

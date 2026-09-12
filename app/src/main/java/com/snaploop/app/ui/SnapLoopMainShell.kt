@@ -239,7 +239,7 @@ private fun ShellHome(state: AppUiState, coordinator: AppCoordinator) {
     ) {
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -248,7 +248,7 @@ private fun ShellHome(state: AppUiState, coordinator: AppCoordinator) {
                 Column(Modifier.weight(1f)) {
                     Text(
                         "Hi, ${state.user?.displayName ?: "there"} 👋",
-                        fontSize = 30.sp,
+                        fontSize = 25.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -433,15 +433,15 @@ private fun ShellEventCard(
     ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(72.dp).background(SnapGradients.Violet, RoundedCornerShape(18.dp)),
+                Modifier.size(58.dp).background(SnapGradients.Violet, RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(shellCategoryIcon(event.category), null, tint = Color.White, modifier = Modifier.size(28.dp))
             }
-            Column(Modifier.weight(1f).padding(start = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.weight(1f).padding(start = 11.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     event.name,
-                    fontSize = 17.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -463,7 +463,7 @@ private fun ShellEventCard(
                 }
             }
             Column(
-                modifier = Modifier.height(72.dp),
+                modifier = Modifier.height(58.dp),
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -1238,9 +1238,9 @@ private fun ShellPrivacyDialog(onDismiss: () -> Unit, onWithdraw: () -> Unit, on
 @Composable
 private fun ShellSubpageHeader(title: String, onBack: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) { Icon(Icons.Filled.ChevronLeft, "Back") }
-        Text(title, fontSize = 21.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-        Spacer(Modifier.size(48.dp))
+        TextButton(onClick = onBack) { Text("‹ Back", fontWeight = FontWeight.SemiBold) }
+        Text(title, fontSize = 19.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        Spacer(Modifier.size(64.dp))
     }
 }
 
@@ -1270,10 +1270,10 @@ private fun ShellActionCard(
                 .fillMaxWidth()
                 .height(BrandVisualParitySpec.HOME_ACTION_CARD_MIN_HEIGHT_DP.dp)
                 .background(gradient)
-                .padding(16.dp),
+                .padding(12.dp),
         ) {
             Box(
-                Modifier.size(44.dp).background(Color.White.copy(alpha = 0.20f), RoundedCornerShape(13.dp)),
+                Modifier.size(36.dp).background(Color.White.copy(alpha = 0.20f), RoundedCornerShape(13.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(icon, null, tint = Color.White, modifier = Modifier.size(18.dp))
@@ -1282,14 +1282,14 @@ private fun ShellActionCard(
                 Text(
                     title,
                     color = Color.White,
-                    fontSize = 16.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
                 )
                 Text(
                     subtitle,
                     color = Color.White.copy(alpha = 0.90f),
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     maxLines = 2,
                 )
             }

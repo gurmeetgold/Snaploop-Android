@@ -14,6 +14,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -220,12 +221,12 @@ internal fun QrCodeScannerScreen(
             )
         }
 
-        Card(
-            modifier = Modifier.align(Alignment.Center).size(270.dp),
-            shape = RoundedCornerShape(28.dp),
-        ) {
-            Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.08f)))
-        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(270.dp)
+                .border(2.dp, Color.White.copy(alpha = 0.78f), RoundedCornerShape(28.dp)),
+        )
 
         Column(
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(20.dp),
