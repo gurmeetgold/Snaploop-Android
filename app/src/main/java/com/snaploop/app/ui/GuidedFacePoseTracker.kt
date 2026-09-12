@@ -17,7 +17,7 @@ import kotlin.math.abs
  */
 internal class GuidedFacePoseTracker(
     private val calibrationSamplesRequired: Int = 8,
-    private val stableFramesRequired: Int = 18,
+    private val stableFramesRequired: Int = 10,
 ) {
     data class Decision(
         val readyToCapture: Boolean,
@@ -59,7 +59,7 @@ internal class GuidedFacePoseTracker(
             resetStability()
             return decision(false, pose, GuidedFaceFramingPolicy.detail(observation))
         }
-        if (abs(observation.rollDegrees) > 12f) {
+        if (abs(observation.rollDegrees) > 14f) {
             resetStability()
             return decision(false, pose, "Keep your head level")
         }
@@ -71,13 +71,13 @@ internal class GuidedFacePoseTracker(
         val yaw = observation.yawDegrees - neutralYaw!!
         val pitch = observation.pitchDegrees - neutralPitch!!
         val qualifies = when (pose) {
-            GuidedFacePose.FRONT -> abs(yaw) <= 7f && abs(pitch) <= 8f
-            // ML Kit observes the unmirrored sensor frame. These signs intentionally mirror the
-            // displayed selfie preview so LEFT/RIGHT mean the direction the user is instructed to turn.
-            GuidedFacePose.LEFT -> yaw in 36f..55f && abs(pitch) <= 10f
-            GuidedFacePose.RIGHT -> yaw in -48f..-28f && abs(pitch) <= 11f
-            GuidedFacePose.TILT_DOWN -> pitch in -38f..-18f && abs(yaw) <= 11f
-            GuidedFacePose.FINISH_FRONT -> abs(yaw) <= 8f && abs(pitch) <= 10f
+            GuidedFacePose.FRONT -> abs(yaw) <= 8f && abs(pitch) <= 9f
+            // Keep a meaningful turn requirement so a straight face cannot pass, but do not force
+            // users into an extreme profile pose. Relative calibration absorbs OEM camera bias.
+            GuidedFacePose.LEFT -> yaw in 24f..52f && abs(pitch) <= 13f
+            GuidedFacePose.RIGHT -> yaw in -52f..-24f && abs(pitch) <= 13f
+            GuidedFacePose.TILT_DOWN -> pitch in -35f..-16f && abs(yaw) <= 13f
+            GuidedFacePose.FINISH_FRONT -> abs(yaw) <= 9f && abs(pitch) <= 11f
         }
 
         if (!qualifies) {
@@ -92,11 +92,11 @@ internal class GuidedFacePoseTracker(
 
         val previous = lastQualified
         val stableWithPrevious = previous == null || (
-            abs(observation.yawDegrees - previous.yawDegrees) <= 3f &&
-                abs(observation.pitchDegrees - previous.pitchDegrees) <= 3f &&
-                abs(observation.rollDegrees - previous.rollDegrees) <= 4f &&
-                abs(observation.centerXFraction - previous.centerXFraction) <= 0.035f &&
-                abs(observation.centerYFraction - previous.centerYFraction) <= 0.035f
+            abs(observation.yawDegrees - previous.yawDegrees) <= 4f &&
+                abs(observation.pitchDegrees - previous.pitchDegrees) <= 4f &&
+                abs(observation.rollDegrees - previous.rollDegrees) <= 5f &&
+                abs(observation.centerXFraction - previous.centerXFraction) <= 0.04f &&
+                abs(observation.centerYFraction - previous.centerYFraction) <= 0.04f
             )
         stableFrameCount = if (stableWithPrevious) stableFrameCount + 1 else 1
         lastQualified = observation
@@ -142,7 +142,6 @@ internal class GuidedFacePoseTracker(
         val xSpread = (xValues.maxOrNull() ?: 0f) - (xValues.minOrNull() ?: 0f)
         val ySpread = (yValues.maxOrNull() ?: 0f) - (yValues.minOrNull() ?: 0f)
         if (yawSpread > 5f || pitchSpread > 5f || xSpread > 0.05f || ySpread > 0.05f) {
-            // Keep a rolling window until both pose and framing are actually stable.
             return Decision(false, instruction(pose), "Keep your face still while SnapLoop calibrates", false)
         }
 
@@ -172,36 +171,36 @@ internal class GuidedFacePoseTracker(
 
     private fun instruction(pose: GuidedFacePose): String = when (pose) {
         GuidedFacePose.FRONT -> "Look straight at the camera"
-        GuidedFacePose.LEFT -> "Turn your face LEFT"
-        GuidedFacePose.RIGHT -> "Turn your face RIGHT"
+        GuidedFacePose.LEFT -> "Turn your face slightly LEFT"
+        GuidedFacePose.RIGHT -> "Turn your face slightly RIGHT"
         GuidedFacePose.TILT_DOWN -> "Tilt slightly DOWN"
         GuidedFacePose.FINISH_FRONT -> "Look straight again"
     }
 
     private fun directionHint(pose: GuidedFacePose, yaw: Float, pitch: Float): String = when (pose) {
         GuidedFacePose.FRONT, GuidedFacePose.FINISH_FRONT -> when {
-            yaw > 8f -> "Turn slightly RIGHT toward center"
-            yaw < -8f -> "Turn slightly LEFT toward center"
-            pitch < -10f -> "Raise your chin slightly"
-            pitch > 10f -> "Lower your chin slightly"
+            yaw > 9f -> "Turn slightly RIGHT toward center"
+            yaw < -9f -> "Turn slightly LEFT toward center"
+            pitch < -11f -> "Raise your chin slightly"
+            pitch > 11f -> "Lower your chin slightly"
             else -> "Hold still"
         }
         GuidedFacePose.LEFT -> when {
-            yaw < 36f -> "Keep turning LEFT"
-            yaw > 55f -> "Come slightly back toward center"
-            abs(pitch) > 11f -> "Keep your chin level"
+            yaw < 24f -> "Turn a little more LEFT"
+            yaw > 52f -> "Come slightly back toward center"
+            abs(pitch) > 13f -> "Keep your chin level"
             else -> "Hold still"
         }
         GuidedFacePose.RIGHT -> when {
-            yaw > -20f -> "Keep turning RIGHT"
-            yaw < -42f -> "Come slightly back toward center"
-            abs(pitch) > 11f -> "Keep your chin level"
+            yaw > -24f -> "Turn a little more RIGHT"
+            yaw < -52f -> "Come slightly back toward center"
+            abs(pitch) > 13f -> "Keep your chin level"
             else -> "Hold still"
         }
         GuidedFacePose.TILT_DOWN -> when {
-            abs(yaw) > 11f -> "Face forward while lowering your chin"
-            pitch > -14f -> "Lower your chin a little"
-            pitch < -32f -> "Raise your chin slightly"
+            abs(yaw) > 13f -> "Face forward while lowering your chin"
+            pitch > -16f -> "Lower your chin a little"
+            pitch < -35f -> "Raise your chin slightly"
             else -> "Hold still"
         }
     }
