@@ -38,6 +38,24 @@ class GuidedFacePoseTrackerTest {
     }
 
     @Test
+    fun modestDeliberateTurnQualifiesButStraightFaceDoesNot() {
+        val tracker = GuidedFacePoseTracker(calibrationSamplesRequired = 2, stableFramesRequired = 2)
+        repeat(2) { tracker.evaluate(GuidedFacePose.FRONT, observation()) }
+        tracker.evaluate(GuidedFacePose.FRONT, observation())
+        assertTrue(tracker.evaluate(GuidedFacePose.FRONT, observation()).readyToCapture)
+        tracker.onCaptured()
+
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 0f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 26f)).readyToCapture)
+        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 26f)).readyToCapture)
+        tracker.onCaptured()
+
+        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = 0f)).readyToCapture)
+        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = -26f)).readyToCapture)
+        assertTrue(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = -26f)).readyToCapture)
+    }
+
+    @Test
     fun poseRequiresConsecutiveStableFrames() {
         val tracker = GuidedFacePoseTracker(calibrationSamplesRequired = 2, stableFramesRequired = 3)
         repeat(2) { tracker.evaluate(GuidedFacePose.FRONT, observation()) }
