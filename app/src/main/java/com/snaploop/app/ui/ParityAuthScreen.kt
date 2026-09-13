@@ -56,12 +56,13 @@ internal fun ParityAuthScreen(
     state: AppUiState,
     coordinator: AppCoordinator,
 ) {
+    val defaultCountry = remember(activity) { ParityPhoneNumberSupport.deviceDefault(activity) }
     var selectedRegion by rememberSaveable {
-        mutableStateOf(ParityPhoneNumberSupport.localeDefault().regionCode)
+        mutableStateOf(defaultCountry.regionCode)
     }
     val selectedCountry = ParityPhoneNumberSupport.supportedCountries.firstOrNull {
         it.regionCode == selectedRegion
-    } ?: ParityPhoneNumberSupport.localeDefault()
+    } ?: defaultCountry
     var countryMenuOpen by remember { mutableStateOf(false) }
     var phoneNumber by rememberSaveable { mutableStateOf("") }
     var normalizedPhoneNumber by rememberSaveable { mutableStateOf<String?>(null) }
@@ -260,7 +261,7 @@ private fun PhoneEntry(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Icon(Icons.Filled.Message, contentDescription = null, tint = Color.White, modifier = Modifier.size(19.dp))
+                    Icon(Icons.Filled.Message, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
             },
         )
@@ -276,42 +277,38 @@ private fun CodeEntry(
     onVerify: () -> Unit,
     onDifferentNumber: () -> Unit,
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Icon(
-            Icons.Filled.Lock,
-            contentDescription = null,
-            tint = SnapColors.Coral,
-            modifier = Modifier.size(34.dp),
-        )
-        Text("Enter the 6-digit code", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        normalizedPhoneNumber?.let {
-            Text("Sent to $it", fontSize = 14.sp, color = SnapColors.Secondary)
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(
+                "Verification code",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 7.dp),
+            )
         }
-
+        normalizedPhoneNumber?.let {
+            Text(
+                "We sent a code to $it",
+                color = SnapColors.Secondary,
+                fontSize = 12.sp,
+            )
+        }
         TextField(
             value = code,
             onValueChange = onCode,
             enabled = !busy,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("6-digit code", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+            modifier = Modifier.fillMaxWidth().height(60.dp),
+            placeholder = { Text("6-digit code") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             singleLine = true,
             shape = RoundedCornerShape(16.dp),
-            textStyle = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                letterSpacing = 1.5.sp,
-            ),
             colors = authTextFieldColors(),
         )
-
         ParityPrimaryButton(
-            text = if (busy) "Verifying…" else "Verify",
+            text = if (busy) "Verifying…" else "Verify & Continue",
             onClick = onVerify,
-            enabled = !busy && code.length >= 6,
+            enabled = !busy && code.length == 6,
             leadingContent = {
                 if (busy) {
                     CircularProgressIndicator(
@@ -320,13 +317,16 @@ private fun CodeEntry(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(19.dp))
+                    Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
             },
         )
-
-        TextButton(onClick = onDifferentNumber, enabled = !busy) {
-            Text("Use a different number", color = SnapColors.Blue, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+        TextButton(
+            onClick = onDifferentNumber,
+            enabled = !busy,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        ) {
+            Text("Use a different number")
         }
     }
 }
