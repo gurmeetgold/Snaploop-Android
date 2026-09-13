@@ -1,5 +1,7 @@
 package com.snaploop.app.ui
 
+import android.content.Context
+import android.telephony.TelephonyManager
 import java.util.Locale
 
 internal data class ParityPhoneCountry(
@@ -28,6 +30,36 @@ internal object ParityPhoneNumberSupport {
         val region = locale.country.uppercase(Locale.US)
         return supportedCountries.firstOrNull { it.regionCode == region }
             ?: supportedCountries.first { it.regionCode == "CA" }
+    }
+
+    /**
+     * Prefer the SIM country, then the currently registered mobile network,
+     * then the device locale. This avoids treating the UI language/locale as
+     * the user's phone-number country, which is unreliable for travellers and
+     * devices that were originally configured in another country.
+     */
+    fun preferredRegionCode(
+        simCountryIso: String?,
+        networkCountryIso: String?,
+        locale: Locale = Locale.getDefault(),
+    ): String {
+        return sequenceOf(simCountryIso, networkCountryIso, locale.country)
+            .mapNotNull { it?.trim()?.uppercase(Locale.US)?.takeIf { code -> code.length == 2 } }
+            .firstOrNull()
+            ?: "CA"
+    }
+
+    fun deviceRegionCode(context: Context): String {
+        val telephony = context.getSystemService(TelephonyManager::class.java)
+        val sim = runCatching { telephony?.simCountryIso }.getOrNull()
+        val network = runCatching { telephony?.networkCountryIso }.getOrNull()
+        return preferredRegionCode(sim, network, Locale.getDefault())
+    }
+
+    fun deviceDefault(context: Context): ParityPhoneCountry {
+        val region = deviceRegionCode(context)
+        return supportedCountries.firstOrNull { it.regionCode == region }
+            ?: localeDefault()
     }
 
     /** Conservative normalizer mirrored from pinned iOS PhoneNumberSupport.swift. */
