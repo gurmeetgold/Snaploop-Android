@@ -48,7 +48,7 @@ class DeviceAcceptanceP0RegressionTest {
         val library = source("src/main/java/com/snaploop/app/media/MediaStorePhotoLibrary.kt")
         val pipeline = source("src/main/java/com/snaploop/app/face/AndroidFacePipeline.kt")
         assertTrue(scanner.contains("library.normalizedBitmap(asset, ANALYSIS_MAX_PIXEL_SIZE)"))
-        assertTrue(scanner.contains("ANALYSIS_MAX_PIXEL_SIZE = 1024"))
+        assertTrue(scanner.contains("ANALYSIS_MAX_PIXEL_SIZE = 768"))
         assertFalse(scanner.contains("ANALYSIS_JPEG_QUALITY"))
         assertTrue(library.contains("fun normalizedBitmap"))
         assertTrue(pipeline.contains("suspend fun detectFaces(bitmap: Bitmap)"))

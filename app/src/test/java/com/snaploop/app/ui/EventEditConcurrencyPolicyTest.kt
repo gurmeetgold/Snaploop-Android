@@ -16,9 +16,19 @@ class EventEditConcurrencyPolicyTest {
     }
 
     @Test
-    fun `newer server revision is stale`() {
+    fun `metadata only server revision remains fresh`() {
         val opened = event("2026-09-09T20:00:00Z")
         val latest = opened.copy(updatedAt = Instant.parse("2026-09-09T20:05:00Z"))
+        assertTrue(EventEditConcurrencyPolicy.isFresh(opened, latest))
+    }
+
+    @Test
+    fun `changed user editable field is stale`() {
+        val opened = event("2026-09-09T20:00:00Z")
+        val latest = opened.copy(
+            name = "Updated Trip",
+            updatedAt = Instant.parse("2026-09-09T20:05:00Z"),
+        )
         assertFalse(EventEditConcurrencyPolicy.isFresh(opened, latest))
     }
 

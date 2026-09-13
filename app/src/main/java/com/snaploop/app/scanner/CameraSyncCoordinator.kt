@@ -242,7 +242,7 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
                 state.lastSyncedAtMillis = System.currentTimeMillis()
                 // Bound crash rework while avoiding an encrypted full-state write after every
                 // asset. The final checkpoint below is unconditional.
-                if (completed % 4 == 0) states.save(state)
+                if (completed % 12 == 0) states.save(state)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
@@ -270,9 +270,9 @@ class CameraSyncCoordinator(context: Context) : AutoCloseable {
     }
 
     private companion object {
-        // 1280px preserves ample pixels for the minimum supported face fraction while cutting
-        // decode, EXIF rotation, JPEG encode and ML Kit work substantially on mid-range phones.
-        const val ANALYSIS_MAX_PIXEL_SIZE = 1024
+        // 768px keeps recognition input comfortably above the minimum face gate while reducing
+        // MediaStore decode/rotation and ML Kit work on mid-range Android devices.
+        const val ANALYSIS_MAX_PIXEL_SIZE = 768
     }
 
     override fun close() {

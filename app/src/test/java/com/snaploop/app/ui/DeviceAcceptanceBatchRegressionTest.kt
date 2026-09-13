@@ -35,7 +35,7 @@ class DeviceAcceptanceBatchRegressionTest {
 
     @Test fun `scanner batches encrypted checkpoints`() {
         val source = source("src/main/java/com/snaploop/app/scanner/CameraSyncCoordinator.kt")
-        assertTrue(source.contains("if (completed % 4 == 0) states.save(state)"))
+        assertTrue(source.contains("if (completed % 12 == 0) states.save(state)"))
     }
 
     @Test fun `restore uses current brand mark and viewer count is trailing`() {

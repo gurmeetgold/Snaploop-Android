@@ -32,6 +32,7 @@ internal class GuidedFacePoseTracker(
     private var activePose: GuidedFacePose? = null
     private var stableFrameCount = 0
     private var lastQualified: FacePoseObservation? = null
+    private var transitionGateRequired = false
 
     fun reset() {
         calibrationSamples.clear()
@@ -40,12 +41,14 @@ internal class GuidedFacePoseTracker(
         activePose = null
         stableFrameCount = 0
         lastQualified = null
+        transitionGateRequired = false
     }
 
     fun onCaptured() {
         activePose = null
         stableFrameCount = 0
         lastQualified = null
+        transitionGateRequired = true
     }
 
     fun evaluate(pose: GuidedFacePose, observation: FacePoseObservation): Decision {
@@ -70,6 +73,27 @@ internal class GuidedFacePoseTracker(
 
         val yaw = observation.yawDegrees - neutralYaw!!
         val pitch = observation.pitchDegrees - neutralPitch!!
+
+        if (transitionGateRequired) {
+            val backAtNeutral = abs(yaw) <= 12f && abs(pitch) <= 12f
+            resetStability()
+            if (backAtNeutral) {
+                transitionGateRequired = false
+                return Decision(
+                    readyToCapture = false,
+                    instruction = instruction(pose),
+                    detail = "Now follow the next pose",
+                    calibrated = true,
+                )
+            }
+            return Decision(
+                readyToCapture = false,
+                instruction = instruction(pose),
+                detail = "Return to center briefly before the next pose",
+                calibrated = true,
+            )
+        }
+
         val qualifies = when (pose) {
             GuidedFacePose.FRONT -> abs(yaw) <= 8f && abs(pitch) <= 9f
             // Keep a meaningful turn requirement so a straight face cannot pass, but do not force

@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -46,6 +48,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -94,6 +97,7 @@ private class AndroidPhotoFavoritesStore(context: Context) {
  * deduplication. Event-local My Photos intentionally keeps the Event model's ID semantics.
  */
 @Suppress("UNUSED_PARAMETER")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ParityPhotoGallery(
     title: String,
@@ -124,6 +128,17 @@ internal fun ParityPhotoGallery(
     var bulkBusy by remember { mutableStateOf(false) }
     var bulkMessage by remember { mutableStateOf<String?>(null) }
     var pendingLegacySave by remember { mutableStateOf<List<PhotoMatch>?>(null) }
+    var refreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(photos) {
+        refreshing = false
+    }
+
+    fun requestRefresh() {
+        correctionError = null
+        refreshing = true
+        onRefresh()
+    }
 
     fun setFavorite(id: String, favorite: Boolean) {
         val next = if (favorite) favorites + id else favorites - id
@@ -230,7 +245,12 @@ internal fun ParityPhotoGallery(
         if (favoritesOnly && !nextValue) selected = emptySet()
     }
 
-    Column(modifier.fillMaxSize().background(SnapGradients.SoftWash).statusBarsPadding().padding(vertical = 8.dp)) {
+    PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = ::requestRefresh,
+        modifier = modifier.fillMaxSize().background(SnapGradients.SoftWash),
+    ) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().padding(vertical = 8.dp)) {
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -249,10 +269,7 @@ internal fun ParityPhotoGallery(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
             )
-            IconButton(onClick = {
-                correctionError = null
-                onRefresh()
-            }) {
+            IconButton(onClick = ::requestRefresh) {
                 Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
             }
         }
@@ -488,6 +505,7 @@ internal fun ParityPhotoGallery(
                     }
                 }
             }
+        }
         }
     }
 
