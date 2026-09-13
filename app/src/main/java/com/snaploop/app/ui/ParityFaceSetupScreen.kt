@@ -1,6 +1,5 @@
 package com.snaploop.app.ui
 
-import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -289,7 +288,7 @@ private fun ParityFaceTestResultScreen(
     onChooseAnother: () -> Unit,
 ) {
     val bitmap = remember(jpeg) {
-        jpeg?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        jpeg?.let(::decodeExifOrientedBitmap)
     }
     ParityBrandBackground {
         Column(
@@ -299,7 +298,7 @@ private fun ParityFaceTestResultScreen(
             TextButton(onClick = onBack, modifier = Modifier.align(Alignment.Start)) { Text("‹ Back") }
             Text("Test My Face Setup", fontSize = 26.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
             Text(
-                "Choose a normal photo and SnapLoop will check it against your saved Face Setup.",
+                "Choose any normal photo and SnapLoop will check all usable faces against your saved Face Setup.",
                 color = Color(0xFF66636C),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
