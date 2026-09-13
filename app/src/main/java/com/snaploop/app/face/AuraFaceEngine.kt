@@ -34,9 +34,10 @@ internal object AuraFacePreprocessor {
  *
  * AuraFace is a large model. Creating a new ONNX Runtime session for every guided capture caused
  * severe heap/native-memory pressure on lower-memory Android devices. All AndroidFacePipeline
- * instances now share one disk-backed session for the lifetime of the app process. Inference is
- * serialized because Face Setup and an Event scan never need concurrent identity inference, and
- * this keeps peak memory predictable on OEM devices such as Redmi/Xiaomi.
+ * instances now share one session for the lifetime of the app process. The exact bundled model is
+ * memory-mapped directly from the signed APK, which avoids the previous second ~260 MB disk copy.
+ * Inference remains serialized because Face Setup and an Event scan never need concurrent identity
+ * inference, keeping peak memory predictable on OEM devices such as Redmi/Xiaomi.
  */
 class AuraFaceEngine(context: Context) : AutoCloseable {
     private val shared = SharedSession.get(context.applicationContext)
@@ -67,6 +68,9 @@ class AuraFaceEngine(context: Context) : AutoCloseable {
         val env: OrtEnvironment,
         val session: OrtSession,
         val inputName: String,
+        // Keep the direct mapped buffer and its descriptor alive for the lifetime of the ORT
+        // session. This is conservative across ONNX Runtime implementations and OEM kernels.
+        @Suppress("unused") val modelMapping: ModelAssetVerifier.VerifiedModelMapping,
     ) {
         val inferenceLock = Any()
 
@@ -80,7 +84,7 @@ class AuraFaceEngine(context: Context) : AutoCloseable {
 
             private fun create(context: Context): SharedSession {
                 val env = OrtEnvironment.getEnvironment()
-                val model = ModelAssetVerifier.verifiedModelFile(context)
+                val modelMapping = ModelAssetVerifier.verifiedModelMapping(context)
                 val options = OrtSession.SessionOptions().apply {
                     // Face matching is latency-sensitive but not throughput-sensitive. Limiting CPU
                     // workers avoids large transient thread/workspace allocations on mobile.
@@ -88,7 +92,10 @@ class AuraFaceEngine(context: Context) : AutoCloseable {
                     setInterOpNumThreads(1)
                 }
                 val session = try {
-                    env.createSession(model.absolutePath, options)
+                    env.createSession(modelMapping.buffer, options)
+                } catch (t: Throwable) {
+                    modelMapping.close()
+                    throw t
                 } finally {
                     options.close()
                 }
@@ -97,7 +104,7 @@ class AuraFaceEngine(context: Context) : AutoCloseable {
                 val output = session.outputInfo.values.singleOrNull()
                     ?: error("Unexpected AuraFace output signature")
                 require(output.info.toString().contains("512")) { "AuraFace output must be 512-D" }
-                return SharedSession(env, session, inputName)
+                return SharedSession(env, session, inputName, modelMapping)
             }
         }
     }
