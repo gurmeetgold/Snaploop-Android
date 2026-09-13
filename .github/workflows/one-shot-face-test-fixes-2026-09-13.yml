@@ -1,0 +1,104 @@
+name: One-shot Face Setup test fixes 2026-09-13
+on:
+  push:
+    branches: [fix/device-acceptance-p0-2026-09-11]
+    paths:
+      - '.github/workflows/one-shot-face-test-fixes-2026-09-13.yml'
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/device-acceptance-p0-2026-09-11
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '9.6.0' }
+      - name: Apply EXIF-aware Face Setup test preview
+        run: |
+          cat > app/src/main/java/com/snaploop/app/ui/ExifOrientedBitmap.kt <<'EOF'
+          package com.snaploop.app.ui
+
+          import android.graphics.Bitmap
+          import android.graphics.BitmapFactory
+          import android.graphics.Matrix
+          import androidx.exifinterface.media.ExifInterface
+          import java.io.ByteArrayInputStream
+
+          internal fun decodeExifOrientedBitmap(imageData: ByteArray): Bitmap? {
+              val source = BitmapFactory.decodeByteArray(imageData, 0, imageData.size) ?: return null
+              val orientation = runCatching {
+                  ExifInterface(ByteArrayInputStream(imageData)).getAttributeInt(
+                      ExifInterface.TAG_ORIENTATION,
+                      ExifInterface.ORIENTATION_NORMAL,
+                  )
+              }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+
+              if (orientation == ExifInterface.ORIENTATION_NORMAL ||
+                  orientation == ExifInterface.ORIENTATION_UNDEFINED
+              ) return source
+
+              val matrix = Matrix().apply {
+                  when (orientation) {
+                      ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> setScale(-1f, 1f)
+                      ExifInterface.ORIENTATION_ROTATE_180 -> setRotate(180f)
+                      ExifInterface.ORIENTATION_FLIP_VERTICAL -> setScale(1f, -1f)
+                      ExifInterface.ORIENTATION_TRANSPOSE -> {
+                          setRotate(90f)
+                          postScale(-1f, 1f)
+                      }
+                      ExifInterface.ORIENTATION_ROTATE_90 -> setRotate(90f)
+                      ExifInterface.ORIENTATION_TRANSVERSE -> {
+                          setRotate(-90f)
+                          postScale(-1f, 1f)
+                      }
+                      ExifInterface.ORIENTATION_ROTATE_270 -> setRotate(-90f)
+                  }
+              }
+              return runCatching {
+                  Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
+              }.getOrElse { source }.also { oriented ->
+                  if (oriented !== source) source.recycle()
+              }
+          }
+          EOF
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/java/com/snaploop/app/ui/ParityFaceSetupScreen.kt')
+          text = p.read_text()
+          text = text.replace('import android.graphics.BitmapFactory\n', '')
+          old = '''    val bitmap = remember(jpeg) {
+                  jpeg?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+              }'''
+          new = '''    val bitmap = remember(jpeg) {
+                  jpeg?.let(::decodeExifOrientedBitmap)
+              }'''
+          if old not in text:
+              raise SystemExit('Expected Face Setup preview decode block not found')
+          text = text.replace(old, new, 1)
+          p.write_text(text)
+          PY
+      - name: Verify implementation contracts
+        run: |
+          grep -q 'pipeline.detectFaces(jpeg)' app/src/main/java/com/snaploop/app/ui/FaceSetupParityActions.kt
+          grep -q 'recognized you in this photo' app/src/main/java/com/snaploop/app/ui/FaceSetupParityActions.kt
+          grep -q 'decodeExifOrientedBitmap' app/src/main/java/com/snaploop/app/ui/ParityFaceSetupScreen.kt
+          grep -q 'ExifInterface.ORIENTATION_ROTATE_90' app/src/main/java/com/snaploop/app/ui/ExifOrientedBitmap.kt
+      - name: Unit tests lint and debug compile
+        run: gradle test lint assembleDebug
+      - name: Commit verified fixes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/src/main/java/com/snaploop/app/ui/ParityFaceSetupScreen.kt app/src/main/java/com/snaploop/app/ui/ExifOrientedBitmap.kt app/src/main/java/com/snaploop/app/ui/FaceSetupParityActions.kt
+          if git diff --cached --quiet; then
+            echo 'No implementation changes to commit'
+          else
+            git commit -m 'Fix Face Setup test photo orientation and group photos'
+            git push origin HEAD:fix/device-acceptance-p0-2026-09-11
+          fi
