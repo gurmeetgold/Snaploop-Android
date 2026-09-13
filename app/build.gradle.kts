@@ -71,6 +71,14 @@ android {
         }
     }
     buildFeatures { compose = true; buildConfig = true }
+
+    // Keep the large ONNX asset directly addressable inside the installed APK. AuraFaceEngine
+    // memory-maps this exact asset instead of copying ~260 MB into app-private storage on first use.
+    // This preserves the exact model/embeddings while avoiding a second full on-device copy.
+    androidResources {
+        noCompress += "onnx"
+    }
+
     packaging.resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}")
 }
 
