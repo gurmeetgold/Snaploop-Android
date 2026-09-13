@@ -33,6 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.snaploop.app.model.BiometricJurisdiction
+import com.snaploop.app.model.BiometricJurisdictionCatalog
 
 /** iOS-parity express Face Match consent screen with an always-available exit path. */
 @Composable
@@ -42,14 +44,35 @@ internal fun ParityConsentScreen(
 ) {
     BackHandler(onBack = onNotNow)
     val context = LocalContext.current
-    var country by rememberSaveable { mutableStateOf("CA") }
-    var subdivision by rememberSaveable { mutableStateOf("ON") }
+    val countries = remember { BiometricJurisdictionCatalog.countries() }
+    val initialCountry = remember { BiometricJurisdictionCatalog.defaultCountryCode() }
+    var country by rememberSaveable { mutableStateOf(initialCountry) }
+    var subdivision by rememberSaveable {
+        mutableStateOf(BiometricJurisdictionCatalog.defaultSubdivision(initialCountry))
+    }
     var countryMenu by remember { mutableStateOf(false) }
     var provinceMenu by remember { mutableStateOf(false) }
     var ageAndResidence by rememberSaveable { mutableStateOf(false) }
     var expressConsent by rememberSaveable { mutableStateOf(false) }
-    val provinces = listOf("AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT")
-    val available = country == "IN" || (country == "CA" && subdivision != "QC")
+    val provinces = BiometricJurisdictionCatalog.canadianSubdivisions
+    val selectedCountryName = countries.firstOrNull { it.code == country }?.name ?: country
+    val selectedSubdivisionName = provinces.firstOrNull { it.code == subdivision }?.name ?: subdivision
+    val available = BiometricJurisdiction(country, subdivision).isFaceMatchAvailable
+
+    fun selectCountry(code: String) {
+        country = code
+        subdivision = BiometricJurisdictionCatalog.defaultSubdivision(code)
+        ageAndResidence = false
+        expressConsent = false
+        countryMenu = false
+    }
+
+    fun selectSubdivision(code: String) {
+        subdivision = code
+        ageAndResidence = false
+        expressConsent = false
+        provinceMenu = false
+    }
 
     ParityBrandBackground {
         Column(
@@ -102,31 +125,45 @@ internal fun ParityConsentScreen(
                 Text("Your residence", fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     OutlinedButton(onClick = { countryMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (country == "CA") "Canada" else "India")
+                        Text(selectedCountryName)
                     }
                     DropdownMenu(countryMenu, { countryMenu = false }) {
-                        DropdownMenuItem(text = { Text("Canada") }, onClick = { country = "CA"; if (subdivision.isBlank()) subdivision = "ON"; countryMenu = false })
-                        DropdownMenuItem(text = { Text("India") }, onClick = { country = "IN"; subdivision = ""; countryMenu = false })
+                        countries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.name) },
+                                onClick = { selectCountry(option.code) },
+                            )
+                        }
                     }
                 }
                 if (country == "CA") {
                     Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                         OutlinedButton(onClick = { provinceMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Province / territory: $subdivision")
+                            Text("Province / territory: $selectedSubdivisionName")
                         }
                         DropdownMenu(provinceMenu, { provinceMenu = false }) {
-                            provinces.forEach { code ->
-                                DropdownMenuItem(text = { Text(code) }, onClick = { subdivision = code; provinceMenu = false })
+                            provinces.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option.name) },
+                                    onClick = { selectSubdivision(option.code) },
+                                )
                             }
                         }
                     }
                 }
+                Text(
+                    "Your selection is used to apply the appropriate privacy and biometric rules. No GPS or precise address is required.",
+                    color = Color(0xFF66636C),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
                 if (!available) {
                     Text(
-                        "Face Match is not available in Quebec.",
-                        color = Color(0xFFC62828),
+                        "Face Match is not available for the selected jurisdiction.",
+                        color = Color(0xFF66636C),
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 8.dp),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 6.dp),
                     )
                 }
             }
@@ -135,16 +172,18 @@ internal fun ParityConsentScreen(
                 ConsentRow(
                     checked = ageAndResidence,
                     onChecked = { ageAndResidence = it },
-                    text = if (country == "IN") {
-                        "I am 18 or older and currently reside in India."
-                    } else {
-                        "I am 18 or older and currently reside in the selected Canadian province or territory."
+                    text = when (country) {
+                        "IN" -> "I am 18 or older and ordinarily reside in India."
+                        "CA" -> "I am 18 or older and ordinarily reside in $selectedSubdivisionName, Canada."
+                        else -> "I am 18 or older and ordinarily reside in $selectedCountryName."
                     },
+                    enabled = available,
                 )
                 ConsentRow(
                     checked = expressConsent,
                     onChecked = { expressConsent = it },
                     text = "I have read the Face Match notice and expressly consent to SnapLoop creating and using a face template from my own Face Setup for the purposes described above.",
+                    enabled = available,
                 )
             }
 
@@ -171,12 +210,22 @@ private fun ConsentSection(title: String, body: String) {
 }
 
 @Composable
-private fun ConsentRow(checked: Boolean, onChecked: (Boolean) -> Unit, text: String) {
+private fun ConsentRow(
+    checked: Boolean,
+    onChecked: (Boolean) -> Unit,
+    text: String,
+    enabled: Boolean = true,
+) {
     Row(
-        Modifier.fillMaxWidth().clickable { onChecked(!checked) }.padding(vertical = 5.dp),
+        Modifier.fillMaxWidth().clickable(enabled = enabled) { onChecked(!checked) }.padding(vertical = 5.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        Checkbox(checked, onCheckedChange = onChecked)
-        Text(text, modifier = Modifier.weight(1f).padding(top = 10.dp), fontSize = 13.sp)
+        Checkbox(checked, onCheckedChange = onChecked, enabled = enabled)
+        Text(
+            text,
+            modifier = Modifier.weight(1f).padding(top = 10.dp),
+            fontSize = 13.sp,
+            color = if (enabled) Color.Unspecified else Color(0xFF8A8790),
+        )
     }
 }
