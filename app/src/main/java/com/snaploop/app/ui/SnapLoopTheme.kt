@@ -1,8 +1,6 @@
 package com.snaploop.app.ui
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -103,31 +101,24 @@ object SnapGradients {
     )
 }
 
+/**
+ * SnapLoop is currently shipped as a light-only experience. The previous
+ * partial system-dark-mode path mixed dark Material colors with several
+ * intentionally light brand surfaces, producing unreadable text. Keep the UI
+ * deterministic until every screen has a fully verified dark palette.
+ */
 @Composable
 fun SnapLoopTheme(content: @Composable () -> Unit) {
-    val colors = if (isSystemInDarkTheme()) {
-        darkColorScheme(
-            primary = SnapColors.Coral,
-            secondary = SnapColors.Lilac,
-            tertiary = SnapColors.Blue,
-            background = SnapColors.DarkCanvas,
-            surface = SnapColors.DarkSurface,
-            surfaceVariant = SnapColors.DarkSubtleSurface,
-            onBackground = SnapColors.DarkInk,
-            onSurface = SnapColors.DarkInk,
-        )
-    } else {
-        lightColorScheme(
-            primary = SnapColors.Coral,
-            secondary = SnapColors.Lilac,
-            tertiary = SnapColors.Blue,
-            background = SnapColors.Canvas,
-            surface = SnapColors.Surface,
-            surfaceVariant = SnapColors.SubtleSurface,
-            onBackground = SnapColors.Ink,
-            onSurface = SnapColors.Ink,
-        )
-    }
+    val colors = lightColorScheme(
+        primary = SnapColors.Coral,
+        secondary = SnapColors.Lilac,
+        tertiary = SnapColors.Blue,
+        background = SnapColors.Canvas,
+        surface = SnapColors.Surface,
+        surfaceVariant = SnapColors.SubtleSurface,
+        onBackground = SnapColors.Ink,
+        onSurface = SnapColors.Ink,
+    )
     val systemDensity = LocalDensity.current
     CompositionLocalProvider(
         LocalDensity provides Density(
