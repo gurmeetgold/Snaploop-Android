@@ -4,6 +4,8 @@ import android.app.Application
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
+import com.snaploop.app.analytics.SnapLoopTelemetry
+import com.snaploop.app.analytics.TelemetryEvent
 
 class SnapLoopApplication : Application() {
     override fun onCreate() {
@@ -14,5 +16,7 @@ class SnapLoopApplication : Application() {
                 PlayIntegrityAppCheckProviderFactory.getInstance()
             )
         }
+        SnapLoopTelemetry.initialize(this)
+        SnapLoopTelemetry.capture(TelemetryEvent.appOpened())
     }
 }
