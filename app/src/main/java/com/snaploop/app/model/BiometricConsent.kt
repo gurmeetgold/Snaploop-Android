@@ -1,6 +1,48 @@
 package com.snaploop.app.model
 
 import java.time.Instant
+import java.util.Locale
+
+data class BiometricJurisdictionOption(val code: String, val name: String)
+
+object BiometricJurisdictionCatalog {
+    val canadianSubdivisions = listOf(
+        BiometricJurisdictionOption("AB", "Alberta"),
+        BiometricJurisdictionOption("BC", "British Columbia"),
+        BiometricJurisdictionOption("MB", "Manitoba"),
+        BiometricJurisdictionOption("NB", "New Brunswick"),
+        BiometricJurisdictionOption("NL", "Newfoundland and Labrador"),
+        BiometricJurisdictionOption("NS", "Nova Scotia"),
+        BiometricJurisdictionOption("NT", "Northwest Territories"),
+        BiometricJurisdictionOption("NU", "Nunavut"),
+        BiometricJurisdictionOption("ON", "Ontario"),
+        BiometricJurisdictionOption("PE", "Prince Edward Island"),
+        BiometricJurisdictionOption("QC", "Quebec"),
+        BiometricJurisdictionOption("SK", "Saskatchewan"),
+        BiometricJurisdictionOption("YT", "Yukon"),
+    )
+
+    val faceMatchCanadianSubdivisionCodes = canadianSubdivisions
+        .map { it.code }
+        .filter { it != "QC" }
+        .toSet()
+
+    fun countries(displayLocale: Locale = Locale.getDefault()): List<BiometricJurisdictionOption> =
+        Locale.getISOCountries()
+            .map { code ->
+                val locale = Locale.Builder().setRegion(code).build()
+                BiometricJurisdictionOption(code, locale.getDisplayCountry(displayLocale).ifBlank { code })
+            }
+            .sortedBy { it.name.lowercase(displayLocale) }
+
+    fun defaultCountryCode(locale: Locale = Locale.getDefault()): String {
+        val region = locale.country.trim().uppercase(Locale.US)
+        return region.takeIf { candidate -> Locale.getISOCountries().contains(candidate) } ?: "CA"
+    }
+
+    fun defaultSubdivision(countryCode: String): String =
+        if (countryCode.equals("CA", ignoreCase = true)) "ON" else ""
+}
 
 data class BiometricJurisdiction(val countryCode: String, val subdivisionCode: String = "") {
     val normalizedCountry = countryCode.uppercase()
@@ -8,11 +50,12 @@ data class BiometricJurisdiction(val countryCode: String, val subdivisionCode: S
     val isFaceMatchAvailable: Boolean
         get() = when (normalizedCountry) {
             "IN" -> normalizedSubdivision.isEmpty()
-            "CA" -> normalizedSubdivision in CANADIAN_SUBDIVISIONS
+            "CA" -> normalizedSubdivision in BiometricJurisdictionCatalog.faceMatchCanadianSubdivisionCodes
             else -> false
         }
+
     companion object {
-        val CANADIAN_SUBDIVISIONS = setOf("AB","BC","MB","NB","NL","NS","NT","NU","ON","PE","SK","YT")
+        val CANADIAN_SUBDIVISIONS = BiometricJurisdictionCatalog.faceMatchCanadianSubdivisionCodes
     }
 }
 
