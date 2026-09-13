@@ -21,6 +21,42 @@ class ParityPhoneNumberSupportTest {
     }
 
     @Test
+    fun `SIM country wins over network and locale`() {
+        assertEquals(
+            "IN",
+            ParityPhoneNumberSupport.preferredRegionCode(
+                simCountryIso = "in",
+                networkCountryIso = "ca",
+                locale = Locale("en", "GB"),
+            ),
+        )
+    }
+
+    @Test
+    fun `network country is used when SIM country is unavailable`() {
+        assertEquals(
+            "IN",
+            ParityPhoneNumberSupport.preferredRegionCode(
+                simCountryIso = "",
+                networkCountryIso = "IN",
+                locale = Locale("en", "GB"),
+            ),
+        )
+    }
+
+    @Test
+    fun `locale is final region fallback`() {
+        assertEquals(
+            "GB",
+            ParityPhoneNumberSupport.preferredRegionCode(
+                simCountryIso = null,
+                networkCountryIso = null,
+                locale = Locale("en", "GB"),
+            ),
+        )
+    }
+
+    @Test
     fun `explicit international number is preserved canonically`() {
         val canada = ParityPhoneNumberSupport.supportedCountries.first { it.regionCode == "CA" }
         assertEquals("+14165551234", ParityPhoneNumberSupport.e164("+1 (416) 555-1234", canada))
