@@ -92,4 +92,55 @@ test.write_text('''package com.snaploop.app.ui\n\nimport org.junit.Assert.assert
 source_test = ROOT / "app/src/test/java/com/snaploop/app/ui/InternalStabilizationRegressionTest.kt"
 source_test.write_text('''package com.snaploop.app.ui\n\nimport java.io.File\nimport org.junit.Assert.assertTrue\nimport org.junit.Test\n\nclass InternalStabilizationRegressionTest {\n    @Test\n    fun galleryHasPullToRefreshAndScannerUsesFastBoundedInput() {\n        val gallery = File("src/main/java/com/snaploop/app/ui/ParityPhotoGallery.kt").readText()\n        val scanner = File("src/main/java/com/snaploop/app/scanner/CameraSyncCoordinator.kt").readText()\n        assertTrue(gallery.contains("PullToRefreshBox"))\n        assertTrue(gallery.contains("onRefresh = ::requestRefresh"))\n        assertTrue(scanner.contains("ANALYSIS_MAX_PIXEL_SIZE = 768"))\n        assertTrue(scanner.contains("completed % 12 == 0"))\n    }\n}\n''')
 
+# Update older regression contracts to the intended stabilization behavior.
+device_batch_test = ROOT / "app/src/test/java/com/snaploop/app/ui/DeviceAcceptanceBatchRegressionTest.kt"
+replace_once(
+    device_batch_test,
+    'assertTrue(source.contains("if (completed % 4 == 0) states.save(state)"))',
+    'assertTrue(source.contains("if (completed % 12 == 0) states.save(state)"))',
+)
+
+p0_test = ROOT / "app/src/test/java/com/snaploop/app/ui/DeviceAcceptanceP0RegressionTest.kt"
+replace_once(
+    p0_test,
+    'assertTrue(scanner.contains("ANALYSIS_MAX_PIXEL_SIZE = 1024"))',
+    'assertTrue(scanner.contains("ANALYSIS_MAX_PIXEL_SIZE = 768"))',
+)
+
+overnight_test = ROOT / "app/src/test/java/com/snaploop/app/ui/OvernightDeviceBatchRegressionTest.kt"
+replace_once(
+    overnight_test,
+    'assertTrue(scanner.contains("ANALYSIS_MAX_PIXEL_SIZE = 1024"))',
+    'assertTrue(scanner.contains("ANALYSIS_MAX_PIXEL_SIZE = 768"))',
+)
+
+concurrency_test = ROOT / "app/src/test/java/com/snaploop/app/ui/EventEditConcurrencyPolicyTest.kt"
+replace_once(
+    concurrency_test,
+    '''    @Test\n    fun `newer server revision is stale`() {\n        val opened = event("2026-09-09T20:00:00Z")\n        val latest = opened.copy(updatedAt = Instant.parse("2026-09-09T20:05:00Z"))\n        assertFalse(EventEditConcurrencyPolicy.isFresh(opened, latest))\n    }\n''',
+    '''    @Test\n    fun `metadata only server revision remains fresh`() {\n        val opened = event("2026-09-09T20:00:00Z")\n        val latest = opened.copy(updatedAt = Instant.parse("2026-09-09T20:05:00Z"))\n        assertTrue(EventEditConcurrencyPolicy.isFresh(opened, latest))\n    }\n\n    @Test\n    fun `changed user editable field is stale`() {\n        val opened = event("2026-09-09T20:00:00Z")\n        val latest = opened.copy(\n            name = "Updated Trip",\n            updatedAt = Instant.parse("2026-09-09T20:05:00Z"),\n        )\n        assertFalse(EventEditConcurrencyPolicy.isFresh(opened, latest))\n    }\n''',
+)
+
+pose_test = ROOT / "app/src/test/java/com/snaploop/app/ui/GuidedFacePoseTrackerTest.kt"
+replace_once(
+    pose_test,
+    '''        tracker.onCaptured()\n\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n''',
+    '''        tracker.onCaptured()\n\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation()).readyToCapture)\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertTrue(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n''',
+)
+replace_once(
+    pose_test,
+    '''        tracker.onCaptured()\n\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = -32f)).readyToCapture)\n''',
+    '''        tracker.onCaptured()\n\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation()).readyToCapture)\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = -32f)).readyToCapture)\n''',
+)
+replace_once(
+    pose_test,
+    '''        tracker.onCaptured()\n\n        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = 42f)).readyToCapture)\n''',
+    '''        tracker.onCaptured()\n\n        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation()).readyToCapture)\n        assertFalse(tracker.evaluate(GuidedFacePose.RIGHT, observation(yaw = 42f)).readyToCapture)\n''',
+)
+replace_once(
+    pose_test,
+    '''        tracker.onCaptured()\n\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertFalse(\n            tracker.evaluate(\n                GuidedFacePose.LEFT,\n                observation(yaw = 42f, centerY = 0.72f),\n''',
+    '''        tracker.onCaptured()\n\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation()).readyToCapture)\n        assertFalse(tracker.evaluate(GuidedFacePose.LEFT, observation(yaw = 42f)).readyToCapture)\n        assertFalse(\n            tracker.evaluate(\n                GuidedFacePose.LEFT,\n                observation(yaw = 42f, centerY = 0.72f),\n''',
+)
+
 print("Applied SnapLoop Android internal stabilization patch for 1.0.5 (6).")
