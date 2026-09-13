@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Locale
 
 /** iOS-parity express Face Match consent screen with an always-available exit path. */
 @Composable
@@ -42,13 +43,24 @@ internal fun ParityConsentScreen(
 ) {
     BackHandler(onBack = onNotNow)
     val context = LocalContext.current
-    var country by rememberSaveable { mutableStateOf("CA") }
+    val countryOptions = remember {
+        Locale.getISOCountries()
+            .map { code -> code to Locale("", code).getDisplayCountry(Locale.ENGLISH) }
+            .filter { (_, name) -> name.isNotBlank() }
+            .sortedBy { (_, name) -> name }
+    }
+    val defaultCountry = remember(context, countryOptions) {
+        val detected = ParityPhoneNumberSupport.deviceRegionCode(context)
+        detected.takeIf { candidate -> countryOptions.any { (code, _) -> code == candidate } } ?: "CA"
+    }
+    var country by rememberSaveable { mutableStateOf(defaultCountry) }
     var subdivision by rememberSaveable { mutableStateOf("ON") }
     var countryMenu by remember { mutableStateOf(false) }
     var provinceMenu by remember { mutableStateOf(false) }
     var ageAndResidence by rememberSaveable { mutableStateOf(false) }
     var expressConsent by rememberSaveable { mutableStateOf(false) }
     val provinces = listOf("AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT")
+    val countryName = countryOptions.firstOrNull { (code, _) -> code == country }?.second ?: country
     val available = country == "IN" || (country == "CA" && subdivision != "QC")
 
     ParityBrandBackground {
@@ -102,11 +114,20 @@ internal fun ParityConsentScreen(
                 Text("Your residence", fontWeight = FontWeight.Black, fontSize = 18.sp)
                 Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     OutlinedButton(onClick = { countryMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (country == "CA") "Canada" else "India")
+                        Text(countryName)
                     }
                     DropdownMenu(countryMenu, { countryMenu = false }) {
-                        DropdownMenuItem(text = { Text("Canada") }, onClick = { country = "CA"; if (subdivision.isBlank()) subdivision = "ON"; countryMenu = false })
-                        DropdownMenuItem(text = { Text("India") }, onClick = { country = "IN"; subdivision = ""; countryMenu = false })
+                        countryOptions.forEach { (code, name) ->
+                            DropdownMenuItem(
+                                text = { Text(name) },
+                                onClick = {
+                                    country = code
+                                    subdivision = if (code == "CA") "ON" else ""
+                                    ageAndResidence = false
+                                    countryMenu = false
+                                },
+                            )
+                        }
                     }
                 }
                 if (country == "CA") {
@@ -116,14 +137,21 @@ internal fun ParityConsentScreen(
                         }
                         DropdownMenu(provinceMenu, { provinceMenu = false }) {
                             provinces.forEach { code ->
-                                DropdownMenuItem(text = { Text(code) }, onClick = { subdivision = code; provinceMenu = false })
+                                DropdownMenuItem(
+                                    text = { Text(code) },
+                                    onClick = {
+                                        subdivision = code
+                                        ageAndResidence = false
+                                        provinceMenu = false
+                                    },
+                                )
                             }
                         }
                     }
                 }
                 if (!available) {
                     Text(
-                        "Face Match is not available in Quebec.",
+                        "Face Match is not available for the selected residence yet.",
                         color = Color(0xFFC62828),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp),
@@ -135,10 +163,10 @@ internal fun ParityConsentScreen(
                 ConsentRow(
                     checked = ageAndResidence,
                     onChecked = { ageAndResidence = it },
-                    text = if (country == "IN") {
-                        "I am 18 or older and currently reside in India."
-                    } else {
+                    text = if (country == "CA") {
                         "I am 18 or older and currently reside in the selected Canadian province or territory."
+                    } else {
+                        "I am 18 or older and currently reside in $countryName."
                     },
                 )
                 ConsentRow(
@@ -150,7 +178,7 @@ internal fun ParityConsentScreen(
 
             ParityPrimaryButton(
                 "I Agree & Continue",
-                onClick = { onAccept(country, if (country == "IN") "" else subdivision, true, true, true) },
+                onClick = { onAccept(country, if (country == "CA") subdivision else "", true, true, true) },
                 modifier = Modifier.padding(top = 14.dp),
                 enabled = available && ageAndResidence && expressConsent,
             )
