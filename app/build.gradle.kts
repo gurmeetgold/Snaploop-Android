@@ -53,6 +53,7 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
+            buildConfigField("String", "POSTHOG_PROJECT_TOKEN", "\"\"")
             manifestPlaceholders["snaploopAssociatedDomain"] = "snaploop-dev.web.app"
         }
         release {
@@ -63,6 +64,7 @@ android {
             // shrinker configuration for ONNX Runtime.
             isMinifyEnabled = false
             isShrinkResources = false
+            buildConfigField("String", "POSTHOG_PROJECT_TOKEN", "\"phc_AnftHggFKsEksu6ANLGbUsbMs32bU2u5JCpJaxo3wenY\"")
             manifestPlaceholders["snaploopAssociatedDomain"] = "getsnaploop.web.app"
             if (hasReleaseSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
@@ -107,9 +109,13 @@ dependencies {
     implementation("com.google.firebase:firebase-functions")
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.firebase:firebase-config")
+    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-crashlytics")
     implementation("com.google.firebase:firebase-perf")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
+
+    // Explicit product analytics only. Autocapture/replay/feature-flag polling are disabled in code.
+    implementation("com.posthog:posthog-android:3.61.1")
 
     // Bundled ML models are available immediately and never depend on a first-run download.
     implementation("com.google.mlkit:face-detection:16.1.7")
