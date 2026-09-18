@@ -101,7 +101,7 @@ internal fun ParityAuthScreen(
             Text(
                 "Photos your friends took of you on their phones, brought to your phone automatically.",
                 fontSize = 14.sp,
-                color = SnapColors.Secondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             )
@@ -290,7 +290,7 @@ private fun CodeEntry(
         normalizedPhoneNumber?.let {
             Text(
                 "We sent a code to $it",
-                color = SnapColors.Secondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp,
             )
         }
