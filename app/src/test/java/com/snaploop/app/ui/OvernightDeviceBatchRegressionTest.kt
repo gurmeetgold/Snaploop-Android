@@ -21,14 +21,14 @@ class OvernightDeviceBatchRegressionTest {
         assertTrue(pipeline.contains("fastDetection: Boolean = false"))
     }
 
-    @Test fun `scan and gallery insight cards use branded pink surfaces and scan is centered`() {
+    @Test fun `scan and gallery insight cards use current branded surfaces and scan is centered`() {
         val scan = source("src/main/java/com/snaploop/app/ui/ParityEventScanScreen.kt")
         val gallery = source("src/main/java/com/snaploop/app/ui/ParityPhotoGallery.kt")
         assertTrue(scan.contains("Modifier.fillMaxWidth().weight(1f)"))
         assertTrue(scan.contains("contentAlignment = Alignment.Center"))
         assertTrue(scan.contains("SnapGradients.ScanSurface"))
         assertFalse(scan.contains("containerColor = Color.White.copy(alpha = 0.98f)"))
-        assertTrue(gallery.contains("SnapGradients.Insight"))
+        assertTrue(gallery.contains("background(SnapGradients.Brand)"))
     }
 
     @Test fun `event photo count has one state source and gallery refreshes on entry`() {
@@ -61,9 +61,6 @@ class OvernightDeviceBatchRegressionTest {
 
     @Test fun `thumbnail loader remembers direct storage authorization denial`() {
         val loader = source("src/main/java/com/snaploop/app/ui/MatchedThumbnailLoader.kt")
-        // Keep this contract behavioral rather than tied to one exact branch expression. The
-        // follow-up serializes the first capability probe, but denied recipients must still be
-        // remembered and routed directly through the authorized callable fallback thereafter.
         assertTrue(loader.contains("directStorageReadable"))
         assertTrue(loader.contains("StorageException.ERROR_NOT_AUTHORIZED"))
         assertTrue(loader.contains("directStorageReadable = false"))
