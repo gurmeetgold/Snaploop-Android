@@ -248,7 +248,13 @@ internal fun ParityPhotoGallery(
     PullToRefreshBox(
         isRefreshing = refreshing,
         onRefresh = ::requestRefresh,
-        modifier = modifier.fillMaxSize().background(SnapGradients.SoftWash),
+        modifier = modifier.fillMaxSize().background(
+            if (MaterialTheme.colorScheme.background == SnapColors.DarkCanvas) {
+                Brush.linearGradient(listOf(SnapColors.DarkCanvas, SnapColors.DarkSubtleSurface))
+            } else {
+                SnapGradients.SoftWash
+            },
+        ),
     ) {
         Column(Modifier.fillMaxSize().statusBarsPadding().padding(vertical = 8.dp)) {
         Row(
@@ -317,7 +323,7 @@ internal fun ParityPhotoGallery(
             )
             Box(Modifier.weight(1f))
             if (selecting) {
-                Text("${selected.size} selected", color = Color(0xFF6B6670), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("${selected.size} selected", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 TextButton(onClick = ::endSelection, enabled = !bulkBusy) {
                     Text(
                         "Cancel",
@@ -380,7 +386,7 @@ internal fun ParityPhotoGallery(
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = Color.White.copy(alpha = 0.96f),
+                color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 2.dp,
             ) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 5.dp)) {
@@ -388,7 +394,7 @@ internal fun ParityPhotoGallery(
                         Text(
                             it,
                             modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
-                            color = Color(0xFF6B6670),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center,
                         )
@@ -437,7 +443,7 @@ internal fun ParityPhotoGallery(
                                 "SnapLoop automatically checks eligible Events for new matched photos. You can also use Scan Photos from an Event at any time."
                             },
                             modifier = Modifier.padding(top = 6.dp),
-                            color = Color(0xFF6B6670),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
                     }
@@ -591,13 +597,11 @@ private fun GalleryInsightBanner(
         Row(
             Modifier
                 .fillMaxWidth()
-                .background(
-                    SnapGradients.Insight,
-                )
+                .background(SnapGradients.Brand)
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(count.toString(), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Text(count.toString(), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Column(Modifier.padding(start = 14.dp)) {
                 Text(
                     if (acrossAllEvents) {
@@ -605,6 +609,7 @@ private fun GalleryInsightBanner(
                     } else {
                         if (count == 1) "photo of you found in this Event" else "photos of you found in this Event"
                     },
+                    color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                 )
@@ -633,11 +638,11 @@ private fun PhotoMatchDetailDialog(
                 )
                 Text(
                     formatCapturedAt(match.capturedAtMillis),
-                    color = Color(0xFF6B6670),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(top = 10.dp),
                 )
-                Text("Event photo", color = Color(0xFF6B6670), fontSize = 12.sp)
+                Text("Event photo", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 Spacer(Modifier.height(6.dp))
                 TextButton(onClick = onFavorite) {
                     Icon(
