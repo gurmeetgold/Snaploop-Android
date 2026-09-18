@@ -17,9 +17,17 @@ class RegionThemeRegressionTest {
     }
 
     @Test
-    fun `production theme remains light until dark palette is complete`() {
+    fun `production theme follows system dark mode with explicit contrast palette`() {
         val source = Files.readString(Paths.get("src/main/java/com/snaploop/app/ui/SnapLoopTheme.kt"))
-        assertTrue(source.contains("val colors = lightColorScheme("))
-        assertFalse(source.contains("isSystemInDarkTheme()"))
+        assertTrue(source.contains("isSystemInDarkTheme()"))
+        assertTrue(source.contains("darkColorScheme("))
+        assertTrue(source.contains("onSurfaceVariant = Color(0xFFC9C6D1)"))
+    }
+
+    @Test
+    fun `gallery banner uses same brand gradient as home actions`() {
+        val source = Files.readString(Paths.get("src/main/java/com/snaploop/app/ui/ParityPhotoGallery.kt"))
+        assertTrue(source.contains(".background(SnapGradients.Brand)"))
+        assertTrue(source.contains("Text(count.toString(), color = Color.White"))
     }
 }
