@@ -45,8 +45,8 @@ class DeviceAcceptanceBatchRegressionTest {
         assertFalse(viewer.contains("Spacer(Modifier.size(48.dp))"))
     }
 
-    @Test fun `gallery and you use canonical SnapLoop wash`() {
-        assertTrue(source("src/main/java/com/snaploop/app/ui/ParityPhotoGallery.kt").contains("background(SnapGradients.SoftWash)"))
+    @Test fun `gallery uses brand banner and you keeps canonical SnapLoop wash`() {
+        assertTrue(source("src/main/java/com/snaploop/app/ui/ParityPhotoGallery.kt").contains("background(SnapGradients.Brand)"))
         assertTrue(source("src/main/java/com/snaploop/app/ui/ParityYouScreen.kt").contains("background(SnapGradients.SoftWash)"))
     }
 }
