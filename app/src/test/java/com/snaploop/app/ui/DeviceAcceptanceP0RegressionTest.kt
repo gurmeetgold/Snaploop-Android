@@ -24,10 +24,10 @@ class DeviceAcceptanceP0RegressionTest {
         assertTrue(formatter.contains(" – "))
     }
 
-    @Test fun `gallery defaults to three and branded insight is transparent`() {
+    @Test fun `gallery defaults to three and branded banner is transparent card over brand gradient`() {
         val gallery = source("src/main/java/com/snaploop/app/ui/ParityPhotoGallery.kt")
         assertTrue(gallery.contains("mutableIntStateOf(3)"))
-        assertTrue(gallery.contains("SnapGradients.Insight"))
+        assertTrue(gallery.contains("background(SnapGradients.Brand)"))
         assertTrue(gallery.contains("containerColor = Color.Transparent"))
     }
 
