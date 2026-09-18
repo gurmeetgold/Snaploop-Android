@@ -524,7 +524,7 @@ private fun ShellInvitationReview(event: SnapEvent, coordinator: AppCoordinator)
         }
         Spacer(Modifier.height(34.dp))
         ShellBrandMark(74)
-        Text("You're invited to", color = ShellColors.Secondary, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp))
+        Text("You're invited to", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp))
         Text(event.name, fontSize = 31.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
         ShellCard(Modifier.padding(top = 22.dp)) {
             Row(Modifier.align(Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
@@ -648,7 +648,7 @@ private fun ShellEventDashboard(
                     Text("Photo Scan", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Text(
                         if (me?.sharingEnabled == true) "SnapLoop is ready to check this Event for new photos" else "Photo sharing is turned off for this Event",
-                        color = ShellColors.Secondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                     )
                 }
@@ -670,7 +670,7 @@ private fun ShellEventDashboard(
                 Icon(Icons.Filled.Groups, null, tint = ShellColors.Lilac, modifier = Modifier.size(30.dp))
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text("Event Members", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("${state.members.size} member${if (state.members.size == 1) "" else "s"}", color = ShellColors.Secondary)
+                    Text("${state.members.size} member${if (state.members.size == 1) "" else "s"}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Icon(Icons.Filled.ChevronRight, "View members", tint = Color.Gray)
             }
@@ -682,7 +682,7 @@ private fun ShellEventDashboard(
                     Icon(Icons.Filled.Share, null, tint = ShellColors.Coral, modifier = Modifier.size(30.dp))
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text("Invite People", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Share code, link, QR or phone invite", color = ShellColors.Secondary, fontSize = 13.sp)
+                        Text("Share code, link, QR or phone invite", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                     }
                     Icon(Icons.Filled.ChevronRight, null, tint = Color.Gray)
                 }
@@ -865,7 +865,7 @@ private fun ShellInvite(
         ShellSubpageHeader("Invite", onBack)
         ShellBrandMark(64)
         Text("Invite people to ${event.name}", fontSize = 26.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
-        Text("Anyone with the invite can open the Event, sign in, and choose whether to join.", textAlign = TextAlign.Center, color = ShellColors.Secondary)
+        Text("Anyone with the invite can open the Event, sign in, and choose whether to join.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         ShellPrimaryButton("Share Invite", Icons.Filled.Share, onClick = {
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
@@ -903,7 +903,7 @@ private fun ShellInvite(
                     Text("Invite by Phone or Contacts", fontWeight = FontWeight.Black, fontSize = 17.sp)
                     Text(
                         "Existing users get an in-app invite; others can receive the link.",
-                        color = ShellColors.Secondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                     )
                 }
@@ -923,7 +923,7 @@ private fun ShellInvite(
                 fontWeight = FontWeight.Black,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 12.dp),
             )
-            Text("Event code", color = ShellColors.Secondary, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text("Event code", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
         }
     }
 }
@@ -948,7 +948,7 @@ private fun ShellMatchCard(match: PhotoMatch, modifier: Modifier = Modifier) {
             maxPixelSize = 900,
         )
         Text("Matched photo", fontWeight = FontWeight.Black, fontSize = 18.sp, modifier = Modifier.padding(top = 8.dp))
-        Text(shellFormatMillis(match.capturedAtMillis), color = ShellColors.Secondary, fontSize = 13.sp)
+        Text(shellFormatMillis(match.capturedAtMillis), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
     }
 }
 
@@ -978,7 +978,7 @@ private fun ShellYou(state: AppUiState, coordinator: AppCoordinator) {
                 )
                 Column(Modifier.weight(1f).padding(start = 14.dp)) {
                     Text(state.user?.displayName ?: "Add your name", fontSize = 19.sp, fontWeight = FontWeight.Black)
-                    Text(state.user?.phoneNumber.orEmpty(), color = ShellColors.Secondary, fontSize = 13.sp)
+                    Text(state.user?.phoneNumber.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                     Text(
                         if (state.user?.hasFaceProfile == true) "✓ Face Setup Active" else "Face Setup not completed",
                         color = if (state.user?.hasFaceProfile == true) Color(0xFF008F61) else ShellColors.Secondary,
@@ -1110,7 +1110,7 @@ private fun ShellEventFormDialog(
                     ShellDateField("Ends", endsOn, startsOn, minOf(upper, startsOn.plusDays(15))) { endsOn = it }
                     Text(
                         "SnapLoop only considers photos taken within this Event's selected date range. Dates must stay within 15 days before or after today, and an Event can span at most 15 calendar days.",
-                        color = ShellColors.Secondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                     )
                     if (invalid) Text("Choose a valid Event date range.", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 12.sp)
@@ -1171,7 +1171,7 @@ private fun ShellJoinDialog(onDismiss: () -> Unit, onResolve: (String) -> Unit) 
                 Spacer(Modifier.height(44.dp))
                 ShellBrandMark(62)
                 Text("Join an Event", fontSize = 28.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 18.dp))
-                Text("Enter an Event code or invite link, or scan the Event QR code.", textAlign = TextAlign.Center, color = ShellColors.Secondary, modifier = Modifier.padding(top = 8.dp))
+                Text("Enter an Event code or invite link, or scan the Event QR code.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
                 OutlinedTextField(
                     text,
                     { text = it.take(512) },
@@ -1201,7 +1201,7 @@ private fun ShellSettingsCard(icon: ImageVector, title: String, subtitle: String
             }
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(title, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                Text(subtitle, color = ShellColors.Secondary, fontSize = 12.sp)
+                Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             }
             Icon(Icons.Filled.ChevronRight, null, tint = Color.Gray)
         }
