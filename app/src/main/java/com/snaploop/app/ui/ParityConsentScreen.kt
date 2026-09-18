@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -78,7 +79,7 @@ internal fun ParityConsentScreen(
             Text("Face Match Consent", fontSize = 28.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 14.dp))
             Text(
                 "Please review how Face Match works before you choose whether to use it.",
-                color = Color(0xFF66636C),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 8.dp, bottom = 14.dp),
             )
@@ -183,7 +184,7 @@ internal fun ParityConsentScreen(
                 enabled = available && ageAndResidence && expressConsent,
             )
             TextButton(onClick = onNotNow, modifier = Modifier.padding(top = 4.dp)) {
-                Text("Not Now", color = Color(0xFF66636C), fontWeight = FontWeight.Bold)
+                Text("Not Now", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.padding(vertical = 13.dp))
         }
@@ -194,7 +195,7 @@ internal fun ParityConsentScreen(
 private fun ConsentSection(title: String, body: String) {
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
         Text(title, fontWeight = FontWeight.Black)
-        Text(body, color = Color(0xFF66636C), fontSize = 13.sp, modifier = Modifier.padding(top = 3.dp))
+        Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.padding(top = 3.dp))
     }
 }
 
