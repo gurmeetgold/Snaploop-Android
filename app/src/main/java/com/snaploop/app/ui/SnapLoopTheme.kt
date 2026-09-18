@@ -1,6 +1,8 @@
 package com.snaploop.app.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -101,24 +103,43 @@ object SnapGradients {
     )
 }
 
-/**
- * SnapLoop is currently shipped as a light-only experience. The previous
- * partial system-dark-mode path mixed dark Material colors with several
- * intentionally light brand surfaces, producing unreadable text. Keep the UI
- * deterministic until every screen has a fully verified dark palette.
- */
+/** SnapLoop follows the system appearance with explicit high-contrast brand palettes. */
 @Composable
 fun SnapLoopTheme(content: @Composable () -> Unit) {
-    val colors = lightColorScheme(
-        primary = SnapColors.Coral,
-        secondary = SnapColors.Lilac,
-        tertiary = SnapColors.Blue,
-        background = SnapColors.Canvas,
-        surface = SnapColors.Surface,
-        surfaceVariant = SnapColors.SubtleSurface,
-        onBackground = SnapColors.Ink,
-        onSurface = SnapColors.Ink,
-    )
+    val dark = isSystemInDarkTheme()
+    val colors = if (dark) {
+        darkColorScheme(
+            primary = Color(0xFFFF5A72),
+            secondary = Color(0xFFB78AFF),
+            tertiary = Color(0xFF8E89FF),
+            background = SnapColors.DarkCanvas,
+            surface = SnapColors.DarkSurface,
+            surfaceVariant = SnapColors.DarkSubtleSurface,
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onTertiary = Color.White,
+            onBackground = SnapColors.DarkInk,
+            onSurface = SnapColors.DarkInk,
+            onSurfaceVariant = Color(0xFFC9C6D1),
+            outline = Color.White.copy(alpha = 0.32f),
+        )
+    } else {
+        lightColorScheme(
+            primary = SnapColors.Coral,
+            secondary = SnapColors.Lilac,
+            tertiary = SnapColors.Blue,
+            background = SnapColors.Canvas,
+            surface = SnapColors.Surface,
+            surfaceVariant = SnapColors.SubtleSurface,
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onTertiary = Color.White,
+            onBackground = SnapColors.Ink,
+            onSurface = SnapColors.Ink,
+            onSurfaceVariant = SnapColors.Secondary,
+            outline = SnapColors.Ink.copy(alpha = 0.24f),
+        )
+    }
     val systemDensity = LocalDensity.current
     CompositionLocalProvider(
         LocalDensity provides Density(
