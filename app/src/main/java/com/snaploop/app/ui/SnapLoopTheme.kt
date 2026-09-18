@@ -123,9 +123,11 @@ fun SnapLoopTheme(content: @Composable () -> Unit) {
     CompositionLocalProvider(
         LocalDensity provides Density(
             density = systemDensity.density,
-            fontScale = systemDensity.fontScale * 0.90f,
+            fontScale = systemDensity.fontScale * APP_FONT_SCALE_MULTIPLIER,
         ),
     ) {
         MaterialTheme(colorScheme = colors, content = content)
     }
 }
+
+internal const val APP_FONT_SCALE_MULTIPLIER = 0.96f
