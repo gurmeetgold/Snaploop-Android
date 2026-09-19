@@ -215,20 +215,20 @@ private fun AuthScreen(
                 "Get every photo of you.",
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Black,
-                color = SnapColors.Ink,
+                color = snapReadableTextColor(SnapColors.Ink),
                 modifier = Modifier.padding(top = 28.dp),
             )
             Text(
                 "Photos your friends took of you on their phones, brought to your phone automatically.",
                 textAlign = TextAlign.Center,
-                color = Color(0xFF66636C),
+                color = snapReadableTextColor(Color(0xFF66636C)),
                 fontSize = 16.sp,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
             )
 
             PremiumCard {
                 if (state.verificationId == null) {
-                    Text("▣  Mobile number", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = SnapColors.Ink)
+                    Text("▣  Mobile number", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = snapReadableTextColor(SnapColors.Ink))
                     Row(
                         Modifier.fillMaxWidth().padding(top = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -241,7 +241,7 @@ private fun AuthScreen(
                                 shape = RoundedCornerShape(17.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFFFE4DC)),
                             ) {
-                                Text("${selectedCountry.region} ${selectedCountry.callingCode}⌄", color = SnapColors.Coral, fontWeight = FontWeight.Black)
+                                Text("${selectedCountry.region} ${selectedCountry.callingCode}⌄", color = snapReadableTextColor(SnapColors.Coral), fontWeight = FontWeight.Black)
                             }
                             DropdownMenu(expanded = countryMenuOpen, onDismissRequest = { countryMenuOpen = false }) {
                                 supportedPhoneCountries.forEach { country ->
@@ -274,7 +274,7 @@ private fun AuthScreen(
                         enabled = normalizePhoneNumber(phone, selectedCountry) != null,
                     )
                 } else {
-                    Text("◈", fontSize = 36.sp, color = SnapColors.Coral, modifier = Modifier.align(Alignment.CenterHorizontally))
+                    Text("◈", fontSize = 36.sp, color = snapReadableTextColor(SnapColors.Coral), modifier = Modifier.align(Alignment.CenterHorizontally))
                     Text("Enter the 6-digit code", fontSize = 21.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterHorizontally))
                     OutlinedTextField(
                         value = code,
@@ -292,7 +292,7 @@ private fun AuthScreen(
                         enabled = code.length == 6,
                     )
                     TextButton(onClick = onDifferentNumber, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                        Text("Use a different number", color = SnapColors.Blue, fontWeight = FontWeight.Bold)
+                        Text("Use a different number", color = snapReadableTextColor(SnapColors.Blue), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -334,7 +334,7 @@ private fun OnboardingScreen(onContinue: () -> Unit) {
         ) {
             BrandMark(72)
             Text(item.first, fontSize = 30.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 24.dp))
-            Text(item.second, textAlign = TextAlign.Center, color = Color(0xFF66636C), modifier = Modifier.padding(top = 14.dp))
+            Text(item.second, textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)), modifier = Modifier.padding(top = 14.dp))
             Text("${page + 1} of ${pages.size}", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 28.dp))
             PrimaryButton(
                 if (page == pages.lastIndex) "Get Started" else "Continue",
@@ -353,7 +353,7 @@ private fun NameSetupScreen(initialName: String, onSave: (String) -> Unit) {
         Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             BrandMark(66)
             Text("What should friends call you?", fontSize = 28.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 22.dp))
-            Text("This name is shown to people in your SnapLoop Events.", textAlign = TextAlign.Center, color = Color(0xFF66636C), modifier = Modifier.padding(top = 10.dp))
+            Text("This name is shown to people in your SnapLoop Events.", textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)), modifier = Modifier.padding(top = 10.dp))
             PremiumCard(Modifier.padding(top = 22.dp)) {
                 OutlinedTextField(
                     value = name,
@@ -388,7 +388,7 @@ private fun ConsentScreen(onAccept: (String, String, Boolean, Boolean, Boolean) 
             Text(
                 "SnapLoop uses a face template to find photos of you. Guided selfie images stay encrypted on this device; matching is used only for SnapLoop.",
                 textAlign = TextAlign.Center,
-                color = Color(0xFF66636C),
+                color = snapReadableTextColor(Color(0xFF66636C)),
                 modifier = Modifier.padding(top = 10.dp),
             )
             PremiumCard(Modifier.padding(top = 20.dp)) {
@@ -456,7 +456,7 @@ private fun FaceSetupScreen(
                 onClick = { scanOpen = false },
                 modifier = Modifier.align(Alignment.TopStart).padding(top = 8.dp, start = 6.dp),
             ) {
-                Text("✕", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                Text("✕", color = snapReadableTextColor(Color.White), fontSize = 28.sp, fontWeight = FontWeight.Black)
             }
         }
         return
@@ -479,7 +479,7 @@ private fun FaceSetupScreen(
             Text(
                 "Face Setup enables SnapLoop to find photos of you on participating Event members' phones.",
                 textAlign = TextAlign.Center,
-                color = Color(0xFF66636C),
+                color = snapReadableTextColor(Color(0xFF66636C)),
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
             )
             PremiumCard(Modifier.padding(top = 6.dp)) {
@@ -551,10 +551,10 @@ private fun HomeScreen(state: AppUiState, coordinator: AppCoordinator) {
     ) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
-                Text("Hi, ${state.user?.displayName ?: "there"} 👋", fontSize = 30.sp, fontWeight = FontWeight.Black, color = SnapColors.Ink)
+                Text("Hi, ${state.user?.displayName ?: "there"} 👋", fontSize = 30.sp, fontWeight = FontWeight.Black, color = snapReadableTextColor(SnapColors.Ink))
                 Text(
                     "Photos your friends took of you on their phones, brought to your phone automatically.",
-                    color = Color(0xFF66636C),
+                    color = snapReadableTextColor(Color(0xFF66636C)),
                     modifier = Modifier.padding(top = 5.dp),
                 )
             }
@@ -571,7 +571,7 @@ private fun HomeScreen(state: AppUiState, coordinator: AppCoordinator) {
             PremiumCard(Modifier.padding(horizontal = 18.dp)) {
                 Text("▧", fontSize = 40.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Text("No Events yet", fontWeight = FontWeight.Bold, fontSize = 19.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text("Create an Event, or join one with a code, link or QR.", textAlign = TextAlign.Center, color = Color(0xFF66636C), modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text("Create an Event, or join one with a code, link or QR.", textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)), modifier = Modifier.align(Alignment.CenterHorizontally))
             }
         } else {
             state.events.filter { it.status != EventStatus.deletedByOrganizer }.forEach { event ->
@@ -587,7 +587,7 @@ private fun HomeScreen(state: AppUiState, coordinator: AppCoordinator) {
         }
 
         TextButton(onClick = coordinator::refreshEvents, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Refresh Events", color = SnapColors.Coral, fontWeight = FontWeight.Bold)
+            Text("Refresh Events", color = snapReadableTextColor(SnapColors.Coral), fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(12.dp))
     }
@@ -632,11 +632,11 @@ private fun InvitationReviewScreen(event: SnapEvent, coordinator: AppCoordinator
             }
             Spacer(Modifier.height(38.dp))
             BrandMark(74)
-            Text("You're invited to", color = Color(0xFF66636C), fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp))
+            Text("You're invited to", color = snapReadableTextColor(Color(0xFF66636C)), fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp))
             Text(event.name, fontSize = 31.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
             PremiumCard(Modifier.padding(top = 22.dp)) {
                 Text("▣  ${formatEventRange(event)}", fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text("SnapLoop scans only photos taken during these Event dates.", textAlign = TextAlign.Center, color = Color(0xFF66636C), modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
+                Text("SnapLoop scans only photos taken during these Event dates.", textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)), modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
                 event.locationName?.let { Text("⌖  $it", modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)) }
             }
             Text(
@@ -681,12 +681,12 @@ private fun EventDashboardPage(state: AppUiState, coordinator: AppCoordinator, n
             EventHero(event, role)
             PremiumCard(Modifier.padding(horizontal = 18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("◉", fontSize = 30.sp, color = if (state.members.firstOrNull { it.userId == uid }?.sharingEnabled == true) Color(0xFF008F83) else Color.Gray)
+                    Text("◉", fontSize = 30.sp, color = snapReadableTextColor(if (state.members.firstOrNull { it.userId == uid }?.sharingEnabled == true) Color(0xFF008F83) else Color.Gray))
                     Column(Modifier.weight(1f).padding(start = 10.dp)) {
                         Text("Photo Scan", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Text(
                             if (state.members.firstOrNull { it.userId == uid }?.sharingEnabled == true) "SnapLoop is ready to check this Event for new photos" else "Photo sharing is turned off for this Event",
-                            color = Color(0xFF66636C),
+                            color = snapReadableTextColor(Color(0xFF66636C)),
                             fontSize = 13.sp,
                         )
                     }
@@ -701,22 +701,22 @@ private fun EventDashboardPage(state: AppUiState, coordinator: AppCoordinator, n
 
             PremiumCard(Modifier.padding(horizontal = 18.dp).clickable { navigate(EventPage.MEMBERS) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("●●●", color = SnapColors.Lilac, fontWeight = FontWeight.Black)
+                    Text("●●●", color = snapReadableTextColor(SnapColors.Lilac), fontWeight = FontWeight.Black)
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text("Event Members", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("${state.members.size} member${if (state.members.size == 1) "" else "s"}", color = Color(0xFF66636C))
+                        Text("${state.members.size} member${if (state.members.size == 1) "" else "s"}", color = snapReadableTextColor(Color(0xFF66636C)))
                     }
-                    Text("View all ›", color = SnapColors.Coral, fontWeight = FontWeight.Bold)
+                    Text("View all ›", color = snapReadableTextColor(SnapColors.Coral), fontWeight = FontWeight.Bold)
                 }
             }
 
             if (role == EventMember.Role.organizer || role == EventMember.Role.admin) {
                 PremiumCard(Modifier.padding(horizontal = 18.dp).clickable { navigate(EventPage.INVITE) }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("＋", fontSize = 28.sp, color = SnapColors.Coral)
+                        Text("＋", fontSize = 28.sp, color = snapReadableTextColor(SnapColors.Coral))
                         Column(Modifier.weight(1f).padding(start = 12.dp)) {
                             Text("Invite People", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text("Share code, link, QR or Android share sheet", color = Color(0xFF66636C), fontSize = 13.sp)
+                            Text("Share code, link, QR or Android share sheet", color = snapReadableTextColor(Color(0xFF66636C)), fontSize = 13.sp)
                         }
                         Text("›", fontSize = 24.sp)
                     }
@@ -728,7 +728,7 @@ private fun EventDashboardPage(state: AppUiState, coordinator: AppCoordinator, n
                     Text(if (role == EventMember.Role.admin) "Admin Controls" else "Organizer Controls", fontWeight = FontWeight.Black)
                     if (event.status == EventStatus.active) {
                         TextButton(onClick = { navigate(EventPage.EDIT) }) { Text("✎  Edit Event") }
-                        TextButton(onClick = coordinator::endSelectedEvent) { Text("■  End Event", color = Color.Red) }
+                        TextButton(onClick = coordinator::endSelectedEvent) { Text("■  End Event", color = snapReadableTextColor(Color.Red)) }
                     }
                     if (role == EventMember.Role.organizer) {
                         if (event.status == EventStatus.endedByOrganizer) {
@@ -737,7 +737,7 @@ private fun EventDashboardPage(state: AppUiState, coordinator: AppCoordinator, n
                         if (event.status == EventStatus.deletedByOrganizer) {
                             TextButton(onClick = coordinator::restoreSelectedEvent) { Text("↶  Restore Event") }
                         } else {
-                            TextButton(onClick = coordinator::moveSelectedEventToDeleted) { Text("⌫  Move to Deleted", color = Color.Red) }
+                            TextButton(onClick = coordinator::moveSelectedEventToDeleted) { Text("⌫  Move to Deleted", color = snapReadableTextColor(Color.Red)) }
                         }
                     }
                 }
@@ -754,10 +754,10 @@ private fun EventHero(event: SnapEvent, role: EventMember.Role?) {
             .background(brandGradient(), RoundedCornerShape(30.dp)).padding(20.dp),
     ) {
         Column(Modifier.align(Alignment.BottomStart)) {
-            Text(eventStatusLabel(event), color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp, fontWeight = FontWeight.Black)
-            Text(event.name, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 10.dp))
-            Text("▣  ${formatEventRange(event)}", color = Color.White.copy(alpha = 0.94f), fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
-            role?.let { Text(it.name.uppercase(Locale.US), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 6.dp)) }
+            Text(eventStatusLabel(event), color = snapReadableTextColor(Color.White.copy(alpha = 0.9f)), fontSize = 12.sp, fontWeight = FontWeight.Black)
+            Text(event.name, color = snapReadableTextColor(Color.White), fontSize = 30.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 10.dp))
+            Text("▣  ${formatEventRange(event)}", color = snapReadableTextColor(Color.White.copy(alpha = 0.94f)), fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+            role?.let { Text(it.name.uppercase(Locale.US), color = snapReadableTextColor(Color.White), fontSize = 12.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 6.dp)) }
         }
     }
 }
@@ -771,7 +771,7 @@ private fun EventPhotosPage(state: AppUiState, onBack: () -> Unit, coordinator: 
             if (state.photos.isEmpty()) {
                 PremiumCard {
                     Text("No photos of you yet", fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
-                    Text("Scan Event Photos, or ask other members to scan their Event photos.", textAlign = TextAlign.Center, color = Color(0xFF66636C), modifier = Modifier.align(Alignment.CenterHorizontally))
+                    Text("Scan Event Photos, or ask other members to scan their Event photos.", textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)), modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
             } else {
                 state.photos.forEach { match -> MatchCard(match, coordinator::dismissPhoto) }
@@ -793,9 +793,9 @@ private fun EventScanPage(state: AppUiState, onBack: () -> Unit, coordinator: Ap
             SubpageHeader("Scan Photos", onBack)
             Spacer(Modifier.height(26.dp))
             PremiumCard {
-                Text("▦", fontSize = 54.sp, color = SnapColors.Lilac, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text("▦", fontSize = 54.sp, color = snapReadableTextColor(SnapColors.Lilac), modifier = Modifier.align(Alignment.CenterHorizontally))
                 Text("Scan Event Photos", fontSize = 22.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text("Only photos within ${state.selectedEvent?.let(::formatEventRange).orEmpty()} are considered.", textAlign = TextAlign.Center, color = Color(0xFF66636C), modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text("Only photos within ${state.selectedEvent?.let(::formatEventRange).orEmpty()} are considered.", textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)), modifier = Modifier.align(Alignment.CenterHorizontally))
                 state.scanProgress?.let { progress ->
                     Text("Scanning ${progress.checked} / ${progress.total} • ${progress.published} matches shared", textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally))
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -840,7 +840,7 @@ private fun MembersPage(state: AppUiState, onBack: () -> Unit, onInvite: () -> U
                 }
                 Text(
                     if (me?.sharingEnabled == true) "Matched photos from your phone can be shared with the people they match." else "Photo sharing from this phone is off for this Event.",
-                    color = Color(0xFF66636C),
+                    color = snapReadableTextColor(Color(0xFF66636C)),
                     fontSize = 13.sp,
                 )
                 HorizontalDivider(Modifier.padding(vertical = 10.dp))
@@ -853,13 +853,13 @@ private fun MembersPage(state: AppUiState, onBack: () -> Unit, onInvite: () -> U
                     )
                 }
                 if (state.user?.hasFaceProfile != true) {
-                    Text("Set up your face to see your own photo matches.", color = SnapColors.Lilac, fontSize = 13.sp)
+                    Text("Set up your face to see your own photo matches.", color = snapReadableTextColor(SnapColors.Lilac), fontSize = 13.sp)
                 }
                 if (role == EventMember.Role.organizer || role == EventMember.Role.admin) {
                     PrimaryButton("＋  Invite People", onInvite, Modifier.padding(top = 12.dp))
                 }
                 if (role != EventMember.Role.organizer) {
-                    TextButton(onClick = { leaveConfirm = true }) { Text("Leave Event", color = Color.Red) }
+                    TextButton(onClick = { leaveConfirm = true }) { Text("Leave Event", color = snapReadableTextColor(Color.Red)) }
                 }
             }
 
@@ -868,17 +868,17 @@ private fun MembersPage(state: AppUiState, onBack: () -> Unit, onInvite: () -> U
                 state.members.forEachIndexed { index, member ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(44.dp).background(brandGradient(), CircleShape), contentAlignment = Alignment.Center) {
-                            Text((member.displayName ?: "•").take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Black)
+                            Text((member.displayName ?: "•").take(1).uppercase(), color = snapReadableTextColor(Color.White), fontWeight = FontWeight.Black)
                         }
                         Column(Modifier.weight(1f).padding(start = 12.dp)) {
                             Text(
                                 (member.displayName ?: "Event member") + if (member.userId == uid) " (You)" else "",
                                 fontWeight = FontWeight.Bold,
                             )
-                            Text(member.role.name.replaceFirstChar { it.uppercase() }, color = Color(0xFF66636C), fontSize = 13.sp)
+                            Text(member.role.name.replaceFirstChar { it.uppercase() }, color = snapReadableTextColor(Color(0xFF66636C)), fontSize = 13.sp)
                         }
-                        if (member.role == EventMember.Role.organizer) Text("Organizer", color = SnapColors.Coral, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        else if (member.role == EventMember.Role.admin) Text("Admin", color = SnapColors.Lilac, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        if (member.role == EventMember.Role.organizer) Text("Organizer", color = snapReadableTextColor(SnapColors.Coral), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        else if (member.role == EventMember.Role.admin) Text("Admin", color = snapReadableTextColor(SnapColors.Lilac), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                     if (index != state.members.lastIndex) HorizontalDivider()
                 }
@@ -892,7 +892,7 @@ private fun MembersPage(state: AppUiState, onBack: () -> Unit, onInvite: () -> U
             title = { Text("Leave this Event?") },
             text = { Text("Your membership will be removed from this Event.") },
             confirmButton = {
-                TextButton(onClick = { leaveConfirm = false; coordinator.leaveSelectedEvent() }) { Text("Leave", color = Color.Red) }
+                TextButton(onClick = { leaveConfirm = false; coordinator.leaveSelectedEvent() }) { Text("Leave", color = snapReadableTextColor(Color.Red)) }
             },
             dismissButton = { TextButton(onClick = { leaveConfirm = false }) { Text("Cancel") } },
         )
@@ -916,7 +916,7 @@ private fun InvitePage(state: AppUiState, onBack: () -> Unit) {
             SubpageHeader("Invite", onBack)
             BrandMark(64)
             Text("Invite people to ${event.name}", fontSize = 26.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
-            Text("Anyone with the invite can open the Event, sign in, and choose whether to join.", textAlign = TextAlign.Center, color = Color(0xFF66636C))
+            Text("Anyone with the invite can open the Event, sign in, and choose whether to join.", textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)))
             PrimaryButton("↗  Share Invite", onClick = {
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
@@ -928,12 +928,12 @@ private fun InvitePage(state: AppUiState, onBack: () -> Unit) {
                 OutlinedButton(onClick = { copyText(context, DeepLinkParser.formatCode(event.joinCode)); copied = "Code copied" }, modifier = Modifier.weight(1f)) { Text("Copy Code") }
                 OutlinedButton(onClick = { copyText(context, inviteUrl); copied = "Link copied" }, modifier = Modifier.weight(1f)) { Text("Copy Link") }
             }
-            copied?.let { Text("✓ $it", color = Color(0xFF008F61), fontWeight = FontWeight.Bold) }
+            copied?.let { Text("✓ $it", color = snapReadableTextColor(Color(0xFF008F61)), fontWeight = FontWeight.Bold) }
             PremiumCard {
                 Text("Scan to join", fontSize = 19.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterHorizontally))
                 QrCodeImage(inviteUrl, Modifier.align(Alignment.CenterHorizontally).padding(top = 12.dp).size(220.dp).clip(RoundedCornerShape(18.dp)))
                 Text(DeepLinkParser.formatCode(event.joinCode), fontSize = 25.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 12.dp))
-                Text("Event code", color = Color(0xFF66636C), modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text("Event code", color = snapReadableTextColor(Color(0xFF66636C)), modifier = Modifier.align(Alignment.CenterHorizontally))
             }
         }
     }
@@ -970,7 +970,7 @@ private fun GalleryScreen(state: AppUiState, coordinator: AppCoordinator) {
         if (state.allPhotos.isEmpty()) {
             PremiumCard(Modifier.padding(horizontal = 18.dp)) {
                 Text("No photos of you yet", fontWeight = FontWeight.Black, fontSize = 20.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text("SnapLoop checks eligible Events for matched photos. You can also use Scan Photos from an Event at any time.", textAlign = TextAlign.Center, color = Color(0xFF66636C), modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text("SnapLoop checks eligible Events for matched photos. You can also use Scan Photos from an Event at any time.", textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)), modifier = Modifier.align(Alignment.CenterHorizontally))
             }
         } else {
             state.allPhotos.forEach { match ->
@@ -978,7 +978,7 @@ private fun GalleryScreen(state: AppUiState, coordinator: AppCoordinator) {
             }
         }
         TextButton(onClick = coordinator::refreshAllPhotos, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Refresh Gallery", color = SnapColors.Coral, fontWeight = FontWeight.Bold)
+            Text("Refresh Gallery", color = snapReadableTextColor(SnapColors.Coral), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -988,8 +988,8 @@ private fun MatchCard(match: PhotoMatch, onNotMe: (PhotoMatch) -> Unit, modifier
     PremiumCard(modifier) {
         MatchThumbnail(match)
         Text("Matched photo", fontWeight = FontWeight.Black, fontSize = 18.sp, modifier = Modifier.padding(top = 8.dp))
-        Text(formatMillis(match.capturedAtMillis), color = Color(0xFF66636C), fontSize = 13.sp)
-        TextButton(onClick = { onNotMe(match) }, modifier = Modifier.align(Alignment.End)) { Text("Not Me", color = SnapColors.Coral) }
+        Text(formatMillis(match.capturedAtMillis), color = snapReadableTextColor(Color(0xFF66636C)), fontSize = 13.sp)
+        TextButton(onClick = { onNotMe(match) }, modifier = Modifier.align(Alignment.End)) { Text("Not Me", color = snapReadableTextColor(SnapColors.Coral)) }
     }
 }
 
@@ -1011,7 +1011,7 @@ private fun MatchThumbnail(match: PhotoMatch) {
         )
     } else {
         Box(Modifier.fillMaxWidth().height(120.dp).background(softGradient(), RoundedCornerShape(18.dp)), contentAlignment = Alignment.Center) {
-            Text("▧", fontSize = 42.sp, color = SnapColors.Lilac)
+            Text("▧", fontSize = 42.sp, color = snapReadableTextColor(SnapColors.Lilac))
         }
     }
 }
@@ -1033,12 +1033,12 @@ private fun YouScreen(state: AppUiState, coordinator: AppCoordinator) {
         PremiumCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(66.dp).background(softGradient(), CircleShape), contentAlignment = Alignment.Center) {
-                    Text((state.user?.displayName ?: "?").take(1).uppercase(), fontSize = 25.sp, fontWeight = FontWeight.Black, color = SnapColors.Lilac)
+                    Text((state.user?.displayName ?: "?").take(1).uppercase(), fontSize = 25.sp, fontWeight = FontWeight.Black, color = snapReadableTextColor(SnapColors.Lilac))
                 }
                 Column(Modifier.weight(1f).padding(start = 14.dp)) {
                     Text(state.user?.displayName ?: "Add your name", fontSize = 19.sp, fontWeight = FontWeight.Black)
-                    Text(state.user?.phoneNumber.orEmpty(), color = Color(0xFF66636C), fontSize = 13.sp)
-                    Text(if (state.user?.hasFaceProfile == true) "✓ Face Setup Active" else "Face Setup not completed", color = if (state.user?.hasFaceProfile == true) Color(0xFF008F61) else Color(0xFF66636C), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(state.user?.phoneNumber.orEmpty(), color = snapReadableTextColor(Color(0xFF66636C)), fontSize = 13.sp)
+                    Text(if (state.user?.hasFaceProfile == true) "✓ Face Setup Active" else "Face Setup not completed", color = snapReadableTextColor(if (state.user?.hasFaceProfile == true) Color(0xFF008F61) else Color(0xFF66636C)), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
                 BrandMark(34)
             }
@@ -1048,7 +1048,7 @@ private fun YouScreen(state: AppUiState, coordinator: AppCoordinator) {
 
         PremiumCard {
             Text("Photo Access", fontWeight = FontWeight.Black, fontSize = 18.sp)
-            Text(if (photoPermissionGranted) "Photos access is enabled" else "Photo access is off or not yet granted", color = Color(0xFF66636C), fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+            Text(if (photoPermissionGranted) "Photos access is enabled" else "Photo access is off or not yet granted", color = snapReadableTextColor(Color(0xFF66636C)), fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
             if (!photoPermissionGranted) {
                 PrimaryButton("Allow Photo Access", { permissionLauncher.launch(photoPermissions()) }, Modifier.padding(top = 10.dp))
             } else {
@@ -1080,7 +1080,7 @@ private fun YouScreen(state: AppUiState, coordinator: AppCoordinator) {
         AlertDialog(
             onDismissRequest = { signOutConfirm = false },
             title = { Text("Sign out of SnapLoop?") },
-            confirmButton = { TextButton(onClick = { signOutConfirm = false; coordinator.signOut() }) { Text("Sign Out", color = Color.Red) } },
+            confirmButton = { TextButton(onClick = { signOutConfirm = false; coordinator.signOut() }) { Text("Sign Out", color = snapReadableTextColor(Color.Red)) } },
             dismissButton = { TextButton(onClick = { signOutConfirm = false }) { Text("Cancel") } },
         )
     }
@@ -1154,7 +1154,7 @@ private fun EventForm(
                 BrandMark(58)
                 Text(title, fontSize = 28.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 12.dp))
                 if (title.startsWith("Create")) {
-                    Text("Trip, party, family celebration, wedding — bring everyone's photos together.", textAlign = TextAlign.Center, color = Color(0xFF66636C), modifier = Modifier.padding(top = 6.dp))
+                    Text("Trip, party, family celebration, wedding — bring everyone's photos together.", textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)), modifier = Modifier.padding(top = 6.dp))
                 }
                 PremiumCard(Modifier.padding(top = 18.dp)) {
                     Text("Event name", fontWeight = FontWeight.Bold)
@@ -1187,8 +1187,8 @@ private fun EventForm(
                         if (java.time.temporal.ChronoUnit.DAYS.between(newStart, endsOn) > 15) endsOn = newStart.plusDays(3).coerceAtMost(upper)
                     }
                     DateField("Ends", endsOn, startsOn, minOf(upper, startsOn.plusDays(15))) { endsOn = it }
-                    Text("SnapLoop only considers photos taken within this Event's selected date range. Dates must stay within 15 days before or after today, and an Event can span at most 15 calendar days.", color = Color(0xFF66636C), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
-                    if (dateError) Text("Choose a valid Event date range.", color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
+                    Text("SnapLoop only considers photos taken within this Event's selected date range. Dates must stay within 15 days before or after today, and an Event can span at most 15 calendar days.", color = snapReadableTextColor(Color(0xFF66636C)), fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                    if (dateError) Text("Choose a valid Event date range.", color = snapReadableTextColor(Color.Red), fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
                 }
                 if (!hasFaceProfile) {
                     PremiumCard(Modifier.padding(top = 14.dp)) {
@@ -1256,7 +1256,7 @@ private fun JoinEventPanel(onDismiss: () -> Unit, onResolve: (String) -> Unit) {
                 Spacer(Modifier.height(48.dp))
                 BrandMark(62)
                 Text("Join an Event", fontSize = 28.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 18.dp))
-                Text("Enter an Event code or invite link, or scan the Event QR code.", textAlign = TextAlign.Center, color = Color(0xFF66636C), modifier = Modifier.padding(top = 8.dp))
+                Text("Enter an Event code or invite link, or scan the Event QR code.", textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)), modifier = Modifier.padding(top = 8.dp))
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it.take(512) },
@@ -1267,10 +1267,10 @@ private fun JoinEventPanel(onDismiss: () -> Unit, onResolve: (String) -> Unit) {
                 )
                 PrimaryButton("→  Continue", onClick = { onResolve(text) }, modifier = Modifier.padding(top = 14.dp), enabled = text.trim().isNotEmpty())
                 Row(Modifier.fillMaxWidth().padding(vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    HorizontalDivider(Modifier.weight(1f)); Text("  or  ", color = Color.Gray); HorizontalDivider(Modifier.weight(1f))
+                    HorizontalDivider(Modifier.weight(1f)); Text("  or  ", color = snapReadableTextColor(Color.Gray)); HorizontalDivider(Modifier.weight(1f))
                 }
                 OutlinedButton(onClick = { scanQr = true }, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(18.dp)) {
-                    Text("▣  Scan QR Code", color = SnapColors.Lilac, fontWeight = FontWeight.Bold)
+                    Text("▣  Scan QR Code", color = snapReadableTextColor(SnapColors.Lilac), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1288,14 +1288,14 @@ private fun EventCard(event: SnapEvent, modifier: Modifier = Modifier, onClick: 
     ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(72.dp).background(brandGradient(), RoundedCornerShape(18.dp)), contentAlignment = Alignment.Center) {
-                Text(categorySymbol(event.category), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
+                Text(categorySymbol(event.category), color = snapReadableTextColor(Color.White), fontSize = 28.sp, fontWeight = FontWeight.Black)
             }
             Column(Modifier.weight(1f).padding(start = 14.dp)) {
                 Text(event.name, fontSize = 19.sp, fontWeight = FontWeight.Black)
-                Text(formatEventRange(event), color = Color(0xFF66636C), fontSize = 13.sp)
-                Text(eventStatusLabel(event), color = SnapColors.Coral, fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 3.dp))
+                Text(formatEventRange(event), color = snapReadableTextColor(Color(0xFF66636C)), fontSize = 13.sp)
+                Text(eventStatusLabel(event), color = snapReadableTextColor(SnapColors.Coral), fontSize = 11.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 3.dp))
             }
-            Text("›", fontSize = 25.sp, color = Color.Gray)
+            Text("›", fontSize = 25.sp, color = snapReadableTextColor(Color.Gray))
         }
     }
 }
@@ -1304,10 +1304,10 @@ private fun EventCard(event: SnapEvent, modifier: Modifier = Modifier, onClick: 
 private fun GradientActionCard(icon: String, title: String, subtitle: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Card(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.Transparent)) {
         Box(Modifier.fillMaxWidth().height(154.dp).background(brandGradient()).padding(16.dp)) {
-            Text(icon, color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Black)
+            Text(icon, color = snapReadableTextColor(Color.White), fontSize = 25.sp, fontWeight = FontWeight.Black)
             Column(Modifier.align(Alignment.BottomStart)) {
-                Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                Text(subtitle, color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp)
+                Text(title, color = snapReadableTextColor(Color.White), fontSize = 18.sp, fontWeight = FontWeight.Black)
+                Text(subtitle, color = snapReadableTextColor(Color.White.copy(alpha = 0.92f)), fontSize = 12.sp)
             }
         }
     }
@@ -1317,12 +1317,12 @@ private fun GradientActionCard(icon: String, title: String, subtitle: String, mo
 private fun SettingsCard(title: String, subtitle: String, onClick: () -> Unit) {
     PremiumCard(Modifier.clickable(onClick = onClick)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(42.dp).background(softGradient(), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) { Text("●", color = SnapColors.Lilac) }
+            Box(Modifier.size(42.dp).background(softGradient(), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) { Text("●", color = snapReadableTextColor(SnapColors.Lilac)) }
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(title, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                Text(subtitle, color = Color(0xFF66636C), fontSize = 12.sp)
+                Text(subtitle, color = snapReadableTextColor(Color(0xFF66636C)), fontSize = 12.sp)
             }
-            Text("›", fontSize = 24.sp, color = Color.Gray)
+            Text("›", fontSize = 24.sp, color = snapReadableTextColor(Color.Gray))
         }
     }
 }
@@ -1331,8 +1331,8 @@ private fun SettingsCard(title: String, subtitle: String, onClick: () -> Unit) {
 private fun InsightBanner(value: String, label: String, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().background(brandGradient(), RoundedCornerShape(24.dp)).padding(18.dp)) {
         Column {
-            Text(value, color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Black)
-            Text(label, color = Color.White.copy(alpha = 0.95f), fontWeight = FontWeight.Bold)
+            Text(value, color = snapReadableTextColor(Color.White), fontSize = 34.sp, fontWeight = FontWeight.Black)
+            Text(label, color = snapReadableTextColor(Color.White.copy(alpha = 0.95f)), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1348,7 +1348,7 @@ private fun SubpageHeader(title: String, onBack: () -> Unit) {
 
 @Composable
 private fun SectionTitle(title: String) {
-    Text(title, fontSize = 22.sp, fontWeight = FontWeight.Black, color = SnapColors.Ink, modifier = Modifier.padding(horizontal = 18.dp))
+    Text(title, fontSize = 22.sp, fontWeight = FontWeight.Black, color = snapReadableTextColor(SnapColors.Ink), modifier = Modifier.padding(horizontal = 18.dp))
 }
 
 @Composable
@@ -1370,7 +1370,7 @@ private fun BrandMark(size: Int) {
         Modifier.size(size.dp).background(brandGradient(), RoundedCornerShape((size * 0.24f).dp)),
         contentAlignment = Alignment.Center,
     ) {
-        Text("S", color = Color.White, fontSize = (size * 0.52f).sp, fontWeight = FontWeight.Black)
+        Text("S", color = snapReadableTextColor(Color.White), fontSize = (size * 0.52f).sp, fontWeight = FontWeight.Black)
     }
 }
 
@@ -1388,7 +1388,7 @@ private fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier 
             Modifier.fillMaxSize().background(if (enabled) brandGradient() else Brush.linearGradient(listOf(Color.LightGray, Color.Gray))),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text, color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+            Text(text, color = snapReadableTextColor(Color.White), fontWeight = FontWeight.Black, fontSize = 16.sp)
         }
     }
 }
@@ -1445,7 +1445,7 @@ private fun PrivacyDialog(onDismiss: () -> Unit, onWithdraw: () -> Unit, onDelet
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete SnapLoop account?") },
             text = { Text("This requests permanent deletion of your SnapLoop account and server-side data. This action cannot be undone.") },
-            confirmButton = { TextButton(onClick = onDelete) { Text("Delete Permanently", color = Color.Red) } },
+            confirmButton = { TextButton(onClick = onDelete) { Text("Delete Permanently", color = snapReadableTextColor(Color.Red)) } },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
         )
         return
@@ -1457,7 +1457,7 @@ private fun PrivacyDialog(onDismiss: () -> Unit, onWithdraw: () -> Unit, onDelet
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Face matching is explicit-consent only and scanning is Event-scoped.")
                 OutlinedButton(onClick = onWithdraw, modifier = Modifier.fillMaxWidth()) { Text("Withdraw Biometric Consent") }
-                OutlinedButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) { Text("Delete Account", color = Color.Red) }
+                OutlinedButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) { Text("Delete Account", color = snapReadableTextColor(Color.Red)) }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },

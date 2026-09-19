@@ -79,7 +79,7 @@ internal fun ParityConsentScreen(
             Text("Face Match Consent", fontSize = 28.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 14.dp))
             Text(
                 "Please review how Face Match works before you choose whether to use it.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 8.dp, bottom = 14.dp),
             )
@@ -153,7 +153,7 @@ internal fun ParityConsentScreen(
                 if (!available) {
                     Text(
                         "Face Match is not available for the selected residence yet.",
-                        color = Color(0xFFC62828),
+                        color = snapReadableTextColor(Color(0xFFC62828)),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp),
                     )
@@ -184,7 +184,7 @@ internal fun ParityConsentScreen(
                 enabled = available && ageAndResidence && expressConsent,
             )
             TextButton(onClick = onNotNow, modifier = Modifier.padding(top = 4.dp)) {
-                Text("Not Now", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                Text("Not Now", color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.padding(vertical = 13.dp))
         }
@@ -195,7 +195,7 @@ internal fun ParityConsentScreen(
 private fun ConsentSection(title: String, body: String) {
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
         Text(title, fontWeight = FontWeight.Black)
-        Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.padding(top = 3.dp))
+        Text(body, color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), fontSize = 13.sp, modifier = Modifier.padding(top = 3.dp))
     }
 }
 

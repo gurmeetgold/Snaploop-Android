@@ -110,16 +110,16 @@ internal fun ParityFaceTestCamera(
             Modifier.fillMaxWidth().align(Alignment.TopCenter).padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onClose) { Text("Close", color = Color.White, fontWeight = FontWeight.Bold) }
+            TextButton(onClick = onClose) { Text("Close", color = snapReadableTextColor(Color.White), fontWeight = FontWeight.Bold) }
             Text(
                 "Test My Face Setup",
-                color = Color.White,
+                color = snapReadableTextColor(Color.White),
                 fontSize = 19.sp,
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
             )
-            Text("Close", color = Color.Transparent)
+            Text("Close", color = snapReadableTextColor(Color.Transparent))
         }
 
         if (result == null) {
@@ -145,7 +145,7 @@ internal fun ParityFaceTestCamera(
                             liveState.detail
                         },
                         textAlign = TextAlign.Center,
-                        color = if (error != null) Color(0xFFB3261E) else Color(0xFF66636C),
+                        color = snapReadableTextColor(if (error != null) Color(0xFFB3261E) else Color(0xFF66636C)),
                     )
                     if (processing) CircularProgressIndicator()
                     if (error != null) {
@@ -173,7 +173,7 @@ internal fun ParityFaceTestCamera(
                         fontWeight = FontWeight.Black,
                         textAlign = TextAlign.Center,
                     )
-                    Text(test.message, textAlign = TextAlign.Center, color = Color(0xFF66636C))
+                    Text(test.message, textAlign = TextAlign.Center, color = snapReadableTextColor(Color(0xFF66636C)))
                     Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
                         Text("Done", fontWeight = FontWeight.Bold)
                     }

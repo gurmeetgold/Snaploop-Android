@@ -118,9 +118,9 @@ fun SnapLoopTheme(content: @Composable () -> Unit) {
             onPrimary = Color.White,
             onSecondary = Color.White,
             onTertiary = Color.White,
-            onBackground = SnapColors.DarkInk,
-            onSurface = SnapColors.DarkInk,
-            onSurfaceVariant = Color(0xFFC9C6D1),
+            onBackground = Color.White,
+            onSurface = Color.White,
+            onSurfaceVariant = Color.White,
             outline = Color.White.copy(alpha = 0.32f),
         )
     } else {
@@ -150,5 +150,12 @@ fun SnapLoopTheme(content: @Composable () -> Unit) {
         MaterialTheme(colorScheme = colors, content = content)
     }
 }
+
+internal fun resolveSnapTextColor(isDark: Boolean, lightColor: Color): Color =
+    if (isDark) Color.White else lightColor
+
+@Composable
+internal fun snapReadableTextColor(lightColor: Color): Color =
+    resolveSnapTextColor(isSystemInDarkTheme(), lightColor)
 
 internal const val APP_FONT_SCALE_MULTIPLIER = 0.96f

@@ -119,7 +119,7 @@ internal fun ParityInvitationReviewScreen(
                         "You declined the invitation to ${event.name}.",
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)),
                     )
                     ParityPrimaryButton(
                         text = "Done",
@@ -176,7 +176,7 @@ internal fun ParityInvitationReviewScreen(
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     "You're invited to",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)),
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
@@ -190,7 +190,7 @@ internal fun ParityInvitationReviewScreen(
                         Icon(Icons.Filled.Person, contentDescription = null, tint = SnapColors.Lilac, modifier = Modifier.size(18.dp))
                         Text(
                             "  Invited by $inviter",
-                            color = SnapColors.Lilac,
+                            color = snapReadableTextColor(SnapColors.Lilac),
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
@@ -213,7 +213,7 @@ internal fun ParityInvitationReviewScreen(
                     "SnapLoop scans only photos taken during these Event dates.",
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                     fontSize = 12.sp,
                 )
                 if (participantCount > 0) {
@@ -225,7 +225,7 @@ internal fun ParityInvitationReviewScreen(
                         Icon(Icons.Filled.Groups, contentDescription = null, modifier = Modifier.size(18.dp))
                         Text(
                             "  $participantCount members",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                            color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)),
                         )
                     }
                 }
@@ -236,7 +236,7 @@ internal fun ParityInvitationReviewScreen(
                 modifier = Modifier.padding(horizontal = 8.dp),
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)),
             )
 
             when {
@@ -258,7 +258,7 @@ internal fun ParityInvitationReviewScreen(
                             "  Face Setup is needed before you can join and receive matched photos.",
                             modifier = Modifier.weight(1f),
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                            color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                             fontSize = 12.sp,
                         )
                     }
@@ -281,7 +281,7 @@ internal fun ParityInvitationReviewScreen(
                         CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         Text(
                             "  ${InvitationReviewParityPolicy.automaticProgressCopy(action)}",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                            color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)),
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
@@ -291,7 +291,7 @@ internal fun ParityInvitationReviewScreen(
             declineError?.let { message ->
                 Text(
                     message,
-                    color = MaterialTheme.colorScheme.error,
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.error),
                     textAlign = TextAlign.Center,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -324,7 +324,7 @@ internal fun ParityInvitationReviewScreen(
                     if (isDeclining) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                     Text(
                         if (isDeclining) "  Declining…" else "Decline",
-                        color = MaterialTheme.colorScheme.error,
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.error),
                         fontWeight = FontWeight.SemiBold,
                     )
                 }

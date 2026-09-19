@@ -175,11 +175,11 @@ internal fun ParityParticipantsScreen(
                 } else {
                     "Photo sharing from this phone is off for this Event."
                 },
-                color = if (me?.sharingEnabled == true) {
+                color = snapReadableTextColor(if (me?.sharingEnabled == true) {
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)
                 } else {
                     SnapColors.Coral
-                },
+                }),
                 fontSize = 12.sp,
             )
 
@@ -208,7 +208,7 @@ internal fun ParityParticipantsScreen(
                     Icon(Icons.Filled.Person, contentDescription = null, tint = SnapColors.Lilac, modifier = Modifier.size(17.dp))
                     Text(
                         "Set up your face to see your own photo matches.",
-                        color = SnapColors.Lilac,
+                        color = snapReadableTextColor(SnapColors.Lilac),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(start = 6.dp),
@@ -230,7 +230,7 @@ internal fun ParityParticipantsScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Filled.Share, contentDescription = null, tint = Color.White)
-                            Text("  Invite People", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("  Invite People", color = snapReadableTextColor(Color.White), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -246,7 +246,7 @@ internal fun ParityParticipantsScreen(
                     )
                     Text(
                         "Event controls are on the Event screen.",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                         fontSize = 12.sp,
                         modifier = Modifier.padding(start = 6.dp),
                     )
@@ -255,7 +255,7 @@ internal fun ParityParticipantsScreen(
 
             if (ParticipantsParityPolicy.canLeave(role)) {
                 TextButton(onClick = { confirmLeave = true }, enabled = !state.busy) {
-                    Text("Leave Event", color = MaterialTheme.colorScheme.error)
+                    Text("Leave Event", color = snapReadableTextColor(MaterialTheme.colorScheme.error))
                 }
             }
         }
@@ -266,7 +266,7 @@ internal fun ParityParticipantsScreen(
             if (state.members.isEmpty()) {
                 Text(
                     "No Event members are available.",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                 )
             }
 
@@ -282,7 +282,7 @@ internal fun ParityParticipantsScreen(
                     ) {
                         Text(
                             participantsInitial(member, uid, state.user?.displayName),
-                            color = Color.White,
+                            color = snapReadableTextColor(Color.White),
                             fontWeight = FontWeight.Bold,
                         )
                     }
@@ -295,7 +295,7 @@ internal fun ParityParticipantsScreen(
                         )
                         Text(
                             participantsRoleName(member.role),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                            color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                             fontSize = 12.sp,
                         )
                     }
@@ -345,7 +345,7 @@ internal fun ParityParticipantsScreen(
                         coordinator.leaveSelectedEvent()
                     },
                 ) {
-                    Text("Leave Event", color = MaterialTheme.colorScheme.error)
+                    Text("Leave Event", color = snapReadableTextColor(MaterialTheme.colorScheme.error))
                 }
             },
             dismissButton = {
@@ -369,11 +369,11 @@ private fun ParticipantsRoleBadge(role: EventMember.Role) {
     when (role) {
         EventMember.Role.organizer -> Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.WorkspacePremium, contentDescription = null, tint = SnapColors.Coral, modifier = Modifier.size(14.dp))
-            Text(" Organizer", color = SnapColors.Coral, fontSize = 10.sp, fontWeight = FontWeight.Black)
+            Text(" Organizer", color = snapReadableTextColor(SnapColors.Coral), fontSize = 10.sp, fontWeight = FontWeight.Black)
         }
         EventMember.Role.admin -> Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Shield, contentDescription = null, tint = SnapColors.Lilac, modifier = Modifier.size(14.dp))
-            Text(" Admin", color = SnapColors.Lilac, fontSize = 10.sp, fontWeight = FontWeight.Black)
+            Text(" Admin", color = snapReadableTextColor(SnapColors.Lilac), fontSize = 10.sp, fontWeight = FontWeight.Black)
         }
         EventMember.Role.participant -> Unit
     }
@@ -418,7 +418,7 @@ private fun ParticipantsManagementMenu(
             }
 
             DropdownMenuItem(
-                text = { Text("Remove from Event", color = MaterialTheme.colorScheme.error) },
+                text = { Text("Remove from Event", color = snapReadableTextColor(MaterialTheme.colorScheme.error)) },
                 leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                 onClick = {
                     expanded = false

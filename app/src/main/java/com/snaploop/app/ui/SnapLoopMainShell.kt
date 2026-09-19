@@ -250,11 +250,11 @@ private fun ShellHome(state: AppUiState, coordinator: AppCoordinator) {
                         "Hi, ${state.user?.displayName ?: "there"} 👋",
                         fontSize = 25.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface),
                     )
                     Text(
                         "Photos your friends took of you on their phones, brought to your phone automatically.",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)),
                         fontSize = 14.sp,
                         modifier = Modifier.padding(top = 5.dp),
                     )
@@ -303,7 +303,7 @@ private fun ShellHome(state: AppUiState, coordinator: AppCoordinator) {
                     Text(
                         "Create an Event, or join one with a code, link or QR.",
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)),
                         fontSize = 14.sp,
                         modifier = Modifier.align(Alignment.CenterHorizontally),
                     )
@@ -443,7 +443,7 @@ private fun ShellEventCard(
                     event.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface),
                     maxLines = 1,
                 )
                 ShellRoleLine(role)
@@ -456,7 +456,7 @@ private fun ShellEventCard(
                     )
                     Text(
                         "  ${shellEventRange(event)}",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                         fontSize = 12.sp,
                         maxLines = 1,
                     )
@@ -473,7 +473,7 @@ private fun ShellEventCard(
                 ) {
                     Text(
                         presentation.text,
-                        color = statusTint,
+                        color = snapReadableTextColor(statusTint),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
@@ -503,7 +503,7 @@ private fun ShellRoleLine(role: EventMember.Role?) {
         )
         Text(
             "  $label",
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+            color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
         )
@@ -524,7 +524,7 @@ private fun ShellInvitationReview(event: SnapEvent, coordinator: AppCoordinator)
         }
         Spacer(Modifier.height(34.dp))
         ShellBrandMark(74)
-        Text("You're invited to", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp))
+        Text("You're invited to", color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp))
         Text(event.name, fontSize = 31.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
         ShellCard(Modifier.padding(top = 22.dp)) {
             Row(Modifier.align(Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
@@ -648,7 +648,7 @@ private fun ShellEventDashboard(
                     Text("Photo Scan", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Text(
                         if (me?.sharingEnabled == true) "SnapLoop is ready to check this Event for new photos" else "Photo sharing is turned off for this Event",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant),
                         fontSize = 13.sp,
                     )
                 }
@@ -670,7 +670,7 @@ private fun ShellEventDashboard(
                 Icon(Icons.Filled.Groups, null, tint = ShellColors.Lilac, modifier = Modifier.size(30.dp))
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text("Event Members", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("${state.members.size} member${if (state.members.size == 1) "" else "s"}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${state.members.size} member${if (state.members.size == 1) "" else "s"}", color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant))
                 }
                 Icon(Icons.Filled.ChevronRight, "View members", tint = Color.Gray)
             }
@@ -682,7 +682,7 @@ private fun ShellEventDashboard(
                     Icon(Icons.Filled.Share, null, tint = ShellColors.Coral, modifier = Modifier.size(30.dp))
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text("Invite People", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Share code, link, QR or phone invite", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                        Text("Share code, link, QR or phone invite", color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), fontSize = 13.sp)
                     }
                     Icon(Icons.Filled.ChevronRight, null, tint = Color.Gray)
                 }
@@ -701,7 +701,7 @@ private fun ShellEventDashboard(
                         Icon(Icons.Filled.Edit, null)
                         Text("  Edit Event")
                     }
-                    TextButton(onClick = coordinator::endSelectedEvent) { Text("End Event", color = Color.Red) }
+                    TextButton(onClick = coordinator::endSelectedEvent) { Text("End Event", color = snapReadableTextColor(Color.Red)) }
                 }
                 if (role == EventMember.Role.organizer) {
                     if (event.status == EventStatus.endedByOrganizer) {
@@ -712,7 +712,7 @@ private fun ShellEventDashboard(
                     } else {
                         TextButton(onClick = coordinator::moveSelectedEventToDeleted) {
                             Icon(Icons.Filled.Delete, null, tint = Color.Red)
-                            Text("  Move to Deleted", color = Color.Red)
+                            Text("  Move to Deleted", color = snapReadableTextColor(Color.Red))
                         }
                     }
                 }
@@ -737,18 +737,18 @@ private fun ShellEventHero(event: SnapEvent, role: EventMember.Role?) {
                 Icon(shellRoleIcon(role), null, tint = Color.White, modifier = Modifier.size(17.dp))
                 Text(
                     "  ${shellRoleLabel(role)}",
-                    color = Color.White,
+                    color = snapReadableTextColor(Color.White),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Black,
                 )
             }
         }
         Column(Modifier.align(Alignment.BottomStart)) {
-            Text(shellEventStatus(event), color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp, fontWeight = FontWeight.Black)
-            Text(event.name, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 8.dp))
+            Text(shellEventStatus(event), color = snapReadableTextColor(Color.White.copy(alpha = 0.9f)), fontSize = 12.sp, fontWeight = FontWeight.Black)
+            Text(event.name, color = snapReadableTextColor(Color.White), fontSize = 30.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 8.dp))
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
                 Icon(Icons.Filled.CalendarMonth, null, tint = Color.White.copy(alpha = 0.94f), modifier = Modifier.size(18.dp))
-                Text("  ${shellEventRange(event)}", color = Color.White.copy(alpha = 0.94f), fontWeight = FontWeight.Bold)
+                Text("  ${shellEventRange(event)}", color = snapReadableTextColor(Color.White.copy(alpha = 0.94f)), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -811,7 +811,7 @@ private fun ShellMembers(
                 ShellPrimaryButton("Invite People", Icons.Filled.Share, onInvite)
             }
             if (role != EventMember.Role.organizer) {
-                TextButton(onClick = { leaveConfirm = true }) { Text("Leave Event", color = Color.Red) }
+                TextButton(onClick = { leaveConfirm = true }) { Text("Leave Event", color = snapReadableTextColor(Color.Red)) }
             }
         }
 
@@ -820,7 +820,7 @@ private fun ShellMembers(
             state.members.forEachIndexed { index, member ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(44.dp).background(shellGradient(), CircleShape), contentAlignment = Alignment.Center) {
-                        Text((member.displayName ?: "•").take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Black)
+                        Text((member.displayName ?: "•").take(1).uppercase(), color = snapReadableTextColor(Color.White), fontWeight = FontWeight.Black)
                     }
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text((member.displayName ?: "Event member") + if (member.userId == uid) " (You)" else "", fontWeight = FontWeight.Bold)
@@ -838,7 +838,7 @@ private fun ShellMembers(
             title = { Text("Leave this Event?") },
             text = { Text("Your membership will be removed from this Event.") },
             confirmButton = {
-                TextButton(onClick = { leaveConfirm = false; coordinator.leaveSelectedEvent() }) { Text("Leave", color = Color.Red) }
+                TextButton(onClick = { leaveConfirm = false; coordinator.leaveSelectedEvent() }) { Text("Leave", color = snapReadableTextColor(Color.Red)) }
             },
             dismissButton = { TextButton(onClick = { leaveConfirm = false }) { Text("Cancel") } },
         )
@@ -865,7 +865,7 @@ private fun ShellInvite(
         ShellSubpageHeader("Invite", onBack)
         ShellBrandMark(64)
         Text("Invite people to ${event.name}", fontSize = 26.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
-        Text("Anyone with the invite can open the Event, sign in, and choose whether to join.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Anyone with the invite can open the Event, sign in, and choose whether to join.", textAlign = TextAlign.Center, color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant))
         ShellPrimaryButton("Share Invite", Icons.Filled.Share, onClick = {
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
@@ -889,7 +889,7 @@ private fun ShellInvite(
                 Text("  Copy Link")
             }
         }
-        copied?.let { Text("✓ $it", color = Color(0xFF008F61), fontWeight = FontWeight.Bold) }
+        copied?.let { Text("✓ $it", color = snapReadableTextColor(Color(0xFF008F61)), fontWeight = FontWeight.Bold) }
 
         ShellCard(Modifier.clickable(onClick = onPhoneInvite)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -903,7 +903,7 @@ private fun ShellInvite(
                     Text("Invite by Phone or Contacts", fontWeight = FontWeight.Black, fontSize = 17.sp)
                     Text(
                         "Existing users get an in-app invite; others can receive the link.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant),
                         fontSize = 12.sp,
                     )
                 }
@@ -923,7 +923,7 @@ private fun ShellInvite(
                 fontWeight = FontWeight.Black,
                 modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 12.dp),
             )
-            Text("Event code", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
+            Text("Event code", color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), modifier = Modifier.align(Alignment.CenterHorizontally))
         }
     }
 }
@@ -948,7 +948,7 @@ private fun ShellMatchCard(match: PhotoMatch, modifier: Modifier = Modifier) {
             maxPixelSize = 900,
         )
         Text("Matched photo", fontWeight = FontWeight.Black, fontSize = 18.sp, modifier = Modifier.padding(top = 8.dp))
-        Text(shellFormatMillis(match.capturedAtMillis), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+        Text(shellFormatMillis(match.capturedAtMillis), color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), fontSize = 13.sp)
     }
 }
 
@@ -978,10 +978,10 @@ private fun ShellYou(state: AppUiState, coordinator: AppCoordinator) {
                 )
                 Column(Modifier.weight(1f).padding(start = 14.dp)) {
                     Text(state.user?.displayName ?: "Add your name", fontSize = 19.sp, fontWeight = FontWeight.Black)
-                    Text(state.user?.phoneNumber.orEmpty(), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                    Text(state.user?.phoneNumber.orEmpty(), color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), fontSize = 13.sp)
                     Text(
                         if (state.user?.hasFaceProfile == true) "✓ Face Setup Active" else "Face Setup not completed",
-                        color = if (state.user?.hasFaceProfile == true) Color(0xFF008F61) else ShellColors.Secondary,
+                        color = snapReadableTextColor(if (state.user?.hasFaceProfile == true) Color(0xFF008F61) else ShellColors.Secondary),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                     )
@@ -1024,7 +1024,7 @@ private fun ShellYou(state: AppUiState, coordinator: AppCoordinator) {
         AlertDialog(
             onDismissRequest = { signOutConfirm = false },
             title = { Text("Sign out of SnapLoop?") },
-            confirmButton = { TextButton(onClick = { signOutConfirm = false; coordinator.signOut() }) { Text("Sign Out", color = Color.Red) } },
+            confirmButton = { TextButton(onClick = { signOutConfirm = false; coordinator.signOut() }) { Text("Sign Out", color = snapReadableTextColor(Color.Red)) } },
             dismissButton = { TextButton(onClick = { signOutConfirm = false }) { Text("Cancel") } },
         )
     }
@@ -1110,10 +1110,10 @@ private fun ShellEventFormDialog(
                     ShellDateField("Ends", endsOn, startsOn, minOf(upper, startsOn.plusDays(15))) { endsOn = it }
                     Text(
                         "SnapLoop only considers photos taken within this Event's selected date range. Dates must stay within 15 days before or after today, and an Event can span at most 15 calendar days.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant),
                         fontSize = 12.sp,
                     )
-                    if (invalid) Text("Choose a valid Event date range.", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    if (invalid) Text("Choose a valid Event date range.", color = snapReadableTextColor(Color.Red), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
                 ShellPrimaryButton(
                     submitLabel,
@@ -1171,7 +1171,7 @@ private fun ShellJoinDialog(onDismiss: () -> Unit, onResolve: (String) -> Unit) 
                 Spacer(Modifier.height(44.dp))
                 ShellBrandMark(62)
                 Text("Join an Event", fontSize = 28.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(top = 18.dp))
-                Text("Enter an Event code or invite link, or scan the Event QR code.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+                Text("Enter an Event code or invite link, or scan the Event QR code.", textAlign = TextAlign.Center, color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), modifier = Modifier.padding(top = 8.dp))
                 OutlinedTextField(
                     text,
                     { text = it.take(512) },
@@ -1181,11 +1181,11 @@ private fun ShellJoinDialog(onDismiss: () -> Unit, onResolve: (String) -> Unit) 
                 )
                 ShellPrimaryButton("Continue", Icons.Filled.ChevronRight, { onResolve(text) }, Modifier.padding(top = 14.dp), text.trim().isNotEmpty())
                 Row(Modifier.fillMaxWidth().padding(vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    HorizontalDivider(Modifier.weight(1f)); Text("  or  ", color = Color.Gray); HorizontalDivider(Modifier.weight(1f))
+                    HorizontalDivider(Modifier.weight(1f)); Text("  or  ", color = snapReadableTextColor(Color.Gray)); HorizontalDivider(Modifier.weight(1f))
                 }
                 OutlinedButton(onClick = { scanQr = true }, modifier = Modifier.fillMaxWidth().height(54.dp)) {
                     Icon(Icons.Filled.QrCodeScanner, null, tint = ShellColors.Lilac)
-                    Text("  Scan QR Code", color = ShellColors.Lilac, fontWeight = FontWeight.Bold)
+                    Text("  Scan QR Code", color = snapReadableTextColor(ShellColors.Lilac), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1201,7 +1201,7 @@ private fun ShellSettingsCard(icon: ImageVector, title: String, subtitle: String
             }
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(title, fontSize = 18.sp, fontWeight = FontWeight.Black)
-                Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                Text(subtitle, color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), fontSize = 12.sp)
             }
             Icon(Icons.Filled.ChevronRight, null, tint = Color.Gray)
         }
@@ -1216,7 +1216,7 @@ private fun ShellPrivacyDialog(onDismiss: () -> Unit, onWithdraw: () -> Unit, on
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete SnapLoop account?") },
             text = { Text("This requests permanent deletion of your SnapLoop account and server-side data. This action cannot be undone.") },
-            confirmButton = { TextButton(onClick = onDelete) { Text("Delete Permanently", color = Color.Red) } },
+            confirmButton = { TextButton(onClick = onDelete) { Text("Delete Permanently", color = snapReadableTextColor(Color.Red)) } },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
         )
         return
@@ -1228,7 +1228,7 @@ private fun ShellPrivacyDialog(onDismiss: () -> Unit, onWithdraw: () -> Unit, on
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Face matching is explicit-consent only and scanning is Event-scoped.")
                 OutlinedButton(onClick = onWithdraw, modifier = Modifier.fillMaxWidth()) { Text("Withdraw Biometric Consent") }
-                OutlinedButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) { Text("Delete Account", color = Color.Red) }
+                OutlinedButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) { Text("Delete Account", color = snapReadableTextColor(Color.Red)) }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
@@ -1281,14 +1281,14 @@ private fun ShellActionCard(
             Column(Modifier.align(Alignment.BottomStart)) {
                 Text(
                     title,
-                    color = Color.White,
+                    color = snapReadableTextColor(Color.White),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
                 )
                 Text(
                     subtitle,
-                    color = Color.White.copy(alpha = 0.90f),
+                    color = snapReadableTextColor(Color.White.copy(alpha = 0.90f)),
                     fontSize = 10.sp,
                     maxLines = 2,
                 )
@@ -1325,8 +1325,8 @@ private fun ShellCard(modifier: Modifier = Modifier, content: @Composable Column
 private fun ShellInsightBanner(value: String, label: String, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().background(SnapGradients.Gallery, RoundedCornerShape(24.dp)).padding(18.dp)) {
         Column {
-            Text(value, color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Black)
-            Text(label, color = Color.White.copy(alpha = 0.95f), fontWeight = FontWeight.Bold)
+            Text(value, color = snapReadableTextColor(Color.White), fontSize = 34.sp, fontWeight = FontWeight.Black)
+            Text(label, color = snapReadableTextColor(Color.White.copy(alpha = 0.95f)), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1337,7 +1337,7 @@ private fun ShellSectionTitle(title: String) {
         title,
         fontSize = 20.sp,
         fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
+        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface),
         modifier = Modifier.padding(horizontal = 16.dp),
     )
 }

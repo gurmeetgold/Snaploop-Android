@@ -93,7 +93,7 @@ internal fun ParityYouScreen(
             modifier = Modifier.semantics { heading() },
             fontSize = 30.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface),
         )
 
         ParityPremiumCard {
@@ -125,7 +125,7 @@ internal fun ParityYouScreen(
                             )
                             Text(
                                 phone,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                                color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                                 fontSize = 12.sp,
                             )
                         }
@@ -143,7 +143,7 @@ internal fun ParityYouScreen(
                             )
                             Text(
                                 "Face Setup Active",
-                                color = Color(0xFF1B8F55),
+                                color = snapReadableTextColor(Color(0xFF1B8F55)),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -240,7 +240,7 @@ internal fun ParityYouScreen(
                 TextButton(onClick = {
                     signOutConfirm = false
                     coordinator.signOut()
-                }) { Text("Sign Out", color = MaterialTheme.colorScheme.error) }
+                }) { Text("Sign Out", color = snapReadableTextColor(MaterialTheme.colorScheme.error)) }
             },
             dismissButton = {
                 TextButton(onClick = { signOutConfirm = false }) { Text("Cancel") }
@@ -316,11 +316,11 @@ private fun YouMenuRow(
     ) {
         YouIconBadge(icon, tint)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = titleColor)
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = snapReadableTextColor(titleColor))
             subtitle?.let {
                 Text(
                     it,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                     fontSize = 11.sp,
                 )
             }

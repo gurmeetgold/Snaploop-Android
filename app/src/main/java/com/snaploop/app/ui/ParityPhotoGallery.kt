@@ -323,7 +323,7 @@ internal fun ParityPhotoGallery(
             )
             Box(Modifier.weight(1f))
             if (selecting) {
-                Text("${selected.size} selected", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("${selected.size} selected", color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 TextButton(onClick = ::endSelection, enabled = !bulkBusy) {
                     Text(
                         "Cancel",
@@ -352,7 +352,7 @@ internal fun ParityPhotoGallery(
                     ) {
                         TextButton(onClick = { densityMenuOpen = true }) {
                             Icon(Icons.Filled.GridView, contentDescription = null, tint = SnapColors.Lilac, modifier = Modifier.size(18.dp))
-                            Text("  $columns", color = SnapColors.Lilac, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("  $columns", color = snapReadableTextColor(SnapColors.Lilac), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     DropdownMenu(
@@ -377,7 +377,7 @@ internal fun ParityPhotoGallery(
             Text(
                 it,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-                color = Color(0xFFB3261E),
+                color = snapReadableTextColor(Color(0xFFB3261E)),
                 fontSize = 12.sp,
             )
         }
@@ -394,7 +394,7 @@ internal fun ParityPhotoGallery(
                         Text(
                             it,
                             modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant),
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center,
                         )
@@ -443,7 +443,7 @@ internal fun ParityPhotoGallery(
                                 "SnapLoop automatically checks eligible Events for new matched photos. You can also use Scan Photos from an Event at any time."
                             },
                             modifier = Modifier.padding(top = 6.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant),
                             textAlign = TextAlign.Center,
                         )
                     }
@@ -496,7 +496,7 @@ internal fun ParityPhotoGallery(
                         ) {
                             Text(
                                 if (isSelected) "✓" else "○",
-                                color = Color.White,
+                                color = snapReadableTextColor(Color.White),
                                 fontSize = if (compact) 13.sp else 18.sp,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                             )
@@ -558,7 +558,7 @@ internal fun ParityPhotoGallery(
                         }
                     },
                 ) {
-                    Text(if (correctingNotMe) "Removing…" else "Not Me", color = Color(0xFFB3261E), fontWeight = FontWeight.Bold)
+                    Text(if (correctingNotMe) "Removing…" else "Not Me", color = snapReadableTextColor(Color(0xFFB3261E)), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -601,7 +601,7 @@ private fun GalleryInsightBanner(
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(count.toString(), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Text(count.toString(), color = snapReadableTextColor(Color.White), fontSize = 28.sp, fontWeight = FontWeight.Bold)
             Column(Modifier.padding(start = 14.dp)) {
                 Text(
                     if (acrossAllEvents) {
@@ -609,7 +609,7 @@ private fun GalleryInsightBanner(
                     } else {
                         if (count == 1) "photo of you found in this Event" else "photos of you found in this Event"
                     },
-                    color = Color.White,
+                    color = snapReadableTextColor(Color.White),
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                 )
@@ -638,11 +638,11 @@ private fun PhotoMatchDetailDialog(
                 )
                 Text(
                     formatCapturedAt(match.capturedAtMillis),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant),
                     fontSize = 12.sp,
                     modifier = Modifier.padding(top = 10.dp),
                 )
-                Text("Event photo", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                Text("Event photo", color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant), fontSize = 12.sp)
                 Spacer(Modifier.height(6.dp))
                 TextButton(onClick = onFavorite) {
                     Icon(
@@ -652,7 +652,7 @@ private fun PhotoMatchDetailDialog(
                     Text(if (favorite) "  Remove Favorite" else "  Add to Favorites", fontWeight = FontWeight.Bold)
                 }
                 TextButton(onClick = onNotMe) {
-                    Text("Not Me", color = Color(0xFFB3261E), fontWeight = FontWeight.Bold)
+                    Text("Not Me", color = snapReadableTextColor(Color(0xFFB3261E)), fontWeight = FontWeight.Bold)
                 }
             }
         },

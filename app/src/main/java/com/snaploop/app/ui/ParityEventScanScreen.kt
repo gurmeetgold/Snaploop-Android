@@ -176,7 +176,7 @@ internal fun ParityEventScanScreen(
                         if (photoAccess == PhotoAccessLevel.SELECTED) LimitedAccessNotice()
                         Text(
                             "Keep SnapLoop open until the scan finishes.",
-                            color = Color(0xFF6B6670),
+                            color = snapReadableTextColor(Color(0xFF6B6670)),
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
                         )
@@ -210,7 +210,7 @@ internal fun ParityEventScanScreen(
                             Text("Scan stopped", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                             Text(
                                 ScanResultPresentationPolicy.retryMessage(result.remaining),
-                                color = Color(0xFF6B6670),
+                                color = snapReadableTextColor(Color(0xFF6B6670)),
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center,
                             )
@@ -251,7 +251,7 @@ internal fun ParityEventScanScreen(
                                 } else {
                                     "No new photos need scanning for this Event."
                                 },
-                                color = Color(0xFF6B6670),
+                                color = snapReadableTextColor(Color(0xFF6B6670)),
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center,
                             )
@@ -280,7 +280,7 @@ internal fun ParityEventScanScreen(
                         Text("Scan Event Photos", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         Text(
                             "SnapLoop checks only photos within this Event's selected date range.",
-                            color = Color(0xFF6B6670),
+                            color = snapReadableTextColor(Color(0xFF6B6670)),
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center,
                         )
@@ -290,7 +290,7 @@ internal fun ParityEventScanScreen(
                             PhotoAccessLevel.DENIED -> {
                                 Text(
                                     "Photo access is off. Enable photo access in Android Settings to scan this Event.",
-                                    color = Color(0xFF6B6670),
+                                    color = snapReadableTextColor(Color(0xFF6B6670)),
                                     fontSize = 12.sp,
                                     textAlign = TextAlign.Center,
                                 )
@@ -333,7 +333,7 @@ private fun ScanCircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector
 private fun LimitedAccessNotice() {
     Text(
         "Selected photos only: SnapLoop can scan only the photos you allowed Android to share with this app. Choose full photo access for complete Event matching.",
-        color = Color(0xFF6B6670),
+        color = snapReadableTextColor(Color(0xFF6B6670)),
         fontSize = 12.sp,
         textAlign = TextAlign.Center,
     )

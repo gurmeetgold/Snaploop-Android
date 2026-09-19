@@ -118,7 +118,7 @@ internal fun ParityEditEventDialog(
                     "Edit Event",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface),
                 )
 
                 ParityPremiumCard {
@@ -149,7 +149,7 @@ internal fun ParityEditEventDialog(
                             )
                             Text(
                                 editCategoryName(category),
-                                color = SnapColors.Coral,
+                                color = snapReadableTextColor(SnapColors.Coral),
                                 modifier = Modifier.weight(1f).padding(start = 8.dp),
                                 textAlign = TextAlign.Start,
                             )
@@ -191,7 +191,7 @@ internal fun ParityEditEventDialog(
                     EditFieldLabel("Event dates", Icons.Filled.CalendarMonth)
                     Text(
                         "Organizer and Admins can change dates. Other members are notified; they do not need to approve the change.",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                         fontSize = 12.sp,
                     )
                     EditDateField("Starts", startsOn, controlsBusy) { newStart ->
@@ -209,7 +209,7 @@ internal fun ParityEditEventDialog(
                     }
                     Text(
                         "Dates must stay within 15 days before or after today, and the event can span at most 15 calendar days.",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                         fontSize = 12.sp,
                     )
                 }
@@ -218,7 +218,7 @@ internal fun ParityEditEventDialog(
                     Text(
                         message,
                         modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.error,
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.error),
                         textAlign = TextAlign.Center,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,

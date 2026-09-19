@@ -102,15 +102,15 @@ internal fun ParityPrivacyScreen(
                             modifier = Modifier.weight(1f),
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Black,
-                            color = SnapColors.Ink,
+                            color = snapReadableTextColor(SnapColors.Ink),
                         )
                     }
 
                     PrivacyCard {
-                        Text("You stay in control", fontSize = 20.sp, fontWeight = FontWeight.Black, color = SnapColors.Ink)
+                        Text("You stay in control", fontSize = 20.sp, fontWeight = FontWeight.Black, color = snapReadableTextColor(SnapColors.Ink))
                         Text(
                             "SnapLoop never uploads your entire photo library. Photo matching runs on participating devices and is limited to the selected Event date range. Your Face Setup selfie/reference images stay on this device; SnapLoop stores numerical face-template metadata only for the Face Match purpose you expressly consent to.",
-                            color = SnapColors.Secondary,
+                            color = snapReadableTextColor(SnapColors.Secondary),
                         )
                     }
 
@@ -135,29 +135,29 @@ internal fun ParityPrivacyScreen(
                             ) {
                                 Text(
                                     if (consentActive == true) "✓" else "◐",
-                                    color = if (consentActive == true) Color(0xFF2EAD63) else SnapColors.Lilac,
+                                    color = snapReadableTextColor(if (consentActive == true) Color(0xFF2EAD63) else SnapColors.Lilac),
                                     fontWeight = FontWeight.Black,
                                     fontSize = 18.sp,
                                 )
                             }
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text("Face Match Consent", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = SnapColors.Ink)
-                                Text(consentPresentation.statusText, color = SnapColors.Secondary, fontSize = 12.sp)
+                                Text("Face Match Consent", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = snapReadableTextColor(SnapColors.Ink))
+                                Text(consentPresentation.statusText, color = snapReadableTextColor(SnapColors.Secondary), fontSize = 12.sp)
                             }
-                            Text("›", color = SnapColors.Secondary, fontSize = 22.sp)
+                            Text("›", color = snapReadableTextColor(SnapColors.Secondary), fontSize = 22.sp)
                         }
                     }
 
                     PrivacyCard {
-                        Text("Data retention", fontSize = 19.sp, fontWeight = FontWeight.Black, color = SnapColors.Ink)
+                        Text("Data retention", fontSize = 19.sp, fontWeight = FontWeight.Black, color = snapReadableTextColor(SnapColors.Ink))
                         Text(
                             "Face Match consent and the account-level numerical face template expire after 12 months without biometric activity. They are removed sooner when you withdraw consent, delete Face Setup, or delete your account. Event-related cloud data, including matched photo previews, is deleted within 15 days after an Event ends or is manually deleted.",
-                            color = SnapColors.Secondary,
+                            color = snapReadableTextColor(SnapColors.Secondary),
                         )
                     }
 
                     PrivacyCard {
-                        Text("Legal resources", fontSize = 19.sp, fontWeight = FontWeight.Black, color = SnapColors.Ink)
+                        Text("Legal resources", fontSize = 19.sp, fontWeight = FontWeight.Black, color = snapReadableTextColor(SnapColors.Ink))
                         PrivacyLink("Privacy Policy") {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://getsnaploop.web.app/privacy.html")))
                         }
@@ -170,16 +170,16 @@ internal fun ParityPrivacyScreen(
                     }
 
                     PrivacyCard {
-                        Text("Delete Account", fontSize = 19.sp, fontWeight = FontWeight.Black, color = Color.Red)
+                        Text("Delete Account", fontSize = 19.sp, fontWeight = FontWeight.Black, color = snapReadableTextColor(Color.Red))
                         Text(
                             "Deletes your account, face data, Event memberships, and photo previews sourced from this account.",
-                            color = SnapColors.Secondary,
+                            color = snapReadableTextColor(SnapColors.Secondary),
                         )
                         OutlinedButton(
                             onClick = { confirmDelete = true },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Delete SnapLoop Account", color = Color.Red, fontWeight = FontWeight.Bold)
+                            Text("Delete SnapLoop Account", color = snapReadableTextColor(Color.Red), fontWeight = FontWeight.Bold)
                         }
                     }
                     Spacer(Modifier.height(8.dp))
@@ -249,7 +249,7 @@ internal fun ParityPrivacyScreen(
                     consentDetailsOpen = false
                     onWithdraw()
                 }) {
-                    Text("Withdraw Consent & Delete Face Setup", color = Color.Red, fontWeight = FontWeight.Bold)
+                    Text("Withdraw Consent & Delete Face Setup", color = snapReadableTextColor(Color.Red), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = { TextButton(onClick = { confirmWithdraw = false }) { Text("Cancel") } },
@@ -267,7 +267,7 @@ internal fun ParityPrivacyScreen(
             },
             confirmButton = {
                 TextButton(onClick = { confirmDelete = false; onDelete() }) {
-                    Text("Delete Account", color = Color.Red, fontWeight = FontWeight.Bold)
+                    Text("Delete Account", color = snapReadableTextColor(Color.Red), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
@@ -325,8 +325,8 @@ private fun FaceMatchConsentReviewDialog(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ParityBrandMark(50)
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Face Match Consent", fontSize = 20.sp, fontWeight = FontWeight.Black, color = SnapColors.Ink)
-                            if (consentActive) Text("Consent is active", color = SnapColors.Secondary, fontSize = 12.sp)
+                            Text("Face Match Consent", fontSize = 20.sp, fontWeight = FontWeight.Black, color = snapReadableTextColor(SnapColors.Ink))
+                            if (consentActive) Text("Consent is active", color = snapReadableTextColor(SnapColors.Secondary), fontSize = 12.sp)
                         }
                     }
 
@@ -356,13 +356,13 @@ private fun FaceMatchConsentReviewDialog(
                             },
                             modifier = Modifier.align(Alignment.Start),
                         ) {
-                            Text("Read full Face Match Notice", color = SnapColors.Lilac, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("Read full Face Match Notice", color = snapReadableTextColor(SnapColors.Lilac), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     }
 
                     if (!consentActive) {
                         PrivacyCard {
-                            Text("Residence", fontWeight = FontWeight.Bold, color = SnapColors.Ink)
+                            Text("Residence", fontWeight = FontWeight.Bold, color = snapReadableTextColor(SnapColors.Ink))
                             Box(Modifier.fillMaxWidth()) {
                                 OutlinedButton(
                                     onClick = { countryMenuOpen = true },
@@ -415,23 +415,23 @@ private fun FaceMatchConsentReviewDialog(
                                 }
                                 Text(
                                     "Face Match is available in Canada except Quebec. Ontario is selected by default. No GPS or precise address is required.",
-                                    color = SnapColors.Secondary,
+                                    color = snapReadableTextColor(SnapColors.Secondary),
                                     fontSize = 11.sp,
                                 )
                             } else {
                                 Text(
                                     "Face Match is available for residents of India. No GPS or precise address is required.",
-                                    color = SnapColors.Secondary,
+                                    color = snapReadableTextColor(SnapColors.Secondary),
                                     fontSize = 11.sp,
                                 )
                             }
                             if (!jurisdiction.isFaceMatchAvailable) {
-                                Text("Face Match is not available in Quebec.", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Face Match is not available in Quebec.", color = snapReadableTextColor(Color.Red), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
 
                         PrivacyCard {
-                            Text("Confirm before continuing", fontWeight = FontWeight.Bold, color = SnapColors.Ink)
+                            Text("Confirm before continuing", fontWeight = FontWeight.Bold, color = snapReadableTextColor(SnapColors.Ink))
                             ConsentCheckboxRow(
                                 checked = ageConfirmed,
                                 enabled = !saving && jurisdiction.isFaceMatchAvailable,
@@ -447,7 +447,7 @@ private fun FaceMatchConsentReviewDialog(
                     }
 
                     errorMessage?.let {
-                        Text(it, color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(it, color = snapReadableTextColor(Color.Red), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
                     if (consentActive) {
@@ -455,10 +455,10 @@ private fun FaceMatchConsentReviewDialog(
                             onClick = onRequestWithdraw,
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                         ) {
-                            Text("Withdraw Consent", color = Color.Red, fontWeight = FontWeight.Bold)
+                            Text("Withdraw Consent", color = snapReadableTextColor(Color.Red), fontWeight = FontWeight.Bold)
                         }
                         TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                            Text("Done", color = SnapColors.Secondary)
+                            Text("Done", color = snapReadableTextColor(SnapColors.Secondary))
                         }
                     } else {
                         ParityPrimaryButton(
@@ -474,7 +474,7 @@ private fun FaceMatchConsentReviewDialog(
                             enabled = canAccept,
                         )
                         TextButton(onClick = onDismiss, enabled = !saving, modifier = Modifier.fillMaxWidth()) {
-                            Text("Not Now", color = SnapColors.Secondary)
+                            Text("Not Now", color = snapReadableTextColor(SnapColors.Secondary))
                         }
                     }
                 }
@@ -486,8 +486,8 @@ private fun FaceMatchConsentReviewDialog(
 @Composable
 private fun ConsentDetailPoint(title: String, body: String) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(title, fontWeight = FontWeight.Bold, color = SnapColors.Ink, fontSize = 12.sp)
-        Text(body, color = SnapColors.Secondary, fontSize = 11.sp)
+        Text(title, fontWeight = FontWeight.Bold, color = snapReadableTextColor(SnapColors.Ink), fontSize = 12.sp)
+        Text(body, color = snapReadableTextColor(SnapColors.Secondary), fontSize = 11.sp)
     }
 }
 
@@ -503,7 +503,7 @@ private fun ConsentCheckboxRow(
         verticalAlignment = Alignment.Top,
     ) {
         Checkbox(checked = checked, onCheckedChange = if (enabled) onChecked else null, enabled = enabled)
-        Text(text, modifier = Modifier.weight(1f).padding(top = 10.dp), fontSize = 12.sp, color = SnapColors.Ink)
+        Text(text, modifier = Modifier.weight(1f).padding(top = 10.dp), fontSize = 12.sp, color = snapReadableTextColor(SnapColors.Ink))
     }
 }
 
@@ -524,8 +524,8 @@ private fun PrivacyLink(label: String, onClick: () -> Unit) {
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, modifier = Modifier.weight(1f), color = SnapColors.Lilac, fontWeight = FontWeight.Bold)
-        Text("›", color = SnapColors.Secondary, fontSize = 22.sp)
+        Text(label, modifier = Modifier.weight(1f), color = snapReadableTextColor(SnapColors.Lilac), fontWeight = FontWeight.Bold)
+        Text("›", color = snapReadableTextColor(SnapColors.Secondary), fontSize = 22.sp)
     }
 }
 
@@ -546,23 +546,23 @@ private fun OpenSourceLicensesDialog(
                 ) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         TextButton(onClick = onDismiss) { Text("‹ Back") }
-                        Text("Open Source Licenses", fontSize = 22.sp, fontWeight = FontWeight.Black, color = SnapColors.Ink)
+                        Text("Open Source Licenses", fontSize = 22.sp, fontWeight = FontWeight.Black, color = snapReadableTextColor(SnapColors.Ink))
                     }
                     ParityPremiumCard {
-                        Text("AuraFace-v1", fontSize = 18.sp, fontWeight = FontWeight.Black, color = SnapColors.Ink)
+                        Text("AuraFace-v1", fontSize = 18.sp, fontWeight = FontWeight.Black, color = snapReadableTextColor(SnapColors.Ink))
                         Text(
                             "SnapLoop uses an on-device ONNX Runtime build of AuraFace-v1 to generate numerical face embeddings. AuraFace-v1 is distributed under the Apache License, Version 2.0. SnapLoop's use of open-source face technology does not permit the model publisher to receive or process your Face Setup images.",
-                            color = SnapColors.Secondary,
+                            color = snapReadableTextColor(SnapColors.Secondary),
                         )
                         HorizontalDivider(Modifier.padding(vertical = 4.dp))
                         Text(
                             "AuraFace-v1 · Apache License, Version 2.0",
                             fontFamily = FontFamily.Monospace,
                             fontSize = 12.sp,
-                            color = SnapColors.Secondary,
+                            color = snapReadableTextColor(SnapColors.Secondary),
                         )
                         TextButton(onClick = onOpenApacheLicense, modifier = Modifier.align(Alignment.Start)) {
-                            Text("Read Apache License 2.0", color = SnapColors.Lilac, fontWeight = FontWeight.Bold)
+                            Text("Read Apache License 2.0", color = snapReadableTextColor(SnapColors.Lilac), fontWeight = FontWeight.Bold)
                         }
                     }
                 }

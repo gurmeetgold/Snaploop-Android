@@ -63,7 +63,7 @@ internal fun FaceReferenceThumbnail(
                 fallbackInitial.take(1).uppercase().ifBlank { "?" },
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Black,
-                color = Color(0xFF8E63F6),
+                color = snapReadableTextColor(Color(0xFF8E63F6)),
             )
         }
     }

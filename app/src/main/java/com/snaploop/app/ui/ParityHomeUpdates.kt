@@ -102,12 +102,12 @@ internal fun ParityHomeUpdates(userId: String?) {
                 "Updates",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface),
             )
             Spacer(Modifier.weight(1f))
             if (notifications.size > 1) {
                 TextButton(onClick = { showAll = true }) {
-                    Text("View all", color = SnapColors.Lilac, fontWeight = FontWeight.Bold)
+                    Text("View all", color = snapReadableTextColor(SnapColors.Lilac), fontWeight = FontWeight.Bold)
                     Surface(
                         modifier = Modifier.padding(start = 5.dp),
                         shape = CircleShape,
@@ -116,7 +116,7 @@ internal fun ParityHomeUpdates(userId: String?) {
                         Text(
                             notifications.size.toString(),
                             modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                            color = SnapColors.Lilac,
+                            color = snapReadableTextColor(SnapColors.Lilac),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                         )
@@ -208,12 +208,12 @@ private fun EventNotificationCard(
                     notification.title,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface),
                 )
                 Text(
                     notification.body,
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)),
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                 )

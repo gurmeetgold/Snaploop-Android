@@ -29,7 +29,7 @@ class EditEventVisualParityTest {
         val source = source()
         assertTrue(source.contains("TextButton("))
         assertTrue(source.contains("DropdownMenu("))
-        assertTrue(source.contains("color = SnapColors.Coral"))
+        assertTrue(source.contains("snapReadableTextColor(SnapColors.Coral)"))
     }
 
     @Test

@@ -120,7 +120,7 @@ internal fun ParityFaceSetupScreen(
                     )
                     Text(
                         "Securing your face template. Please keep SnapLoop open.",
-                        color = Color(0xFF66636C),
+                        color = snapReadableTextColor(Color(0xFF66636C)),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
                     )
@@ -160,7 +160,7 @@ internal fun ParityFaceSetupScreen(
             Text(
                 "Face Setup enables SnapLoop to find photos of you on participating Event members' phones.",
                 textAlign = TextAlign.Center,
-                color = Color(0xFF66636C),
+                color = snapReadableTextColor(Color(0xFF66636C)),
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
             )
 
@@ -180,7 +180,7 @@ internal fun ParityFaceSetupScreen(
                     Text(
                         "Selfie coverage 5/5",
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF66636C),
+                        color = snapReadableTextColor(Color(0xFF66636C)),
                         modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 10.dp),
                     )
                     LinearProgressIndicator(
@@ -189,7 +189,7 @@ internal fun ParityFaceSetupScreen(
                     )
                     Text(
                         "Five useful angles help SnapLoop recognize you across normal Event photos.",
-                        color = Color(0xFF66636C),
+                        color = snapReadableTextColor(Color(0xFF66636C)),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp),
                     )
@@ -230,7 +230,7 @@ internal fun ParityFaceSetupScreen(
                         onClick = { deleteConfirmationOpen = true },
                         modifier = Modifier.padding(top = 6.dp),
                     ) {
-                        Text("Delete Face Setup", color = Color(0xFFB3261E), fontWeight = FontWeight.Bold)
+                        Text("Delete Face Setup", color = snapReadableTextColor(Color(0xFFB3261E)), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -269,7 +269,7 @@ internal fun ParityFaceSetupScreen(
                         onDelete()
                     },
                 ) {
-                    Text("Delete Face Setup", color = Color(0xFFB3261E), fontWeight = FontWeight.Bold)
+                    Text("Delete Face Setup", color = snapReadableTextColor(Color(0xFFB3261E)), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -299,7 +299,7 @@ private fun ParityFaceTestResultScreen(
             Text("Test My Face Setup", fontSize = 26.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
             Text(
                 "Choose any normal photo and SnapLoop will check all usable faces against your saved Face Setup.",
-                color = Color(0xFF66636C),
+                color = snapReadableTextColor(Color(0xFF66636C)),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
             )
@@ -325,7 +325,7 @@ private fun ParityFaceTestResultScreen(
                 )
                 Text(
                     error ?: result?.message ?: "Checking your saved Face Setup…",
-                    color = Color(0xFF66636C),
+                    color = snapReadableTextColor(Color(0xFF66636C)),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                 )

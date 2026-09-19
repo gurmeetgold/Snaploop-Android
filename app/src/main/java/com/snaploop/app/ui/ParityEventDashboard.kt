@@ -221,7 +221,7 @@ internal fun ParityEventDashboard(
                     Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f))
                     Text(
                         "This Event is in Deleted.",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)),
                         modifier = Modifier.padding(start = 8.dp),
                     )
                 }
@@ -288,7 +288,7 @@ internal fun ParityEventDashboard(
                             Text("Invite People", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                             Text(
                                 "Share code, link, QR or phone invite",
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                                color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                                 fontSize = 13.sp,
                             )
                         }
@@ -324,7 +324,7 @@ internal fun ParityEventDashboard(
                     confirmEnd = false
                     coordinator.endSelectedEvent()
                 }) {
-                    Text("End Event", color = MaterialTheme.colorScheme.error)
+                    Text("End Event", color = snapReadableTextColor(MaterialTheme.colorScheme.error))
                 }
             },
             dismissButton = { TextButton(onClick = { confirmEnd = false }) { Text("Cancel") } },
@@ -341,7 +341,7 @@ internal fun ParityEventDashboard(
                     confirmDelete = false
                     coordinator.moveSelectedEventToDeleted()
                 }) {
-                    Text("Move to Deleted", color = MaterialTheme.colorScheme.error)
+                    Text("Move to Deleted", color = snapReadableTextColor(MaterialTheme.colorScheme.error))
                 }
             },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
@@ -424,7 +424,7 @@ private fun ParityEventHero(
             Surface(color = Color.White.copy(alpha = 0.22f), shape = CircleShape) {
                 Text(
                     parityEventStatusText(event, lifecycle),
-                    color = Color.White,
+                    color = snapReadableTextColor(Color.White),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Black,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -435,7 +435,7 @@ private fun ParityEventHero(
         Column(Modifier.align(Alignment.BottomStart)) {
             Text(
                 event.name,
-                color = Color.White,
+                color = snapReadableTextColor(Color.White),
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Black,
                 maxLines = 2,
@@ -449,7 +449,7 @@ private fun ParityEventHero(
                 Icon(Icons.Filled.CalendarMonth, contentDescription = null, tint = Color.White.copy(alpha = 0.92f), modifier = Modifier.size(17.dp))
                 Text(
                     parityEventRange(event),
-                    color = Color.White.copy(alpha = 0.92f),
+                    color = snapReadableTextColor(Color.White.copy(alpha = 0.92f)),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -468,7 +468,7 @@ private fun ParityEventHero(
                         Icon(parityRoleIcon(it), contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
                         Text(
                             parityRoleLabel(it),
-                            color = Color.White,
+                            color = snapReadableTextColor(Color.White),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
                             modifier = Modifier.padding(start = 4.dp),
@@ -522,13 +522,13 @@ private fun ParityEventSyncRow(display: EventDashboardParityPolicy.SyncDisplay) 
                 Text("Photo Scan", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text(
                     presentation.detail,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                     fontSize = 12.sp,
                 )
             }
             Text(
                 presentation.title,
-                color = presentation.tint,
+                color = snapReadableTextColor(presentation.tint),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Black,
             )
@@ -599,8 +599,8 @@ private fun ParityEventFeatureTile(
                     Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.weight(1f))
-                Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(subtitle, color = Color.White.copy(alpha = 0.94f), fontSize = 10.sp, maxLines = 1)
+                Text(title, color = snapReadableTextColor(Color.White), fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(subtitle, color = snapReadableTextColor(Color.White.copy(alpha = 0.94f)), fontSize = 10.sp, maxLines = 1)
             }
         }
     }
@@ -626,7 +626,7 @@ private fun ParityEventMembersRow(
                 fontSize = 18.sp,
                 modifier = Modifier.weight(1f).padding(start = 8.dp),
             )
-            Text("View all", color = SnapColors.Coral, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("View all", color = snapReadableTextColor(SnapColors.Coral), fontWeight = FontWeight.Bold, fontSize = 14.sp)
         }
         Row(horizontalArrangement = Arrangement.spacedBy((-8).dp)) {
             members.take(6).forEach { member ->
@@ -646,7 +646,7 @@ private fun ParityEventMembersRow(
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(initial, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(initial, color = snapReadableTextColor(Color.White), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -686,7 +686,7 @@ private fun ParityEventManagerControls(
             }
             TextButton(onClick = onEnd, enabled = !busy) {
                 Icon(Icons.Filled.StopCircle, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                Text("  End Event", color = MaterialTheme.colorScheme.error)
+                Text("  End Event", color = snapReadableTextColor(MaterialTheme.colorScheme.error))
             }
         }
 
@@ -705,7 +705,7 @@ private fun ParityEventManagerControls(
             } else {
                 TextButton(onClick = onMoveToDeleted, enabled = !busy) {
                     Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Text("  Move to Deleted", color = MaterialTheme.colorScheme.error)
+                    Text("  Move to Deleted", color = snapReadableTextColor(MaterialTheme.colorScheme.error))
                 }
             }
         }

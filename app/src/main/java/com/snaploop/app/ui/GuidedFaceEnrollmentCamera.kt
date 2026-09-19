@@ -296,11 +296,11 @@ internal fun GuidedFaceEnrollmentCamera(
                 TextButton(
                     onClick = { context.findActivity()?.onBackPressedDispatcher?.onBackPressed() },
                 ) {
-                    Text("✕", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                    Text("✕", color = snapReadableTextColor(Color.White), fontSize = 26.sp, fontWeight = FontWeight.Bold)
                 }
                 Text(
                     "Face Scan",
-                    color = Color.White,
+                    color = snapReadableTextColor(Color.White),
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
                     modifier = Modifier.weight(1f),
@@ -319,7 +319,7 @@ internal fun GuidedFaceEnrollmentCamera(
                 ) {
                     Text(
                         error,
-                        color = MaterialTheme.colorScheme.error,
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.error),
                         modifier = Modifier.padding(14.dp),
                     )
                 }
@@ -411,13 +411,13 @@ private fun GuidedStepRail(captures: Int) {
                 ) {
                     Text(
                         if (index < captures) "✓" else (index + 1).toString(),
-                        color = if (index == captures) Color.Black else Color.White,
+                        color = snapReadableTextColor(if (index == captures) Color.Black else Color.White),
                         fontWeight = FontWeight.Bold,
                     )
                 }
                 Text(
                     step.title(),
-                    color = Color.White,
+                    color = snapReadableTextColor(Color.White),
                     fontSize = if (step == GuidedFacePose.TILT_DOWN) 9.sp else 10.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 4.dp),

@@ -211,10 +211,10 @@ internal fun QrCodeScannerScreen(
             TextButton(
                 onClick = onCancel,
                 modifier = Modifier.semantics { contentDescription = "Close QR scanner" },
-            ) { Text("✕", color = Color.White, fontSize = 24.sp) }
+            ) { Text("✕", color = snapReadableTextColor(Color.White), fontSize = 24.sp) }
             Text(
                 "Scan QR Code",
-                color = Color.White,
+                color = snapReadableTextColor(Color.White),
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
                 modifier = Modifier.weight(1f).semantics { heading() },

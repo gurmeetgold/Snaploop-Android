@@ -27,6 +27,6 @@ class EditEventConcurrencyWiringTest {
         val source = source()
         assertTrue(source.contains("EventEditConcurrencyPolicy.STALE_MESSAGE"))
         assertTrue(source.contains("couldn't verify the latest Event version"))
-        assertTrue(source.contains("color = MaterialTheme.colorScheme.error"))
+        assertTrue(source.contains("snapReadableTextColor(MaterialTheme.colorScheme.error)"))
     }
 }

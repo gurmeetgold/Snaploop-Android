@@ -78,19 +78,19 @@ internal fun ParityNameSetupScreen(
                 "What should people call you?",
                 fontSize = 27.sp,
                 fontWeight = FontWeight.Black,
-                color = SnapColors.Ink,
+                color = snapReadableTextColor(SnapColors.Ink),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 18.dp),
             )
             Text(
                 "People in your events will see this name.",
-                color = SnapColors.Secondary,
+                color = snapReadableTextColor(SnapColors.Secondary),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 8.dp),
             )
 
             ParityPremiumCard(Modifier.padding(top = 22.dp)) {
-                Text("Display name", fontWeight = FontWeight.Bold, color = SnapColors.Ink)
+                Text("Display name", fontWeight = FontWeight.Bold, color = snapReadableTextColor(SnapColors.Ink))
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = ProfileNamePolicy.normalizeInput(it) },
@@ -106,7 +106,7 @@ internal fun ParityNameSetupScreen(
             ProfileNamePolicy.validationMessage(name)?.takeIf { name.isNotEmpty() }?.let { message ->
                 Text(
                     message,
-                    color = androidx.compose.ui.graphics.Color.Red,
+                    color = snapReadableTextColor(androidx.compose.ui.graphics.Color.Red),
                     fontSize = 12.sp,
                     modifier = Modifier.padding(top = 8.dp),
                 )

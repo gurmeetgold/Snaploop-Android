@@ -315,7 +315,7 @@ internal fun ParityFullScreenPhotoViewer(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         TextButton(onClick = onDismiss) {
-                            Text("‹", color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Light)
+                            Text("‹", color = snapReadableTextColor(Color.White), fontSize = 34.sp, fontWeight = FontWeight.Light)
                         }
                         Spacer(Modifier.weight(1f))
                         Surface(
@@ -325,7 +325,7 @@ internal fun ParityFullScreenPhotoViewer(
                             Text(
                                 "${pagerState.currentPage + 1} / ${matches.size}",
                                 modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
-                                color = Color.White,
+                                color = snapReadableTextColor(Color.White),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -345,7 +345,7 @@ internal fun ParityFullScreenPhotoViewer(
                     ) {
                         Text(
                             viewerMetadataLine(metadata, currentMatch.capturedAtMillis),
-                            color = Color.White.copy(alpha = 0.88f),
+                            color = snapReadableTextColor(Color.White.copy(alpha = 0.88f)),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -376,7 +376,7 @@ internal fun ParityFullScreenPhotoViewer(
                                 Text(
                                     it,
                                     modifier = Modifier.padding(top = 2.dp),
-                                    color = Color.White.copy(alpha = 0.82f),
+                                    color = snapReadableTextColor(Color.White.copy(alpha = 0.82f)),
                                     fontSize = 11.sp,
                                     maxLines = 1,
                                 )
@@ -514,11 +514,11 @@ private fun ZoomableMatchedPhoto(
         when (val state = loadState) {
             ViewerPhotoLoadState.Loading -> CircularProgressIndicator(color = Color.White)
             ViewerPhotoLoadState.Failed -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Photo unavailable", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Photo unavailable", color = snapReadableTextColor(Color.White), fontWeight = FontWeight.Bold)
                 Text(
                     "Try the photo again.",
                     modifier = Modifier.padding(top = 6.dp),
-                    color = Color.White.copy(alpha = 0.72f),
+                    color = snapReadableTextColor(Color.White.copy(alpha = 0.72f)),
                     fontSize = 12.sp,
                 )
             }

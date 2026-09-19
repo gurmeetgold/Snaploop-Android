@@ -95,13 +95,13 @@ internal fun ParityAuthScreen(
                 "Get every photo of you.",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = snapReadableTextColor(MaterialTheme.colorScheme.onBackground),
                 modifier = Modifier.padding(top = 26.dp),
             )
             Text(
                 "Photos your friends took of you on their phones, brought to your phone automatically.",
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             )
@@ -167,7 +167,7 @@ internal fun ParityAuthScreen(
                     )
                     Text(
                         error,
-                        color = Color.Red,
+                        color = snapReadableTextColor(Color.Red),
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(start = 7.dp),
@@ -290,7 +290,7 @@ private fun CodeEntry(
         normalizedPhoneNumber?.let {
             Text(
                 "We sent a code to $it",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = snapReadableTextColor(MaterialTheme.colorScheme.onSurfaceVariant),
                 fontSize = 12.sp,
             )
         }

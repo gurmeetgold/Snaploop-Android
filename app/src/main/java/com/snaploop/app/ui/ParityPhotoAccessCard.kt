@@ -91,11 +91,11 @@ internal fun ParityPhotoAccessCard() {
                     "Photo Access",
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface),
                 )
                 Text(
                     PhotoAccessParity.description(access),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)),
                     fontSize = 12.sp,
                 )
             }
@@ -208,7 +208,7 @@ private fun PhotoAccessButton(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(icon, contentDescription = null, tint = foreground, modifier = Modifier.size(18.dp))
-                Text(text, color = foreground, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text(text, color = snapReadableTextColor(foreground), fontWeight = FontWeight.Bold, fontSize = 17.sp)
             }
         }
     }

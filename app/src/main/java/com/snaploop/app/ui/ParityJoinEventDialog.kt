@@ -139,14 +139,14 @@ internal fun ParityJoinEventContent(
                 modifier = Modifier.semantics { heading() },
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface),
             )
             Text(
                 "Enter an Event code or invite link, or scan the Event QR code.",
                 modifier = Modifier.padding(top = 10.dp),
                 textAlign = TextAlign.Center,
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)),
             )
 
             val fieldContainer = MaterialTheme.colorScheme.surface
@@ -173,7 +173,7 @@ internal fun ParityJoinEventContent(
                         .fillMaxWidth()
                         .padding(top = 8.dp)
                         .semantics { liveRegion = LiveRegionMode.Assertive },
-                    color = MaterialTheme.colorScheme.error,
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.error),
                     fontSize = 12.sp,
                     textAlign = TextAlign.Start,
                 )
@@ -208,7 +208,7 @@ internal fun ParityJoinEventContent(
                 Text(
                     "or",
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                 )
                 HorizontalDivider(Modifier.weight(1f))
             }

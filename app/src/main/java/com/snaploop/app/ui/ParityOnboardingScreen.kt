@@ -97,7 +97,7 @@ internal fun ParityOnboardingScreen(onCompleted: () -> Unit) {
                     "${page + 1} of ${pages.size}",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = SnapColors.Secondary,
+                    color = snapReadableTextColor(SnapColors.Secondary),
                 )
             }
 
@@ -155,7 +155,7 @@ internal fun ParityOnboardingScreen(onCompleted: () -> Unit) {
                             onClick = { scope.launch { pagerState.animateScrollToPage(page - 1) } },
                             modifier = Modifier.height(44.dp),
                         ) {
-                            Text("Back", color = SnapColors.Secondary, fontWeight = FontWeight.SemiBold)
+                            Text("Back", color = snapReadableTextColor(SnapColors.Secondary), fontWeight = FontWeight.SemiBold)
                         }
                     } else {
                         Spacer(Modifier.height(44.dp))
@@ -207,7 +207,7 @@ private fun OnboardingParityPageContent(item: OnboardingParityPage, index: Int) 
 
             Text(
                 item.title,
-                color = SnapColors.Ink,
+                color = snapReadableTextColor(SnapColors.Ink),
                 fontSize = 26.sp,
                 lineHeight = 29.sp,
                 fontWeight = FontWeight.Bold,
@@ -215,7 +215,7 @@ private fun OnboardingParityPageContent(item: OnboardingParityPage, index: Int) 
             )
             Text(
                 item.body,
-                color = SnapColors.Secondary,
+                color = snapReadableTextColor(SnapColors.Secondary),
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 textAlign = TextAlign.Center,
@@ -239,7 +239,7 @@ private fun OnboardingParityPageContent(item: OnboardingParityPage, index: Int) 
             )
             Text(
                 item.note,
-                color = SnapColors.Ink.copy(alpha = 0.78f),
+                color = snapReadableTextColor(SnapColors.Ink.copy(alpha = 0.78f)),
                 fontSize = 12.sp,
                 lineHeight = 16.sp,
                 fontWeight = FontWeight.Medium,
@@ -397,7 +397,7 @@ private fun PermissionChip(icon: ImageVector, text: String) {
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Icon(icon, contentDescription = null, tint = SnapColors.Ink, modifier = Modifier.size(14.dp))
-        Text(text, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = SnapColors.Ink, maxLines = 1)
+        Text(text, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = snapReadableTextColor(SnapColors.Ink), maxLines = 1)
     }
 }
 

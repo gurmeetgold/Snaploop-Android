@@ -158,7 +158,7 @@ private fun ParityShareEventContent(
                         "Anyone with the invite can open the Event, sign in, and choose whether to join."
                     },
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)),
                     modifier = Modifier.padding(horizontal = 12.dp),
                 )
 
@@ -237,7 +237,7 @@ private fun ParityShareEventContent(
                                 )
                                 Text(
                                     ShareEventParitySpec.PHONE_INVITE_SUBTITLE,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                                     fontSize = 12.sp,
                                 )
                             }
@@ -275,7 +275,7 @@ private fun ParityShareEventContent(
                         "Event code",
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                         fontSize = 12.sp,
                     )
                 }

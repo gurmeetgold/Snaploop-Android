@@ -264,7 +264,7 @@ internal fun ParityPrimaryButton(
                 leadingContent?.invoke()
                 Text(
                     text,
-                    color = Color.White,
+                    color = snapReadableTextColor(Color.White),
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                 )

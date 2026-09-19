@@ -179,18 +179,18 @@ internal fun ParityPhoneInviteScreen(
             }
 
             ParityBrandMark(56)
-            Text("Invite by Phone", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = SnapColors.Ink)
+            Text("Invite by Phone", fontSize = 27.sp, fontWeight = FontWeight.Bold, color = snapReadableTextColor(SnapColors.Ink))
             Text(
                 "Invite someone directly, or choose a number from your contacts.",
                 textAlign = TextAlign.Center,
-                color = SnapColors.Secondary,
+                color = snapReadableTextColor(SnapColors.Secondary),
                 fontSize = 14.sp,
             )
 
             ParityPremiumCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.PersonAdd, contentDescription = null, tint = SnapColors.Coral)
-                    Text("  Add a person", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = SnapColors.Ink)
+                    Text("  Add a person", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = snapReadableTextColor(SnapColors.Ink))
                 }
 
                 Row(
@@ -211,8 +211,8 @@ internal fun ParityPhoneInviteScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Text(country.regionCode, color = SnapColors.Coral, fontWeight = FontWeight.Bold)
-                            Text(country.callingCode, color = SnapColors.Coral, fontWeight = FontWeight.Bold)
+                            Text(country.regionCode, color = snapReadableTextColor(SnapColors.Coral), fontWeight = FontWeight.Bold)
+                            Text(country.callingCode, color = snapReadableTextColor(SnapColors.Coral), fontWeight = FontWeight.Bold)
                             Icon(
                                 Icons.Filled.ExpandMore,
                                 contentDescription = "Choose country",
@@ -276,7 +276,7 @@ internal fun ParityPhoneInviteScreen(
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     Icon(Icons.Filled.Contacts, contentDescription = null, tint = SnapColors.Mint)
-                    Text("  Choose from Contacts", color = SnapColors.Mint, fontWeight = FontWeight.Bold)
+                    Text("  Choose from Contacts", color = snapReadableTextColor(SnapColors.Mint), fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -293,19 +293,19 @@ internal fun ParityPhoneInviteScreen(
             message?.let {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF138A52))
-                    Text("  $it", color = Color(0xFF138A52), fontSize = 13.sp)
+                    Text("  $it", color = snapReadableTextColor(Color(0xFF138A52)), fontSize = 13.sp)
                 }
             }
             errorMessage?.let {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Error, contentDescription = null, tint = Color.Red)
-                    Text("  $it", color = Color.Red, fontSize = 13.sp)
+                    Text("  $it", color = snapReadableTextColor(Color.Red), fontSize = 13.sp)
                 }
             }
 
             if (statuses.isNotEmpty()) {
                 ParityPremiumCard {
-                    Text("Invitations", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = SnapColors.Ink)
+                    Text("Invitations", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = snapReadableTextColor(SnapColors.Ink))
                     statuses.forEachIndexed { index, row ->
                         Row(
                             Modifier.fillMaxWidth().padding(vertical = 5.dp),
@@ -334,7 +334,7 @@ internal fun ParityPhoneInviteScreen(
                                 Text(row.phoneNumber, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                 Text(
                                     if (inApp) "In-app invitation" else "SMS invitation",
-                                    color = SnapColors.Secondary,
+                                    color = snapReadableTextColor(SnapColors.Secondary),
                                     fontSize = 12.sp,
                                 )
                             }
@@ -363,15 +363,15 @@ internal fun ParityPhoneInviteScreen(
             }
 
             ParityPremiumCard {
-                Text("How it works", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = SnapColors.Ink)
+                Text("How it works", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = snapReadableTextColor(SnapColors.Ink))
                 Text(
                     "Enter a phone number or choose a contact. Existing SnapLoop users receive the invitation directly in the app. If they are not on SnapLoop yet, you can send them an SMS invite link.",
-                    color = SnapColors.Secondary,
+                    color = snapReadableTextColor(SnapColors.Secondary),
                     fontSize = 13.sp,
                 )
                 Text(
                     "They join only after accepting the invitation.",
-                    color = SnapColors.Secondary,
+                    color = snapReadableTextColor(SnapColors.Secondary),
                     fontSize = 13.sp,
                 )
             }

@@ -120,11 +120,11 @@ internal fun ParityCreateEventDialog(
                     "Create an Event",
                     fontSize = CreateEventVisualParitySpec.HERO_TITLE_SP.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface),
                 )
                 Text(
                     "Trip, party, family celebration, wedding — bring everyone's photos together.",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f),
+                    color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)),
                     fontSize = CreateEventVisualParitySpec.BODY_SP.sp,
                     textAlign = TextAlign.Center,
                 )
@@ -224,13 +224,13 @@ internal fun ParityCreateEventDialog(
                     )
                     Text(
                         "SnapLoop only considers photos taken within this Event's selected date range. Dates must stay within 15 days before or after today, and an Event can span at most 15 calendar days.",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+                        color = snapReadableTextColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)),
                         fontSize = CreateEventVisualParitySpec.DATE_COPY_SP.sp,
                     )
                     if (!dateValid) {
                         Text(
                             "Choose a valid Event date range.",
-                            color = MaterialTheme.colorScheme.error,
+                            color = snapReadableTextColor(MaterialTheme.colorScheme.error),
                             fontSize = CreateEventVisualParitySpec.DATE_COPY_SP.sp,
                             fontWeight = FontWeight.Bold,
                         )
