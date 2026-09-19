@@ -24,9 +24,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -54,10 +56,13 @@ internal fun ParityBrandBackground(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val dark = MaterialTheme.colorScheme.background == SnapColors.DarkCanvas
-    Box(
-        modifier
-            .fillMaxSize()
-            .drawWithCache {
+    CompositionLocalProvider(
+        LocalContentColor provides MaterialTheme.colorScheme.onBackground,
+    ) {
+        Box(
+            modifier
+                .fillMaxSize()
+                .drawWithCache {
                 val longestSide = max(size.width, size.height)
                 val base = if (dark) {
                     Brush.linearGradient(listOf(SnapColors.DarkCanvas, SnapColors.DarkCanvas))
@@ -108,9 +113,10 @@ internal fun ParityBrandBackground(
                     drawRect(topRightGlow)
                     drawRect(bottomLeftGlow)
                 }
-            },
-        content = content,
-    )
+                },
+            content = content,
+        )
+    }
 }
 
 /**
@@ -185,7 +191,10 @@ internal fun ParityPremiumCard(
             )
             .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f), shape),
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
