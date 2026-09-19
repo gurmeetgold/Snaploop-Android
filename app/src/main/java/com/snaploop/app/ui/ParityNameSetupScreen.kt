@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,6 +66,7 @@ internal fun ParityNameSetupScreen(
                         textAlign = TextAlign.Center,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
                     )
                     Spacer(Modifier.size(48.dp))
                 }
@@ -95,7 +97,7 @@ internal fun ParityNameSetupScreen(
                     value = name,
                     onValueChange = { name = ProfileNamePolicy.normalizeInput(it) },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    placeholder = { Text("Your name") },
+                    placeholder = { Text("Your name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = SnapColors.Coral) },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     singleLine = true,
