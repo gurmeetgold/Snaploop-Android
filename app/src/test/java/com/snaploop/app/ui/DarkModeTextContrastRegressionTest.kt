@@ -4,6 +4,8 @@ import androidx.compose.ui.graphics.Color
 import java.nio.file.Files
 import java.nio.file.Paths
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DarkModeTextContrastRegressionTest {
@@ -32,24 +34,24 @@ class DarkModeTextContrastRegressionTest {
     @Test
     fun `shared backgrounds and cards provide theme-aware foreground colors`() {
         val source = Files.readString(Paths.get("src/main/java/com/snaploop/app/ui/ParityUiPrimitives.kt"))
-        assert(source.contains("LocalContentColor provides MaterialTheme.colorScheme.onBackground"))
-        assert(source.contains("contentColor = MaterialTheme.colorScheme.onSurface"))
+        assertTrue(source.contains("LocalContentColor provides MaterialTheme.colorScheme.onBackground"))
+        assertTrue(source.contains("contentColor = MaterialTheme.colorScheme.onSurface"))
     }
 
     @Test
     fun `reported dark-mode headings and fields use theme colors`() {
         val face = Files.readString(Paths.get("src/main/java/com/snaploop/app/ui/ParityFaceSetupScreen.kt"))
-        assert(face.contains("color = MaterialTheme.colorScheme.onBackground"))
+        assertTrue(face.contains("color = MaterialTheme.colorScheme.onBackground"))
 
         val name = Files.readString(Paths.get("src/main/java/com/snaploop/app/ui/ParityNameSetupScreen.kt"))
-        assert(name.contains("color = MaterialTheme.colorScheme.onBackground"))
-        assert(name.contains("Text(\"Your name\", color = MaterialTheme.colorScheme.onSurfaceVariant)"))
+        assertTrue(name.contains("color = MaterialTheme.colorScheme.onBackground"))
+        assertTrue(name.contains("Text(\"Your name\", color = MaterialTheme.colorScheme.onSurfaceVariant)"))
     }
 
     @Test
     fun `face match consent has no redundant privacy heading`() {
         val consent = Files.readString(Paths.get("src/main/java/com/snaploop/app/ui/ParityConsentScreen.kt"))
-        assert(!consent.contains("Text(\"Privacy\""))
+        assertFalse(consent.contains("Text(\"Privacy\""))
     }
 
 }
