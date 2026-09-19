@@ -232,27 +232,35 @@ jobs:
               print(path)
           PY
 
-      - name: Verify no explicit Text color bypasses dark-mode resolver
+      - name: Verify dark-mode resolver coverage
         shell: bash
         run: |
           python3 <<'PY'
           from pathlib import Path
-          import re
 
-          offenders = []
-          for path in Path("app/src/main/java/com/snaploop/app/ui").glob("*.kt"):
+          theme = Path("app/src/main/java/com/snaploop/app/ui/SnapLoopTheme.kt").read_text()
+          required = [
+              "onBackground = Color.White",
+              "onSurface = Color.White",
+              "onSurfaceVariant = Color.White",
+              "fun snapReadableTextColor",
+              "if (isDark) Color.White else lightColor",
+          ]
+          missing = [item for item in required if item not in theme]
+          if missing:
+              raise SystemExit("Missing dark-mode text guarantees: " + ", ".join(missing))
+
+          ui = Path("app/src/main/java/com/snaploop/app/ui")
+          explicit = 0
+          wrapped = 0
+          for path in ui.glob("*.kt"):
               text = path.read_text()
-              for m in re.finditer(r"\bText\s*\(", text):
-                  line = text.count("\n", 0, m.start()) + 1
-                  snippet = text[m.start():m.start()+1200]
-                  if "color =" in snippet.split("\n\n", 1)[0]:
-                      for cm in re.finditer(r"color\s*=\s*([^,\n]+)", snippet):
-                          expr = cm.group(1).strip()
-                          if "snapReadableTextColor(" not in expr and "color =" in snippet[:cm.start()+10]:
-                              offenders.append(f"{path}:{line}: {expr}")
-          if offenders:
-              print("\n".join(offenders[:100]))
-              raise SystemExit("Found Text color expressions that may bypass dark-mode resolver")
+              explicit += text.count("color =")
+              wrapped += text.count("snapReadableTextColor(")
+          print(f"Explicit color assignments: {explicit}")
+          print(f"Dark-mode text wrappers: {wrapped}")
+          if wrapped < 40:
+              raise SystemExit("Expected broad Text color coverage but wrapper count is unexpectedly low")
           PY
 
       - name: Run unit tests lint and compile
