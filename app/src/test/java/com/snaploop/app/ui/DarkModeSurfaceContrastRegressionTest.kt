@@ -34,6 +34,15 @@ class DarkModeSurfaceContrastRegressionTest {
     }
 
     @Test
+    fun `legacy fallback shell also uses theme-aware surfaces`() {
+        val source = Files.readString(Paths.get("src/main/java/com/snaploop/app/ui/SnapLoopApp.kt"))
+        assertTrue(source.contains("NavigationBar(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))"))
+        assertTrue(source.contains("CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f))"))
+        assertTrue(source.contains("listOf(SnapColors.DarkCanvas, SnapColors.DarkSurface, SnapColors.DarkCanvas)"))
+        assertFalse(source.contains("CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.96f))"))
+    }
+
+    @Test
     fun `you and gallery avoid light cards with white dark-mode text`() {
         val you = Files.readString(Paths.get("src/main/java/com/snaploop/app/ui/ParityYouScreen.kt"))
         assertTrue(you.contains("Brush.linearGradient(listOf(SnapColors.DarkCanvas, SnapColors.DarkSubtleSurface))"))

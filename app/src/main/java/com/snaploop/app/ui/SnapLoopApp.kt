@@ -518,7 +518,7 @@ private fun MainTabs(state: AppUiState, coordinator: AppCoordinator) {
     Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {
-            NavigationBar(containerColor = Color.White.copy(alpha = 0.97f)) {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)) {
                 listOf("⌂\nHome", "▦\nGallery", "●\nYou").forEachIndexed { index, label ->
                     NavigationBarItem(
                         selected = tab == index,
@@ -1283,7 +1283,7 @@ private fun EventCard(event: SnapEvent, modifier: Modifier = Modifier, onClick: 
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.96f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1398,7 +1398,7 @@ private fun PremiumCard(modifier: Modifier = Modifier, content: @Composable Colu
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.96f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
@@ -1407,9 +1407,16 @@ private fun PremiumCard(modifier: Modifier = Modifier, content: @Composable Colu
 
 @Composable
 private fun BrandBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    val dark = MaterialTheme.colorScheme.background == SnapColors.DarkCanvas
     Box(
         modifier.fillMaxSize().background(
-            Brush.verticalGradient(listOf(Color(0xFFFFFBFD), Color(0xFFFFF6FC), Color(0xFFFFFCFF))),
+            Brush.verticalGradient(
+                if (dark) {
+                    listOf(SnapColors.DarkCanvas, SnapColors.DarkSurface, SnapColors.DarkCanvas)
+                } else {
+                    listOf(Color(0xFFFFFBFD), Color(0xFFFFF6FC), Color(0xFFFFFCFF))
+                },
+            ),
         ),
         content = content,
     )
