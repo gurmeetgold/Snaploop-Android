@@ -230,6 +230,32 @@ jobs:
           print("Updated explicit Text colors in:")
           for path in changed:
               print(path)
+
+          # Update source-contract tests so they validate the dark-aware wrapper
+          # rather than exact pre-fix color assignment strings.
+          patches = {
+              Path("app/src/test/java/com/snaploop/app/ui/EditEventConcurrencyWiringTest.kt"): [
+                  ('source.contains("color = MaterialTheme.colorScheme.error")',
+                   'source.contains("snapReadableTextColor(MaterialTheme.colorScheme.error)")'),
+              ],
+              Path("app/src/test/java/com/snaploop/app/ui/EditEventVisualParityTest.kt"): [
+                  ('source.contains("color = SnapColors.Coral")',
+                   'source.contains("snapReadableTextColor(SnapColors.Coral)")'),
+              ],
+              Path("app/src/test/java/com/snaploop/app/ui/RegionThemeRegressionTest.kt"): [
+                  ('source.contains("onSurfaceVariant = Color(0xFFC9C6D1)")',
+                   'source.contains("onSurfaceVariant = Color.White")'),
+                  ('source.contains("Text(count.toString(), color = Color.White")',
+                   'source.contains("Text(count.toString(), color = snapReadableTextColor(Color.White)")'),
+              ],
+          }
+          for path, replacements in patches.items():
+              text = path.read_text()
+              for old, new in replacements:
+                  if old not in text:
+                      raise SystemExit(f"Expected regression-test contract not found in {path}: {old}")
+                  text = text.replace(old, new)
+              path.write_text(text)
           PY
 
       - name: Verify dark-mode resolver coverage
