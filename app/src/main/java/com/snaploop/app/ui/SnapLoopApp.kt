@@ -1283,7 +1283,10 @@ private fun EventCard(event: SnapEvent, modifier: Modifier = Modifier, onClick: 
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1407,19 +1410,7 @@ private fun PremiumCard(modifier: Modifier = Modifier, content: @Composable Colu
 
 @Composable
 private fun BrandBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
-    val dark = MaterialTheme.colorScheme.background == SnapColors.DarkCanvas
-    Box(
-        modifier.fillMaxSize().background(
-            Brush.verticalGradient(
-                if (dark) {
-                    listOf(SnapColors.DarkCanvas, SnapColors.DarkSurface, SnapColors.DarkCanvas)
-                } else {
-                    listOf(Color(0xFFFFFBFD), Color(0xFFFFF6FC), Color(0xFFFFFCFF))
-                },
-            ),
-        ),
-        content = content,
-    )
+    ParityBrandBackground(modifier = modifier, content = content)
 }
 
 private fun brandGradient() = Brush.linearGradient(listOf(SnapColors.Orange, SnapColors.Coral, SnapColors.HotPink, SnapColors.Lilac, SnapColors.Blue))
