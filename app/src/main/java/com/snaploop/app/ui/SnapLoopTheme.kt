@@ -158,4 +158,7 @@ internal fun resolveSnapTextColor(isDark: Boolean, lightColor: Color): Color =
 internal fun snapReadableTextColor(lightColor: Color): Color =
     resolveSnapTextColor(isSystemInDarkTheme(), lightColor)
 
+/** Text drawn on an intentionally light surface remains dark in either system appearance. */
+internal fun snapTextOnLightSurface(lightColor: Color = SnapColors.Ink): Color = lightColor
+
 internal const val APP_FONT_SCALE_MULTIPLIER = 0.96f

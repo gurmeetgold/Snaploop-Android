@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
@@ -80,7 +81,13 @@ internal fun ParityYouScreen(
     Column(
         Modifier
             .fillMaxSize()
-            .background(SnapGradients.SoftWash)
+            .background(
+                if (MaterialTheme.colorScheme.background == SnapColors.DarkCanvas) {
+                    Brush.linearGradient(listOf(SnapColors.DarkCanvas, SnapColors.DarkSubtleSurface))
+                } else {
+                    SnapGradients.SoftWash
+                },
+            )
             .verticalScroll(rememberScrollState())
             .padding(
                 horizontal = YouScreenParitySpec.HORIZONTAL_PADDING_DP.dp,

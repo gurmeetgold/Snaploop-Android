@@ -239,7 +239,7 @@ private fun OnboardingParityPageContent(item: OnboardingParityPage, index: Int) 
             )
             Text(
                 item.note,
-                color = snapReadableTextColor(SnapColors.Ink.copy(alpha = 0.78f)),
+                color = snapTextOnLightSurface(SnapColors.Ink.copy(alpha = 0.78f)),
                 fontSize = 12.sp,
                 lineHeight = 16.sp,
                 fontWeight = FontWeight.Medium,
@@ -362,7 +362,7 @@ private fun FeatureBubble(icon: ImageVector, label: String) {
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(icon, contentDescription = null, tint = SnapColors.Coral, modifier = Modifier.size(42.dp))
-        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.padding(top = 7.dp))
+        Text(label, color = snapTextOnLightSurface(), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.padding(top = 7.dp))
     }
 }
 
@@ -397,7 +397,7 @@ private fun PermissionChip(icon: ImageVector, text: String) {
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Icon(icon, contentDescription = null, tint = SnapColors.Ink, modifier = Modifier.size(14.dp))
-        Text(text, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = snapReadableTextColor(SnapColors.Ink), maxLines = 1)
+        Text(text, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = snapTextOnLightSurface(), maxLines = 1)
     }
 }
 

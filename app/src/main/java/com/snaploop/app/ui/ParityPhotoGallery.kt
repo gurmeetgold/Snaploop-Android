@@ -429,7 +429,10 @@ internal fun ParityPhotoGallery(
 
         if (visible.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Card(shape = RoundedCornerShape(22.dp)) {
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
                     Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             if (favoritesOnly) "No favorites yet" else "No photos of you yet",
