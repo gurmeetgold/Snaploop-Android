@@ -71,8 +71,7 @@ internal fun ParityConsentScreen(
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onNotNow) { Text("‹ Back") }
-                Text("Privacy", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Black, fontSize = 20.sp)
-                Spacer(Modifier.padding(horizontal = 28.dp))
+                Spacer(Modifier.weight(1f))
             }
 
             ParityBrandMark(58)
